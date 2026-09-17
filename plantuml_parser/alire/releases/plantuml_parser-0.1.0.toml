@@ -1,0 +1,24 @@
+name = "plantuml_parser"
+description = "PlantUML state- and class-diagram parser (Ada 2022 / GNAT X)"
+version = "0.1.0"
+authors = ["Joe Beazelman"]
+maintainers = ["Joe Beazelman <joebeazelman@gmail.com>"]
+maintainers-logins = ["Joebeazelman"]
+licenses = "MIT OR Apache-2.0 WITH LLVM-exception"
+website = "https://github.com/Joebeazelman/plantuml2code"
+tags = ["plantuml", "parser", "uml", "state-machine", "class-diagram"]
+
+[build-switches]
+"*".ada_version = "ada2022"
+"*".style_checks = "No"
+"*".optimization = "Performance"
+
+[[test]]
+name = "plantuml_parser_tests"
+runner = "test_states"
+
+[origin]
+commit = "0e9113b9512ef6c41e0d83db35023fc034d15327"
+subdir = "./plantuml_parser/"
+url = "git+https://github.com/Joebeazelman/plantuml2code.git"
+

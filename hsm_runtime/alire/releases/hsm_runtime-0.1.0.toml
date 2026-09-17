@@ -1,0 +1,20 @@
+name = "hsm_runtime"
+description = "Tiny hierarchical state machine runtime for generated Ada code"
+version = "0.1.0"
+authors = ["Joe Beazelman"]
+maintainers = ["Joe Beazelman <joebeazelman@gmail.com>"]
+maintainers-logins = ["Joebeazelman"]
+licenses = "MIT OR Apache-2.0 WITH LLVM-exception"
+website = "https://github.com/Joebeazelman/plantuml2code"
+tags = ["hsm", "state-machine", "runtime", "ada"]
+
+[build-switches]
+"*".ada_version = "ada2022"
+"*".style_checks = "No"
+"*".optimization = "Performance"
+
+[origin]
+commit = "0e9113b9512ef6c41e0d83db35023fc034d15327"
+subdir = "./hsm_runtime/"
+url = "git+https://github.com/Joebeazelman/plantuml2code.git"
+
