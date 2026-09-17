@@ -1,0 +1,25 @@
+@startuml Zoo
+package Animals {
+  abstract class Animal {
+    #name : String
+    +Speak() : void
+    +{abstract} Move()
+  }
+  class Dog {
+    +Fetch()
+  }
+  interface Pet {
+    +Name() : String
+  }
+}
+enum Color {
+  Red
+  Green
+  Blue
+}
+Animal <|-- Dog
+Pet <|.. Dog
+Dog "1" *-- "many" Toy : owns
+class Toy
+Dog --> Color : has
+@enduml

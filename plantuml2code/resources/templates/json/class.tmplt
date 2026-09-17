@@ -1,0 +1,13 @@
+{
+  "diagram_name": "@_JSON_ESCAPE:DIAGRAM_NAME_@",
+  "classifiers": [
+@@TABLE@@
+    @_CLASS_LINES_JSON_@
+@@END_TABLE@@
+  ],
+  "relations": [
+@@TABLE@@
+    @_REL_LINES_JSON_@
+@@END_TABLE@@
+  ]
+}

@@ -1,0 +1,19 @@
+with "plantuml_parser";
+with "templates_parser";
+
+project PlantUML2Code is
+   for Source_Dirs use ("src");
+   for Object_Dir use "obj";
+   for Exec_Dir use "bin";
+   for Main use ("plantuml2code.adb");
+
+   package Compiler is
+      for Default_Switches ("Ada") use
+        ("-gnat2022", "-gnatX",
+         "-gnata", "-gnatwa", "-gnatVa");
+   end Compiler;
+
+   package Install is
+      for Artifacts (".") use ("resources");
+   end Install;
+end PlantUML2Code;

@@ -1,0 +1,25 @@
+name = "plantuml2code"
+description = "PlantUML to code and diagram generator"
+version = "0.1.0"
+authors = ["You"]
+maintainers = ["You <you@example.com>"]
+maintainers-logins = ["you"]
+licenses = "MIT OR Apache-2.0 WITH LLVM-exception"
+website = ""
+tags = ["plantuml", "codegen", "templates"]
+
+executables = ["plantuml2code"]
+
+[build-switches]
+"*".ada_version = "ada2022"
+"*".style_checks = "No"
+"*".optimization = "Performance"
+
+[[depends-on]]
+plantuml_parser = "*"
+
+[[pins]]
+plantuml_parser = { path = "../plantuml_parser" }
+
+[[depends-on]]
+templates_parser = "^26.0.0"

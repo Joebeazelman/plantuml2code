@@ -1,0 +1,13 @@
+{
+  "diagram_name": "@_JSON_ESCAPE:DIAGRAM_NAME_@",
+  "states": [
+@@TABLE@@
+    @_STATE_LINES_JSON_@
+@@END_TABLE@@
+  ],
+  "transitions": [
+@@TABLE@@
+    @_TRANS_LINES_JSON_@
+@@END_TABLE@@
+  ]
+}

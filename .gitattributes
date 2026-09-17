@@ -1,0 +1,6 @@
+* text=auto eol=lf
+*.adb text
+*.ads text
+*.gpr text
+*.toml text
+*.puml text

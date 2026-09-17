@@ -1,0 +1,10 @@
+--  ---------------------------------------------------------------------
+--  @_PACKAGE_NAME_@_Actions (body)
+--
+--  Hand-written action bodies. Emitted once and never overwritten.
+--  ---------------------------------------------------------------------
+
+package body @_PACKAGE_NAME_@_Actions is
+
+@_ACTION_BODIES_@
+end @_PACKAGE_NAME_@_Actions;

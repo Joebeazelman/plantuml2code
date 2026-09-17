@@ -1,0 +1,47 @@
+--  ---------------------------------------------------------------------
+--  @_PACKAGE_NAME_@
+--
+--  @_DESCRIPTION_@
+--
+--  Generated from @_SOURCE_DIAGRAM_@ on @_GENERATION_DATE_@.
+--  Do not edit by hand; regenerate from the diagram instead.
+--  ---------------------------------------------------------------------
+
+with HSM.Machines;
+@_CHILD_WITH_CLAUSES_@
+package @_PACKAGE_NAME_@ is
+
+   type State is
+     (@_STATE_LITERALS_@);
+
+   type Event is
+     (@_EVENT_LITERALS_@);
+
+   package Base is new HSM.Machines
+     (State   => State,
+      Event   => Event,
+      Initial => @_INITIAL_STATE_@);
+
+   type Machine is new Base.Machine with private;
+
+   overriding
+   function Next_State (Self : Machine; On : Event) return State;
+
+   overriding
+   procedure On_Enter (Self : in out Machine);
+
+   overriding
+   procedure On_Exit (Self : in out Machine);
+
+   overriding
+   function On_Internal (Self : in out Machine; On : Event) return Boolean;
+
+   overriding
+   function Name (Self : Machine) return String;
+
+@_STEP_CHILD_DECLS_@
+private
+
+@_PRIVATE_RECORD_@
+
+end @_PACKAGE_NAME_@;

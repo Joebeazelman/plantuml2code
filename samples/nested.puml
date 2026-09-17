@@ -1,0 +1,20 @@
+@startuml Nested
+[*] --> Idle
+state Idle
+Idle : entry / Log_Idle
+Idle : exit / Cleanup_Idle
+Idle : Tick [Count < 10] / Bump
+Idle --> Running : Start
+state Running {
+  [*] --> Spinning
+  state Spinning
+  Spinning : do / Poll
+  Spinning : Pause / Halt
+  Spinning --> Waiting : Yield
+  state Waiting
+  Waiting --> Spinning : Resume
+  Waiting --> [H] : Suspend
+}
+Running --> Idle : Stop
+Running --> [*] : Finish
+@enduml

@@ -1,0 +1,40 @@
+# Alire build artifacts
+*/obj/
+*/lib/
+*/bin/
+*/alire/
+alire/
+
+# Ada compiler output
+*.ali
+*.o
+*.bexch
+
+# macOS
+.DS_Store
+._*
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# Generated output (regenerable)
+/gen/
+/tmp/
+
+# Backups from in-place edits
+*.bak
+
+# Alire-generated per-machine config
+*/config/
+
+# Generated Ada in the sample (regenerable from samples/nested.puml)
+/gen_test/src/Nested.ads
+/gen_test/src/Nested.adb
+/gen_test/src/Nested_Actions.ads
+/gen_test/src/Nested_Actions.adb
+/gen_test/src/Running_Machine.ads
+/gen_test/src/Running_Machine.adb
+/gen_test/src/Running_Machine_Actions.ads
+/gen_test/src/Running_Machine_Actions.adb

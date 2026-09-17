@@ -1,0 +1,14 @@
+name = "hsm_runtime"
+description = "Tiny hierarchical state machine runtime for generated code"
+version = "0.1.0"
+authors = ["You"]
+maintainers = ["You <you@example.com>"]
+maintainers-logins = ["you"]
+licenses = "MIT OR Apache-2.0 WITH LLVM-exception"
+website = ""
+tags = ["hsm", "state-machine", "runtime"]
+
+[build-switches]
+"*".ada_version = "ada2022"
+"*".style_checks = "No"
+"*".optimization = "Performance"

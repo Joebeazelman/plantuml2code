@@ -1,0 +1,22 @@
+name = "gen_test"
+description = "Sample project consuming a generated machine"
+version = "0.1.0"
+authors = ["You"]
+maintainers = ["You <you@example.com>"]
+maintainers-logins = ["you"]
+licenses = "MIT OR Apache-2.0 WITH LLVM-exception"
+website = ""
+tags = ["test", "hsm"]
+
+executables = ["gen_test"]
+
+[build-switches]
+"*".ada_version = "ada2022"
+"*".style_checks = "No"
+"*".optimization = "Performance"
+
+[[depends-on]]
+hsm_runtime = "*"
+
+[[pins]]
+hsm_runtime = { path = "../hsm_runtime" }
