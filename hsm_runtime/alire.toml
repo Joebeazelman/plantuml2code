@@ -1,12 +1,12 @@
 name = "hsm_runtime"
-description = "Tiny hierarchical state machine runtime for generated code"
+description = "Tiny hierarchical state machine runtime for generated Ada code"
 version = "0.1.0"
-authors = ["You"]
-maintainers = ["You <you@example.com>"]
-maintainers-logins = ["you"]
+authors = ["Joe Beazelman"]
+maintainers = ["Joe Beazelman <joebeazelman@gmail.com>"]
+maintainers-logins = ["Joebeazelman"]
 licenses = "MIT OR Apache-2.0 WITH LLVM-exception"
-website = ""
-tags = ["hsm", "state-machine", "runtime"]
+website = "https://github.com/Joebeazelman/plantuml2code"
+tags = ["hsm", "state-machine", "runtime", "ada"]
 
 [build-switches]
 "*".ada_version = "ada2022"
