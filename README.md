@@ -27,3 +27,24 @@ against `hsm_runtime`.
     ./bin/plantuml2code dump -f ada -o /tmp/gen ../samples/nested.puml
 
 See `AGENTS.md` for architecture notes and known gotchas.
+
+## Publishing
+
+`plantuml_parser` and `hsm_runtime` are both ready to publish to the
+Alire community index. Their index manifests are committed under each
+crate's `alire/releases/` directory:
+
+- `plantuml_parser/alire/releases/plantuml_parser-0.1.0.toml`
+- `hsm_runtime/alire/releases/hsm_runtime-0.1.0.toml`
+
+To submit a new version:
+
+    cd plantuml_parser && alr publish
+    cd ../hsm_runtime && alr publish
+
+Each opens a PR against `alire-project/alire-index`. Requires a GitHub
+Personal Access Token configured for `alr`; see
+https://github.com/alire-project/alire/blob/master/doc/publishing.md
+
+Publishing is deferred until there is a reason to (first outside user,
+or a feature-complete milestone).
