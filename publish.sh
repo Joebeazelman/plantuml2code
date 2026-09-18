@@ -19,7 +19,8 @@ submit_crate () {
   echo "================================================================"
 
   if [ "$MODE" = "--check" ]; then
-    ( cd "$crate" && alr publish --skip-submit )
+    # Non-interactive: accept the default answer (Yes) at every prompt.
+    ( cd "$crate" && alr -n publish --skip-submit )
   else
     ( cd "$crate" && alr publish )
   fi
