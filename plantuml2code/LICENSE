@@ -1,0 +1,17 @@
+PLACEHOLDER LICENSE
+
+This crate is licensed under the terms of:
+
+  - MIT License, OR
+  - Apache License, Version 2.0, with LLVM Exceptions
+
+You must replace this file with the full text of both licenses
+before submitting the crate to the Alire community index.
+
+The MIT and Apache-2.0-with-LLVM-exception texts are available at:
+
+  https://opensource.org/licenses/MIT
+  https://llvm.org/LICENSE.txt
+
+The combined "MIT OR Apache-2.0 WITH LLVM-exception" SPDX
+expression is the one used by the Rust project.
