@@ -1,0 +1,16 @@
+name = "class_test"
+description = "Sample project consuming generated class code"
+version = "0.1.0"
+authors = ["Joe Beazelman"]
+maintainers = ["Joe Beazelman <joebeazelman@gmail.com>"]
+maintainers-logins = ["Joebeazelman"]
+licenses = "MIT OR Apache-2.0 WITH LLVM-exception"
+website = ""
+tags = ["test", "class"]
+
+executables = ["class_test"]
+
+[build-switches]
+"*".ada_version = "ada2022"
+"*".style_checks = "No"
+"*".optimization = "Performance"
