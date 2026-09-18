@@ -48,3 +48,14 @@ https://github.com/alire-project/alire/blob/master/doc/publishing.md
 
 Publishing is deferred until there is a reason to (first outside user,
 or a feature-complete milestone).
+
+## Bootstrapping the sample projects
+
+`gen_test` and `class_test` consume *generated* Ada, which is not
+checked into the repository. After a fresh clone, run:
+
+    ./bootstrap.sh
+
+This builds `plantuml2code`, regenerates the sample source from
+`samples/nested.puml` and `samples/zoo.puml`, and builds and runs
+both sample projects.
