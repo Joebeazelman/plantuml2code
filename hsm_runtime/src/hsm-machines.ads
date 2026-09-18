@@ -15,6 +15,9 @@ package HSM.Machines is
 
    procedure On_Enter (Self : in out Machine) is null;
    procedure On_Exit  (Self : in out Machine) is null;
+   procedure On_Tick  (Self : in out Machine) is null;
+   --  Called at the start of every Step. Generated machines override
+   --  this to dispatch "do" activities for the current state.
 
    function On_Internal (Self : in out Machine; On : Event) return Boolean
      is (False);

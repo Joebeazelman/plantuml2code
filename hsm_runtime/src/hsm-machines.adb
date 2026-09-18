@@ -28,6 +28,8 @@ package body HSM.Machines is
    procedure Step (Self : in out Machine'Class; On : Event) is
       Previous : constant State := Current_State (Self);
    begin
+      On_Tick (Self);
+
       if On_Internal (Machine (Self), On) then
          return;
       end if;

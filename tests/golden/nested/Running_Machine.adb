@@ -70,6 +70,17 @@ package body Running_Machine is
    end On_Exit;
 
    overriding
+   procedure On_Tick (Self : in out Machine) is
+   begin
+      case Current_State (Self) is
+         when Spinning =>
+            Poll;
+
+         when others => null;
+      end case;
+   end On_Tick;
+
+   overriding
    function On_Internal (Self : in out Machine; On : Event) return Boolean is
    begin
       case Current_State (Self) is

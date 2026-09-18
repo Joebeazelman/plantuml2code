@@ -35,6 +35,9 @@ package Nested is
    procedure On_Exit (Self : in out Machine);
 
    overriding
+   procedure On_Tick (Self : in out Machine);
+
+   overriding
    function On_Internal (Self : in out Machine; On : Event) return Boolean;
 
    overriding

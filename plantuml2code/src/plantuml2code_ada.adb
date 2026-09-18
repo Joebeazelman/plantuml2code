@@ -493,6 +493,7 @@ package body PlantUML2Code_Ada is
       On_Enter_Arms : Unbounded_String;
       On_Exit_Arms  : Unbounded_String;
       On_Internal_Arms : Unbounded_String;
+      On_Tick_Arms  : Unbounded_String;
 
       Ads_File : constant String :=
         Ada.Directories.Compose (Out_Dir, Package_Name & ".ads");
@@ -625,6 +626,26 @@ package body PlantUML2Code_Ada is
                           "            return False;" & ASCII.LF);
                end if;
             end;
+
+            declare
+               Has_Do : Boolean := False;
+               Do_Body : Unbounded_String;
+            begin
+               for A of D.Pool (Positive (I)).Annotations loop
+                  if A.Kind = Do_Activity and then Length (A.Action) > 0 then
+                     Has_Do := True;
+                     Append (Do_Body,
+                             "            "
+                             & Sanitize (To_String (A.Action))
+                             & ";" & ASCII.LF);
+                  end if;
+               end loop;
+               if Has_Do then
+                  Append (On_Tick_Arms,
+                          "         when " & Lit & " =>" & ASCII.LF);
+                  Append (On_Tick_Arms, Do_Body);
+               end if;
+            end;
          end;
       end loop;
 
@@ -658,6 +679,7 @@ package body PlantUML2Code_Ada is
       Insert (T, Assoc ("ON_ENTER_CASES", To_String (On_Enter_Arms)));
       Insert (T, Assoc ("ON_EXIT_CASES", To_String (On_Exit_Arms)));
       Insert (T, Assoc ("ON_INTERNAL_CASES", To_String (On_Internal_Arms)));
+      Insert (T, Assoc ("ON_TICK_CASES", To_String (On_Tick_Arms)));
       Insert (T, Assoc ("STEP_CHILD_BODIES", To_String (Step_Bodies)));
       Insert (T, Assoc ("ACTION_DECLS", Action_Decls_Text));
       Insert (T, Assoc ("ACTION_BODIES", Action_Bodies_Text));
