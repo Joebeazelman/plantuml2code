@@ -18,7 +18,7 @@ name = "plantuml_parser_tests"
 runner = "test_states"
 
 [origin]
-commit = "0e9113b9512ef6c41e0d83db35023fc034d15327"
+commit = "fecd97b5bb6b90844d45541bf36536c840505ea3"
 subdir = "./plantuml_parser/"
 url = "git+https://github.com/Joebeazelman/plantuml2code.git"
 
