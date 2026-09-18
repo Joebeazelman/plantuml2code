@@ -6,6 +6,8 @@
 with Ada.Strings.Unbounded;  use Ada.Strings.Unbounded;
 with Animal;
 with Pet;
+with Toy;
+with Color;
 
 with Dog;
 

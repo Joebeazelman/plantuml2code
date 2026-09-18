@@ -6,10 +6,15 @@
 with Ada.Strings.Unbounded;  use Ada.Strings.Unbounded;
 with Animal;
 with Pet;
+with Toy;
+with Color;
 
 package Dog is
 
-   type T is new Animal.T and Pet.T with null record;
+   type T is new Animal.T and Pet.T with record
+      Attr_Toy : access Toy.T'Class;
+      Attr_Color : Color.T;
+   end record;
 
    procedure Fetch (Self : in out T);
    overriding

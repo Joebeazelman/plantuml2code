@@ -109,12 +109,23 @@ package body PlantUML2Code_Ada_Classes is
    function Has_Attributes (D : Class_Diagram; Idx : Class_Index)
                             return Boolean
    is
+      Self_Name : constant String :=
+        To_String (D.Pool (Positive (Idx)).Id);
    begin
       for M of D.Pool (Positive (Idx)).Members loop
          if M.Kind = Attribute then
             return True;
          end if;
       end loop;
+
+      for R of D.Relations loop
+         if To_String (R.From) = Self_Name
+           and then R.Kind in Composition | Aggregation | PlantUML.Classes.Association
+         then
+            return True;
+         end if;
+      end loop;
+
       return False;
    end Has_Attributes;
 
@@ -156,11 +167,32 @@ package body PlantUML2Code_Ada_Classes is
       return False;
    end Uses_Unbounded;
 
+   function Relation_Field_Type
+     (D : Class_Diagram; Target_Name : String) return String
+   is
+      Target_Kind : Classifier_Kind := Class;
+   begin
+      for K of D.Pool loop
+         if To_String (K.Id) = Target_Name then
+            Target_Kind := K.Kind;
+            exit;
+         end if;
+      end loop;
+
+      if Target_Kind = Enumeration then
+         return Sanitize (Target_Name) & ".T";
+      else
+         return "access " & Sanitize (Target_Name) & ".T'Class";
+      end if;
+   end Relation_Field_Type;
+
    function Record_Fields (D : Class_Diagram; Idx : Class_Index)
                             return String
    is
       R : Unbounded_String;
       First : Boolean := True;
+      Self_Name : constant String :=
+        To_String (D.Pool (Positive (Idx)).Id);
    begin
       for M of D.Pool (Positive (Idx)).Members loop
          if M.Kind = Attribute then
@@ -173,6 +205,25 @@ package body PlantUML2Code_Ada_Classes is
                     & Map_Type (To_String (M.Type_Name)) & ";");
          end if;
       end loop;
+
+      for Rel of D.Relations loop
+         if To_String (Rel.From) = Self_Name
+           and then Rel.Kind in Composition | Aggregation | PlantUML.Classes.Association
+           and then To_String (Rel.To) /= Self_Name
+         then
+            declare
+               Target : constant String := To_String (Rel.To);
+            begin
+               if not First then
+                  Append (R, ASCII.LF & "      ");
+               end if;
+               First := False;
+               Append (R, "Attr_" & Sanitize (Target)
+                       & " : " & Relation_Field_Type (D, Target) & ";");
+            end;
+         end if;
+      end loop;
+
       return To_String (R);
    end Record_Fields;
 
@@ -216,8 +267,16 @@ package body PlantUML2Code_Ada_Classes is
                   return "   type T is abstract tagged null record;";
                end if;
             else
-               return "   type T is abstract new " & Parents
-                    & " with null record;";
+               if Has_Attrs then
+                  return "   type T is abstract new " & Parents
+                       & " with record"
+                       & ASCII.LF & "      "
+                       & Record_Fields (D, Idx)
+                       & ASCII.LF & "   end record;";
+               else
+                  return "   type T is abstract new " & Parents
+                       & " with null record;";
+               end if;
             end if;
 
          when others =>
@@ -231,8 +290,16 @@ package body PlantUML2Code_Ada_Classes is
                   return "   type T is tagged null record;";
                end if;
             else
-               return "   type T is new " & Parents
-                    & " with null record;";
+               if Has_Attrs then
+                  return "   type T is new " & Parents
+                       & " with record"
+                       & ASCII.LF & "      "
+                       & Record_Fields (D, Idx)
+                       & ASCII.LF & "   end record;";
+               else
+                  return "   type T is new " & Parents
+                       & " with null record;";
+               end if;
             end if;
       end case;
    end Type_Decl;
@@ -659,6 +726,34 @@ package body PlantUML2Code_Ada_Classes is
                     & ";" & ASCII.LF);
          end if;
       end loop;
+      declare
+         Self_Name : constant String := To_String (K.Id);
+         Seen : array (1 .. 32) of Unbounded_String;
+         N : Natural := 0;
+         Already : Boolean;
+      begin
+         for Rel of D.Relations loop
+            if To_String (Rel.From) = Self_Name
+              and then Rel.Kind in Composition | Aggregation | PlantUML.Classes.Association
+              and then To_String (Rel.To) /= Self_Name
+            then
+               Already := False;
+               for J in 1 .. N loop
+                  if To_String (Seen (J)) = To_String (Rel.To) then
+                     Already := True;
+                     exit;
+                  end if;
+               end loop;
+               if not Already and then N < Seen'Length then
+                  N := N + 1;
+                  Seen (N) := Rel.To;
+                  Append (R, "with " & Sanitize (To_String (Rel.To))
+                          & ";" & ASCII.LF);
+               end if;
+            end if;
+         end loop;
+      end;
+
       if Length (R) > 0 then
          Append (R, ASCII.LF);
       end if;
@@ -742,19 +837,22 @@ package body PlantUML2Code_Ada_Classes is
       Insert (T, Assoc ("METHOD_DECLS", Method_Decls (D, Idx)));
       Render_To ("class.ads.tmplt", Ads_File, T);
 
-      if Has_Methods then
-         Insert (T, Assoc ("METHOD_BODIES", Method_Bodies (D, Idx)));
-         Render_To ("class.adb.tmplt", Adb_File, T);
+      declare
+         Bodies : constant String := Method_Bodies (D, Idx);
+      begin
+         if Bodies'Length > 0 then
+            Insert (T, Assoc ("METHOD_BODIES", Bodies));
+            Render_To ("class.adb.tmplt", Adb_File, T);
+         end if;
+      end;
 
-         Insert (T, Assoc ("METHOD_DECLS", Actions_Decls (D, Idx)));
-         Render_If_Missing ("class_actions.ads.tmplt", Act_Ads, T);
+      Insert (T, Assoc ("METHOD_DECLS", Actions_Decls (D, Idx)));
+      Render_If_Missing ("class_actions.ads.tmplt", Act_Ads, T);
 
-         Insert (T, Assoc ("METHOD_BODIES", Actions_Bodies (D, Idx)));
-         Render_If_Missing ("class_actions.adb.tmplt", Act_Adb, T);
-      else
-         Insert (T, Assoc ("METHOD_BODIES", ""));
-         Render_To ("class.adb.tmplt", Adb_File, T);
-      end if;
+      Insert (T, Assoc ("METHOD_BODIES", Actions_Bodies (D, Idx)));
+      Render_If_Missing ("class_actions.adb.tmplt", Act_Adb, T);
+
+      pragma Unreferenced (Has_Methods);
    end Emit_One;
 
    procedure Generate
