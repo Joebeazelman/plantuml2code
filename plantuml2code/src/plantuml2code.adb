@@ -68,7 +68,7 @@ procedure PlantUML2Code is
                D : constant PlantUML.Classes.Class_Diagram :=
                  PlantUML.Classes.Parse (Src);
             begin
-               Emit_Classes (Fmt, D);
+               Emit_Classes (Fmt, D, Path);
             end;
          when PlantUML.Unknown =>
             Put_Line (Standard_Error,

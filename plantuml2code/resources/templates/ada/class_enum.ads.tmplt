@@ -1,0 +1,9 @@
+--  @_CLASS_NAME_@ (enumeration)
+--
+--  Generated from @_SOURCE_DIAGRAM_@ on @_GENERATION_DATE_@.
+
+package @_CLASS_NAME_@ is
+
+@_TYPE_DECL_@
+
+end @_CLASS_NAME_@;

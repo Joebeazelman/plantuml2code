@@ -1,0 +1,11 @@
+--  @_CLASS_NAME_@ (body)
+--
+--  Generated from @_SOURCE_DIAGRAM_@ on @_GENERATION_DATE_@.
+--  ---------------------------------------------------------------------
+
+with @_CLASS_NAME_@_Actions;
+
+package body @_CLASS_NAME_@ is
+
+@_METHOD_BODIES_@
+end @_CLASS_NAME_@;

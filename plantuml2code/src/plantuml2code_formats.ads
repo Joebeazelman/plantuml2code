@@ -15,7 +15,8 @@ package PlantUML2Code_Formats is
       Path : String := "");
 
    procedure Emit_Classes
-     (Fmt : Format;
-      D   : PlantUML.Classes.Class_Diagram);
+     (Fmt  : Format;
+      D    : PlantUML.Classes.Class_Diagram;
+      Path : String := "");
 
 end PlantUML2Code_Formats;

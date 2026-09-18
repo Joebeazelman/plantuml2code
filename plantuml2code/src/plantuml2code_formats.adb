@@ -6,6 +6,7 @@ with Templates_Parser;                 use Templates_Parser;
 with PlantUML2Code_Utils;              use PlantUML2Code_Utils;
 with PlantUML2Code_Template_Bindings;  use PlantUML2Code_Template_Bindings;
 with PlantUML2Code_Ada;
+with PlantUML2Code_Ada_Classes;
 
 package body PlantUML2Code_Formats is
 
@@ -88,18 +89,22 @@ package body PlantUML2Code_Formats is
    end Emit_States;
 
    procedure Emit_Classes
-     (Fmt : Format;
-      D   : PlantUML.Classes.Class_Diagram)
+     (Fmt  : Format;
+      D    : PlantUML.Classes.Class_Diagram;
+      Path : String := "")
    is
+      pragma Unreferenced (Path);
    begin
       case Fmt is
          when Text | Json =>
             Emit_To_Stdout
               (Subdir_For (Fmt), "class.tmplt", For_Classes (D));
          when Ada_HSM =>
-            Put_Line (Standard_Error,
-                      "error: ada format is only supported for "
-                      & "state diagrams");
+            PlantUML2Code_Ada_Classes.Generate
+              (D              => D,
+               Source_Diagram => (if Path'Length > 0
+                                  then Path else "diagram.puml"),
+               Out_Dir        => To_String (Out_Dir));
       end case;
    end Emit_Classes;
 
