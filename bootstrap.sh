@@ -11,13 +11,15 @@ cd ..
 echo
 echo "==> Generating state machine into gen_test"
 mkdir -p /tmp/bootstrap/gen
-plantuml2code/bin/plantuml2code dump -f ada -o /tmp/bootstrap/gen samples/nested.puml
+( cd plantuml2code && ./bin/plantuml2code dump -f ada \
+    -o /tmp/bootstrap/gen ../samples/nested.puml )
 cp /tmp/bootstrap/gen/*.ads /tmp/bootstrap/gen/*.adb gen_test/src/
 
 echo
 echo "==> Generating class model into class_test"
 mkdir -p /tmp/bootstrap/genclass
-plantuml2code/bin/plantuml2code dump -f ada -o /tmp/bootstrap/genclass samples/zoo.puml
+( cd plantuml2code && ./bin/plantuml2code dump -f ada \
+    -o /tmp/bootstrap/genclass ../samples/zoo.puml )
 cp /tmp/bootstrap/genclass/*.ads /tmp/bootstrap/genclass/*.adb class_test/src/
 
 echo
