@@ -13,10 +13,10 @@ with Running_Machine;
 package Nested is
 
    type State is
-     (Start_State, Idle, Running, End_State);
+     (Start_State, Idle, History, Running, End_State);
 
    type Event is
-     (Start, Stop, Finish, Tick);
+     (Start, Continue, Stop, Finish, Tick);
 
    package Base is new HSM.Machines
      (State   => State,
@@ -41,10 +41,16 @@ package Nested is
    function On_Internal (Self : in out Machine; On : Event) return Boolean;
 
    overriding
+   function Is_History_Entry
+     (Self : Machine; From : State; On : Event) return Boolean;
+
+   overriding
    function Name (Self : Machine) return String;
 
    procedure Step_Running (Self : in out Machine;
                             On : Running_Machine.Event);
+
+   function Running_State (Self : Machine) return Running_Machine.State;
 
 
 private

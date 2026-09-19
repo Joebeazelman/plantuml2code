@@ -5,6 +5,7 @@ Idle : entry / Log_Idle
 Idle : exit / Cleanup_Idle
 Idle : Tick [Count < 10] / Bump
 Idle --> Running : Start
+Idle --> Running.[H] : Continue
 state Running {
   [*] --> Spinning
   state Spinning

@@ -15,23 +15,15 @@ package body Running_Machine is
      [Start_State =>
         [Yield => Start_State,
          Resume => Start_State,
-         Suspend => Start_State,
          Pause => Start_State],
       Spinning =>
         [Yield => Waiting,
          Resume => Spinning,
-         Suspend => Spinning,
          Pause => Spinning],
       Waiting =>
         [Yield => Waiting,
          Resume => Spinning,
-         Suspend => History,
-         Pause => Waiting],
-      History =>
-        [Yield => History,
-         Resume => History,
-         Suspend => History,
-         Pause => History]];
+         Pause => Waiting]];
 
    overriding
    function Next_State (Self : Machine; On : Event) return State
@@ -47,8 +39,6 @@ package body Running_Machine is
             null;
          when Waiting =>
             null;
-         when History =>
-            null;
 
       end case;
    end On_Enter;
@@ -62,8 +52,6 @@ package body Running_Machine is
          when Spinning =>
             null;
          when Waiting =>
-            null;
-         when History =>
             null;
 
       end case;
@@ -95,6 +83,17 @@ package body Running_Machine is
             return False;
       end case;
    end On_Internal;
+
+   overriding
+   function Is_History_Entry
+     (Self : Machine; From : State; On : Event) return Boolean is
+   begin
+      case From is
+         when others =>
+            return False;
+
+      end case;
+   end Is_History_Entry;
 
    overriding
    function Name (Self : Machine) return String is

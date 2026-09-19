@@ -15,6 +15,9 @@ package body HSM.Machines is
    function Is_Terminated (Self : Machine'Class) return Boolean is
      (Machine (Self).Terminated);
 
+   function Via_History (Self : Machine'Class) return Boolean is
+     (Machine (Self).History);
+
    procedure Mark_Terminated (Self : in out Machine'Class) is
    begin
       Machine (Self).Terminated := True;
@@ -51,9 +54,13 @@ package body HSM.Machines is
                  (Name (Self) & ": " & Previous'Image
                   & " --" & On'Image & "--> " & Next'Image);
             end if;
+
             On_Exit (Self);
+            Machine (Self).History :=
+              Is_History_Entry (Self, Previous, On);
             Set (Machine (Self), Next);
             On_Enter (Self);
+            Machine (Self).History := False;
          end if;
       end;
    end Step;

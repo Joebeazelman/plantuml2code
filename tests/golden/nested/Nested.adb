@@ -14,21 +14,31 @@ package body Nested is
    Table : constant array (State, Event) of State :=
      [Start_State =>
         [Start => Start_State,
+         Continue => Start_State,
          Stop => Start_State,
          Finish => Start_State,
          Tick => Idle],
       Idle =>
         [Start => Running,
+         Continue => Running,
          Stop => Idle,
          Finish => Idle,
          Tick => Idle],
+      History =>
+        [Start => History,
+         Continue => History,
+         Stop => History,
+         Finish => History,
+         Tick => History],
       Running =>
         [Start => Running,
+         Continue => Running,
          Stop => Idle,
          Finish => End_State,
          Tick => Running],
       End_State =>
         [Start => End_State,
+         Continue => End_State,
          Stop => End_State,
          Finish => End_State,
          Tick => End_State]];
@@ -42,11 +52,15 @@ package body Nested is
    begin
       case Current_State (Self) is
          when Running =>
-            Running_Machine.Base.Reset (Self.Running_Child);
+            if not Via_History (Self) then
+               Running_Machine.Base.Reset (Self.Running_Child);
+            end if;
          when Start_State =>
             null;
          when Idle =>
             Log_Idle;
+         when History =>
+            null;
          when End_State =>
             Mark_Terminated (Self);
 
@@ -61,6 +75,8 @@ package body Nested is
             null;
          when Idle =>
             Cleanup_Idle;
+         when History =>
+            null;
          when Running =>
             null;
          when End_State =>
@@ -95,6 +111,19 @@ package body Nested is
    end On_Internal;
 
    overriding
+   function Is_History_Entry
+     (Self : Machine; From : State; On : Event) return Boolean is
+   begin
+      case From is
+         when Idle =>
+            return On = Continue;
+         when others =>
+            return False;
+
+      end case;
+   end Is_History_Entry;
+
+   overriding
    function Name (Self : Machine) return String is
      ("Nested");
 
@@ -105,6 +134,11 @@ package body Nested is
          Running_Machine.Base.Step (Self.Running_Child, On);
       end if;
    end Step_Running;
+
+   function Running_State (Self : Machine) return Running_Machine.State is
+   begin
+      return Running_Machine.Base.Current_State (Self.Running_Child);
+   end Running_State;
 
 
 end Nested;

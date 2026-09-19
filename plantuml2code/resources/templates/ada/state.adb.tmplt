@@ -54,6 +54,15 @@ package body @_PACKAGE_NAME_@ is
    end On_Internal;
 
    overriding
+   function Is_History_Entry
+     (Self : Machine; From : State; On : Event) return Boolean is
+   begin
+      case From is
+@_HISTORY_CASES_@
+      end case;
+   end Is_History_Entry;
+
+   overriding
    function Name (Self : Machine) return String is
      ("@_PACKAGE_NAME_@");
 

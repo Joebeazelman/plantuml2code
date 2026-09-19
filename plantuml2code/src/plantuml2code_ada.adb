@@ -86,6 +86,30 @@ package body PlantUML2Code_Ada is
    function Event_Literal (Name : String) return String is
      (if Name'Length = 0 then "Tick" else Sanitize (Name));
 
+   function Parent_Name (S : String) return String is
+      Dot : Natural := 0;
+   begin
+      for I in S'Range loop
+         if S (I) = '.' then
+            Dot := I;
+         end if;
+      end loop;
+      if Dot = 0 then
+         return S;
+      else
+         return S (S'First .. Dot - 1);
+      end if;
+   end Parent_Name;
+
+   function Is_History_Target (S : String) return Boolean is
+     (Ada.Strings.Fixed.Index (S, ".[H]") > 0
+      or else Ada.Strings.Fixed.Index (S, ".[H*]") > 0);
+
+   function Effective_Target (To_Name : String) return String is
+     (if Is_History_Target (To_Name)
+      then State_Literal (Parent_Name (To_Name))
+      else State_Literal (To_Name));
+
    function Find_State (D : State_Diagram; Name : String)
                         return State_Index
    is
@@ -140,10 +164,25 @@ package body PlantUML2Code_Ada is
               Find_State (D, To_String (T.From));
             To_Idx   : constant State_Index :=
               Find_State (D, To_String (T.To));
+            From_Reg : constant Natural := Region_Of (D, From_Idx);
+            To_Reg   : constant Natural := Region_Of (D, To_Idx);
+            Include  : Boolean := False;
          begin
-            if Region_Of (D, From_Idx) = Region
-              and then Region_Of (D, To_Idx) = Region
+            if From_Reg = Region and then To_Reg = Region then
+               Include := True;
+            elsif From_Reg = Region
+              and then Is_History_Target (To_String (T.To))
             then
+               declare
+                  Parent_Idx : constant State_Index :=
+                    Find_State (D, Parent_Name (To_String (T.To)));
+               begin
+                  if Region_Of (D, Parent_Idx) = Region then
+                     Include := True;
+                  end if;
+               end;
+            end if;
+            if Include then
                Result.Append (T);
             end if;
          end;
@@ -315,7 +354,7 @@ package body PlantUML2Code_Ada is
             if State_Literal (To_String (T.From)) = From_Lit
               and then Event_Literal (To_String (T.Trigger)) = Ev_Lit
             then
-               return State_Literal (To_String (T.To));
+               return Effective_Target (To_String (T.To));
             end if;
          end loop;
          return From_Lit;
@@ -366,6 +405,46 @@ package body PlantUML2Code_Ada is
 
       return To_String (R);
    end Transition_Rows;
+
+   function History_Cases
+     (D : State_Diagram; States : Index_Vectors.Vector;
+      Ts : Transition_Vectors.Vector) return String
+   is
+      R : Unbounded_String;
+      Wrote : Boolean := False;
+   begin
+      for I of States loop
+         declare
+            From_Lit : constant String :=
+              State_Literal (To_String (D.Pool (Positive (I)).Id));
+            Arms : Unbounded_String;
+            First_Ev : Boolean := True;
+         begin
+            for T of Ts loop
+               if State_Literal (To_String (T.From)) = From_Lit
+                 and then Is_History_Target (To_String (T.To))
+               then
+                  if not First_Ev then
+                     Append (Arms, ASCII.LF);
+                  end if;
+                  First_Ev := False;
+                  Append (Arms, "            return On = "
+                          & Event_Literal (To_String (T.Trigger))
+                          & ";");
+               end if;
+            end loop;
+            if Length (Arms) > 0 then
+               Append (R, "         when " & From_Lit & " =>" & ASCII.LF);
+               Append (R, Arms & ASCII.LF);
+               Wrote := True;
+            end if;
+         end;
+      end loop;
+      Append (R, "         when others =>" & ASCII.LF
+              & "            return False;" & ASCII.LF);
+      pragma Unreferenced (Wrote);
+      return To_String (R);
+   end History_Cases;
 
    function Child_Package_Name
      (D : State_Diagram; Child : State_Index) return String is
@@ -524,6 +603,11 @@ package body PlantUML2Code_Ada is
                     & "                            On : "
                     & Child_Pkg & ".Event);" & ASCII.LF & ASCII.LF);
 
+            Append (Step_Decls,
+                    "   function " & State_Lit
+                    & "_State (Self : Machine) return "
+                    & Child_Pkg & ".State;" & ASCII.LF & ASCII.LF);
+
             Append (Step_Bodies,
                     "   procedure " & Procedure_Name
                     & " (Self : in out Machine;" & ASCII.LF
@@ -538,10 +622,24 @@ package body PlantUML2Code_Ada is
                     & "   end " & Procedure_Name & ";" & ASCII.LF
                     & ASCII.LF);
 
+            Append (Step_Bodies,
+                    "   function " & State_Lit
+                    & "_State (Self : Machine) return "
+                    & Child_Pkg & ".State is" & ASCII.LF
+                    & "   begin" & ASCII.LF
+                    & "      return " & Child_Pkg
+                    & ".Base.Current_State (Self." & Child_Field & ");"
+                    & ASCII.LF
+                    & "   end " & State_Lit & "_State;" & ASCII.LF
+                    & ASCII.LF);
+
             Append (On_Enter_Arms,
                     "         when " & State_Lit & " =>" & ASCII.LF
-                    & "            " & Child_Pkg & ".Base.Reset"
-                    & " (Self." & Child_Field & ");" & ASCII.LF);
+                    & "            if not Via_History (Self) then"
+                    & ASCII.LF
+                    & "               " & Child_Pkg & ".Base.Reset"
+                    & " (Self." & Child_Field & ");" & ASCII.LF
+                    & "            end if;" & ASCII.LF);
          end;
       end loop;
 
@@ -688,6 +786,8 @@ package body PlantUML2Code_Ada is
       Insert (T, Assoc ("ON_EXIT_CASES", To_String (On_Exit_Arms)));
       Insert (T, Assoc ("ON_INTERNAL_CASES", To_String (On_Internal_Arms)));
       Insert (T, Assoc ("ON_TICK_CASES", To_String (On_Tick_Arms)));
+      Insert (T, Assoc ("HISTORY_CASES",
+                        History_Cases (D, States, Ts)));
       Insert (T, Assoc ("STEP_CHILD_BODIES", To_String (Step_Bodies)));
       Insert (T, Assoc ("ACTION_DECLS", Action_Decls_Text));
       Insert (T, Assoc ("ACTION_BODIES", Action_Bodies_Text));

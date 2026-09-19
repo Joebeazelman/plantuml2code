@@ -40,6 +40,10 @@ package @_PACKAGE_NAME_@ is
    function On_Internal (Self : in out Machine; On : Event) return Boolean;
 
    overriding
+   function Is_History_Entry
+     (Self : Machine; From : State; On : Event) return Boolean;
+
+   overriding
    function Name (Self : Machine) return String;
 
 @_STEP_CHILD_DECLS_@

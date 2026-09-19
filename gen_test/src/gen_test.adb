@@ -12,18 +12,26 @@ procedure Gen_Test is
    end Print_Trace;
 
    M : Nested.Machine;
+
+   procedure Show (Label : String) is
+   begin
+      Put_Line (Label & " child = "
+                & Nested.Running_State (M)'Image);
+   end Show;
 begin
    Utilities.Tracing.Set_Tracer (Print_Trace'Unrestricted_Access);
 
    Start (M);
-   Put_Line ("Initial state:" & Current_State (M)'Image);
 
    Step (M, Nested.Start);
-   Nested.Step_Running (M, Running_Machine.Yield);
-   Nested.Step_Running (M, Running_Machine.Resume);
-   Nested.Step_Running (M, Running_Machine.Suspend);
-   Step (M, Nested.Stop);
-   Step (M, Nested.Finish);
+   Show ("after Start:");
 
-   Put_Line ("Final state:" & Current_State (M)'Image);
+   Nested.Step_Running (M, Running_Machine.Yield);
+   Show ("after Yield:");
+
+   Step (M, Nested.Stop);
+   Show ("after Stop: ");
+
+   Step (M, Nested.Continue);
+   Show ("after Continue:");
 end Gen_Test;

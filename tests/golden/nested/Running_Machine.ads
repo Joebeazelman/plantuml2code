@@ -12,10 +12,10 @@ with HSM.Machines;
 package Running_Machine is
 
    type State is
-     (Start_State, Spinning, Waiting, History);
+     (Start_State, Spinning, Waiting);
 
    type Event is
-     (Yield, Resume, Suspend, Pause);
+     (Yield, Resume, Pause);
 
    package Base is new HSM.Machines
      (State   => State,
@@ -38,6 +38,10 @@ package Running_Machine is
 
    overriding
    function On_Internal (Self : in out Machine; On : Event) return Boolean;
+
+   overriding
+   function Is_History_Entry
+     (Self : Machine; From : State; On : Event) return Boolean;
 
    overriding
    function Name (Self : Machine) return String;

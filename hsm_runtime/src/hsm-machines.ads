@@ -14,6 +14,16 @@ package HSM.Machines is
    function Next_State (Self : Machine; On : Event) return State
      is abstract;
 
+   function Is_History_Entry
+     (Self : Machine; From : State; On : Event) return Boolean
+     is (False);
+   --  True if this transition is a history entry into a composite.
+   --  Generated machines override this.
+
+   function Via_History (Self : Machine'Class) return Boolean
+     with Inline => True;
+   --  Read inside On_Enter to decide whether to reset the child.
+
    procedure On_Enter (Self : in out Machine) is null;
    procedure On_Exit  (Self : in out Machine) is null;
    procedure On_Tick  (Self : in out Machine) is null;
@@ -43,6 +53,7 @@ private
    type Machine is abstract new HSM.Root with record
       Current    : State := Initial;
       Terminated : Boolean := False;
+      History    : Boolean := False;
    end record;
 
    function Get (Self : Machine) return State
