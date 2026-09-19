@@ -1,26 +1,26 @@
 --  ---------------------------------------------------------------------
---  Running_Machine
+--  Inner_Machine
 --
---  State machine generated from ../samples/nested.puml
+--  State machine generated from ../samples/history.puml
 --
---  Generated from ../samples/nested.puml on <DATE>.
+--  Generated from ../samples/history.puml on <DATE>.
 --  Do not edit by hand; regenerate from the diagram instead.
 --  ---------------------------------------------------------------------
 
 with HSM.Machines;
 
-package Running_Machine is
+package Inner_Machine is
 
    type State is
-     (Start_State, Spinning, Waiting);
+     (Start_State, A, B);
 
    type Event is
-     (Yield, Resume, Pause);
+     (Advance);
 
    package Base is new HSM.Machines
      (State   => State,
       Event   => Event,
-      Initial => Spinning);
+      Initial => A);
 
    type Machine is new Base.Machine with private;
 
@@ -51,4 +51,4 @@ private
 
    type Machine is new Base.Machine with null record;
 
-end Running_Machine;
+end Inner_Machine;

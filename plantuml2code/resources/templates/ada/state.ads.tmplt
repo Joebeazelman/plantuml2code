@@ -41,7 +41,7 @@ package @_PACKAGE_NAME_@ is
 
    overriding
    function Is_History_Entry
-     (Self : Machine; From : State; On : Event) return Boolean;
+     (Self : Machine; From : State; On : Event) return Base.History_Mode;
 
    overriding
    function Name (Self : Machine) return String;

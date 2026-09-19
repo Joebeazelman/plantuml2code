@@ -11,6 +11,7 @@ package body Running_Machine is
    use Base;
    use Running_Machine_Actions;
 
+
    Table : constant array (State, Event) of State :=
      [Start_State =>
         [Yield => Start_State,
@@ -86,11 +87,11 @@ package body Running_Machine is
 
    overriding
    function Is_History_Entry
-     (Self : Machine; From : State; On : Event) return Boolean is
+     (Self : Machine; From : State; On : Event) return Base.History_Mode is
    begin
       case From is
          when others =>
-            return False;
+            return History_None;
 
       end case;
    end Is_History_Entry;

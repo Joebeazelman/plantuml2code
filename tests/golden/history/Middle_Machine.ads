@@ -1,26 +1,27 @@
 --  ---------------------------------------------------------------------
---  Running_Machine
+--  Middle_Machine
 --
---  State machine generated from ../samples/nested.puml
+--  State machine generated from ../samples/history.puml
 --
---  Generated from ../samples/nested.puml on <DATE>.
+--  Generated from ../samples/history.puml on <DATE>.
 --  Do not edit by hand; regenerate from the diagram instead.
 --  ---------------------------------------------------------------------
 
 with HSM.Machines;
+with Inner_Machine;
 
-package Running_Machine is
+package Middle_Machine is
 
    type State is
-     (Start_State, Spinning, Waiting);
+     (Start_State, Inner);
 
    type Event is
-     (Yield, Resume, Pause);
+     (Tick);
 
    package Base is new HSM.Machines
      (State   => State,
       Event   => Event,
-      Initial => Spinning);
+      Initial => Inner);
 
    type Machine is new Base.Machine with private;
 
@@ -46,9 +47,16 @@ package Running_Machine is
    overriding
    function Name (Self : Machine) return String;
 
+   procedure Step_Inner (Self : in out Machine;
+                            On : Inner_Machine.Event);
+
+   function Inner_State (Self : Machine) return Inner_Machine.State;
+
 
 private
 
-   type Machine is new Base.Machine with null record;
+   type Machine is new Base.Machine with record
+      Inner_Child : Inner_Machine.Machine;
+   end record;
 
-end Running_Machine;
+end Middle_Machine;

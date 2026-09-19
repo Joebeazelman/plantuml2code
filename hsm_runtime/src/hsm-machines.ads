@@ -6,6 +6,8 @@ package HSM.Machines is
    pragma Preelaborate;
    pragma Unevaluated_Use_Of_Old (Allow);
 
+   type History_Mode is (History_None, History_Shallow, History_Deep);
+
    type Machine is abstract new HSM.Root with private;
 
    function Current_State (Self : Machine'Class) return State
@@ -15,10 +17,10 @@ package HSM.Machines is
      is abstract;
 
    function Is_History_Entry
-     (Self : Machine; From : State; On : Event) return Boolean
-     is (False);
+     (Self : Machine; From : State; On : Event) return History_Mode
+     is (History_None);
 
-   function Via_History (Self : Machine'Class) return Boolean
+   function Via_History (Self : Machine'Class) return History_Mode
      with Inline => True;
 
    procedure On_Enter (Self : in out Machine) is null;
@@ -35,9 +37,7 @@ package HSM.Machines is
      with Inline => True;
 
    procedure Start (Self : in out Machine'Class)
-     with Pre  => not Is_Terminated (Self);
-   --  Fire On_Enter for the current state. Idempotent: a second call
-   --  is a no-op. Also invoked automatically by the first Step.
+     with Pre => not Is_Terminated (Self);
 
    procedure Step (Self : in out Machine'Class; On : Event)
      with Pre  => not Is_Terminated (Self),
@@ -48,12 +48,16 @@ package HSM.Machines is
      with Post => Current_State (Self) = Initial
                   and then not Is_Terminated (Self);
 
+   procedure Reset_To_Current (Self : in out Machine'Class);
+   --  Re-fire On_Enter without changing state. Used by shallow history
+   --  to make a child reset its own descendants.
+
 private
 
    type Machine is abstract new HSM.Root with record
       Current     : State := Initial;
       Terminated  : Boolean := False;
-      History     : Boolean := False;
+      History     : History_Mode := History_None;
       Initialized : Boolean := False;
    end record;
 

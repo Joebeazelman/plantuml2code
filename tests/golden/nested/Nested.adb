@@ -11,6 +11,7 @@ package body Nested is
    use Base;
    use Nested_Actions;
 
+
    Table : constant array (State, Event) of State :=
      [Start_State =>
         [Start => Start_State,
@@ -24,12 +25,6 @@ package body Nested is
          Stop => Idle,
          Finish => Idle,
          Tick => Idle],
-      History =>
-        [Start => History,
-         Continue => History,
-         Stop => History,
-         Finish => History,
-         Tick => History],
       Running =>
         [Start => Running,
          Continue => Running,
@@ -52,15 +47,18 @@ package body Nested is
    begin
       case Current_State (Self) is
          when Running =>
-            if not Via_History (Self) then
-               Running_Machine.Base.Reset (Self.Running_Child);
-            end if;
+            case Via_History (Self) is
+               when History_None =>
+                  Running_Machine.Base.Reset (Self.Running_Child);
+               when History_Shallow =>
+                  Running_Machine.Base.Reset_To_Current (Self.Running_Child);
+               when History_Deep =>
+                  null;
+            end case;
          when Start_State =>
             null;
          when Idle =>
             Log_Idle;
-         when History =>
-            null;
          when End_State =>
             Mark_Terminated (Self);
 
@@ -75,8 +73,6 @@ package body Nested is
             null;
          when Idle =>
             Cleanup_Idle;
-         when History =>
-            null;
          when Running =>
             null;
          when End_State =>
@@ -112,13 +108,16 @@ package body Nested is
 
    overriding
    function Is_History_Entry
-     (Self : Machine; From : State; On : Event) return Boolean is
+     (Self : Machine; From : State; On : Event) return Base.History_Mode is
    begin
       case From is
          when Idle =>
-            return On = Continue;
+            if On = Continue then
+               return History_Shallow;
+            end if;
+            return History_None;
          when others =>
-            return False;
+            return History_None;
 
       end case;
    end Is_History_Entry;

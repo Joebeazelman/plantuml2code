@@ -40,9 +40,11 @@ update_case () {
   ls "$golden_dir" | wc -l | xargs echo "  files:"
 }
 
-update_case nested samples/nested.puml
+update_case nested  samples/nested.puml
 echo
-update_case zoo    samples/zoo.puml
+update_case zoo     samples/zoo.puml
+echo
+update_case history samples/history.puml
 
 echo
 echo "Golden files updated. Review with:"

@@ -15,7 +15,7 @@ package body HSM.Machines is
    function Is_Terminated (Self : Machine'Class) return Boolean is
      (Machine (Self).Terminated);
 
-   function Via_History (Self : Machine'Class) return Boolean is
+   function Via_History (Self : Machine'Class) return History_Mode is
      (Machine (Self).History);
 
    procedure Mark_Terminated (Self : in out Machine'Class) is
@@ -37,9 +37,17 @@ package body HSM.Machines is
       On_Exit (Self);
       Set (Machine (Self), Initial);
       Machine (Self).Terminated := False;
+      Machine (Self).History := History_None;
       Machine (Self).Initialized := True;
       On_Enter (Self);
    end Reset;
+
+   procedure Reset_To_Current (Self : in out Machine'Class) is
+   begin
+      Machine (Self).History := History_None;
+      Machine (Self).Initialized := True;
+      On_Enter (Self);
+   end Reset_To_Current;
 
    procedure Step (Self : in out Machine'Class; On : Event) is
       Previous : constant State := Current_State (Self);
@@ -69,7 +77,7 @@ package body HSM.Machines is
               Is_History_Entry (Self, Previous, On);
             Set (Machine (Self), Next);
             On_Enter (Self);
-            Machine (Self).History := False;
+            Machine (Self).History := History_None;
          end if;
       end;
    end Step;

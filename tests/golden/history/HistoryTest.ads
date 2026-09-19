@@ -1,22 +1,24 @@
 --  ---------------------------------------------------------------------
---  Nested
+--  HistoryTest
 --
---  State machine generated from ../samples/nested.puml
+--  State machine generated from ../samples/history.puml
 --
---  Generated from ../samples/nested.puml on <DATE>.
+--  Generated from ../samples/history.puml on <DATE>.
 --  Do not edit by hand; regenerate from the diagram instead.
 --  ---------------------------------------------------------------------
 
 with HSM.Machines;
-with Running_Machine;
+with Outer_Machine;
+with Middle_Machine;
+with Inner_Machine;
 
-package Nested is
+package HistoryTest is
 
    type State is
-     (Start_State, Idle, Running, End_State);
+     (Start_State, Idle, Outer);
 
    type Event is
-     (Start, Continue, Stop, Finish, Tick);
+     (Enter_Fresh, Enter_Shallow, Enter_Deep, Back);
 
    package Base is new HSM.Machines
      (State   => State,
@@ -47,16 +49,26 @@ package Nested is
    overriding
    function Name (Self : Machine) return String;
 
-   procedure Step_Running (Self : in out Machine;
-                            On : Running_Machine.Event);
+   procedure Step_Outer (Self : in out Machine;
+                            On : Outer_Machine.Event);
 
-   function Running_State (Self : Machine) return Running_Machine.State;
+   function Outer_State (Self : Machine) return Outer_Machine.State;
+
+   procedure Step_Outer_Middle (Self : in out Machine;
+                            On : Middle_Machine.Event);
+
+   function Outer_Middle_State (Self : Machine) return Middle_Machine.State;
+
+   procedure Step_Outer_Middle_Inner (Self : in out Machine;
+                            On : Inner_Machine.Event);
+
+   function Outer_Middle_Inner_State (Self : Machine) return Inner_Machine.State;
 
 
 private
 
    type Machine is new Base.Machine with record
-      Running_Child : Running_Machine.Machine;
+      Outer_Child : Outer_Machine.Machine;
    end record;
 
-end Nested;
+end HistoryTest;

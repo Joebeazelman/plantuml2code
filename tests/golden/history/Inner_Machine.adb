@@ -1,16 +1,24 @@
 --  ---------------------------------------------------------------------
---  @_PACKAGE_NAME_@ (body)
+--  Inner_Machine (body)
 --
---  Generated from @_SOURCE_DIAGRAM_@ on @_GENERATION_DATE_@.
+--  Generated from ../samples/history.puml on <DATE>.
 --  ---------------------------------------------------------------------
 
-@_ACTIONS_WITH_@package body @_PACKAGE_NAME_@ is
+with Inner_Machine_Actions;
+
+package body Inner_Machine is
 
    use Base;
-@_ACTIONS_USE_@
+   use Inner_Machine_Actions;
+
 
    Table : constant array (State, Event) of State :=
-     [@_TRANSITION_ROWS_@];
+     [Start_State =>
+        [Advance => Start_State],
+      A =>
+        [Advance => B],
+      B =>
+        [Advance => B]];
 
    overriding
    function Next_State (Self : Machine; On : Event) return State
@@ -20,7 +28,13 @@
    procedure On_Enter (Self : in out Machine) is
    begin
       case Current_State (Self) is
-@_ON_ENTER_CASES_@
+         when Start_State =>
+            null;
+         when A =>
+            Entered_A;
+         when B =>
+            Entered_B;
+
       end case;
    end On_Enter;
 
@@ -28,7 +42,13 @@
    procedure On_Exit (Self : in out Machine) is
    begin
       case Current_State (Self) is
-@_ON_EXIT_CASES_@
+         when Start_State =>
+            null;
+         when A =>
+            null;
+         when B =>
+            null;
+
       end case;
    end On_Exit;
 
@@ -36,7 +56,7 @@
    procedure On_Tick (Self : in out Machine) is
    begin
       case Current_State (Self) is
-@_ON_TICK_CASES_@
+
          when others => null;
       end case;
    end On_Tick;
@@ -45,7 +65,7 @@
    function On_Internal (Self : in out Machine; On : Event) return Boolean is
    begin
       case Current_State (Self) is
-@_ON_INTERNAL_CASES_@
+
          when others =>
             return False;
       end case;
@@ -56,13 +76,15 @@
      (Self : Machine; From : State; On : Event) return Base.History_Mode is
    begin
       case From is
-@_HISTORY_CASES_@
+         when others =>
+            return History_None;
+
       end case;
    end Is_History_Entry;
 
    overriding
    function Name (Self : Machine) return String is
-     ("@_PACKAGE_NAME_@");
+     ("Inner_Machine");
 
-@_STEP_CHILD_BODIES_@
-end @_PACKAGE_NAME_@;
+
+end Inner_Machine;

@@ -82,9 +82,11 @@ check_case () {
   fi
 }
 
-check_case nested samples/nested.puml
+check_case nested  samples/nested.puml
 echo
-check_case zoo    samples/zoo.puml
+check_case zoo     samples/zoo.puml
+echo
+check_case history samples/history.puml
 
 echo
 if [ "$FAIL" -eq 0 ]; then

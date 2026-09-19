@@ -143,7 +143,11 @@ package body PlantUML2Code_Ada is
    begin
       if Region = Top_Level then
          for I of D.Roots loop
-            Result.Append (I);
+            if D.Pool (Positive (I)).Kind
+              not in History_Shallow | History_Deep
+            then
+               Result.Append (I);
+            end if;
          end loop;
       else
          for C of D.Pool (Positive (Region)).Children loop
@@ -411,7 +415,6 @@ package body PlantUML2Code_Ada is
       Ts : Transition_Vectors.Vector) return String
    is
       R : Unbounded_String;
-      Wrote : Boolean := False;
    begin
       for I of States loop
          declare
@@ -424,25 +427,36 @@ package body PlantUML2Code_Ada is
                if State_Literal (To_String (T.From)) = From_Lit
                  and then Is_History_Target (To_String (T.To))
                then
-                  if not First_Ev then
-                     Append (Arms, ASCII.LF);
-                  end if;
-                  First_Ev := False;
-                  Append (Arms, "            return On = "
-                          & Event_Literal (To_String (T.Trigger))
-                          & ";");
+                  declare
+                     Kind : constant String :=
+                       (if Ada.Strings.Fixed.Index
+                             (To_String (T.To), "[H*]") > 0
+                        then "History_Deep"
+                        else "History_Shallow");
+                  begin
+                     if not First_Ev then
+                        Append (Arms, ASCII.LF);
+                     end if;
+                     First_Ev := False;
+                     Append (Arms,
+                             "            if On = "
+                             & Event_Literal (To_String (T.Trigger))
+                             & " then" & ASCII.LF
+                             & "               return " & Kind & ";"
+                             & ASCII.LF
+                             & "            end if;");
+                  end;
                end if;
             end loop;
             if Length (Arms) > 0 then
                Append (R, "         when " & From_Lit & " =>" & ASCII.LF);
                Append (R, Arms & ASCII.LF);
-               Wrote := True;
+               Append (R, "            return History_None;" & ASCII.LF);
             end if;
          end;
       end loop;
       Append (R, "         when others =>" & ASCII.LF
-              & "            return False;" & ASCII.LF);
-      pragma Unreferenced (Wrote);
+              & "            return History_None;" & ASCII.LF);
       return To_String (R);
    end History_Cases;
 
@@ -541,6 +555,92 @@ package body PlantUML2Code_Ada is
       end if;
    end Render_If_Missing;
 
+   procedure Emit_Deeper_Steppers
+     (D : State_Diagram;
+      Region : Natural;
+      Prefix : String;
+      With_Clauses, Decls, Bodies : in out Unbounded_String)
+   is
+      States     : constant Index_Vectors.Vector := States_In (D, Region);
+      Composites : constant Index_Vectors.Vector :=
+        Composite_Children_Of (D, States);
+   begin
+      for C of Composites loop
+         declare
+            Child_Pkg   : constant String := Child_Package_Name (D, C);
+            Child_Field : constant String := Child_Field_Name (D, C);
+            State_Lit   : constant String :=
+              State_Literal (To_String (D.Pool (Positive (C)).Id));
+            Proc_Name   : constant String := "Step_" & Prefix & State_Lit;
+
+            --  The first segment of Prefix identifies the ancestor
+            --  we delegate through. Split "Anc_rest" into "Anc" and
+            --  "rest".
+            Underscore : constant Natural :=
+              Ada.Strings.Fixed.Index (Prefix, "_");
+            Anc_Lit    : constant String :=
+              (if Underscore = 0 then Prefix (Prefix'First .. Prefix'Last - 1)
+               else Prefix (Prefix'First .. Underscore - 1));
+            Anc_Pkg    : constant String := Anc_Lit & "_Machine";
+            Anc_Field  : constant String := Anc_Lit & "_Child";
+            Remain_Pre : constant String :=
+              (if Underscore = 0 then ""
+               elsif Underscore = Prefix'Last then ""
+               else Prefix (Underscore + 1 .. Prefix'Last));
+            Call_Proc  : constant String :=
+              "Step_" & Remain_Pre & State_Lit;
+         begin
+            Append (With_Clauses,
+                    "with " & Child_Pkg & ";" & ASCII.LF);
+
+            Append (Decls,
+                    "   procedure " & Proc_Name
+                    & " (Self : in out Machine;" & ASCII.LF
+                    & "                            On : "
+                    & Child_Pkg & ".Event);" & ASCII.LF & ASCII.LF);
+
+            Append (Decls,
+                    "   function " & Prefix & State_Lit
+                    & "_State (Self : Machine) return "
+                    & Child_Pkg & ".State;" & ASCII.LF & ASCII.LF);
+
+            Append (Bodies,
+                    "   procedure " & Proc_Name
+                    & " (Self : in out Machine;" & ASCII.LF
+                    & "                            On : "
+                    & Child_Pkg & ".Event) is" & ASCII.LF
+                    & "   begin" & ASCII.LF
+                    & "      if Current_State (Self) = " & Anc_Lit
+                    & " then" & ASCII.LF
+                    & "         " & Anc_Pkg & "." & Call_Proc
+                    & " (Self." & Anc_Field & ", On);" & ASCII.LF
+                    & "      end if;" & ASCII.LF
+                    & "   end " & Proc_Name & ";" & ASCII.LF
+                    & ASCII.LF);
+
+            Append (Bodies,
+                    "   function " & Prefix & State_Lit
+                    & "_State (Self : Machine) return "
+                    & Child_Pkg & ".State is" & ASCII.LF
+                    & "   begin" & ASCII.LF
+                    & "      if Current_State (Self) = " & Anc_Lit
+                    & " then" & ASCII.LF
+                    & "         return " & Anc_Pkg & "."
+                    & Remain_Pre & State_Lit & "_State"
+                    & " (Self." & Anc_Field & ");" & ASCII.LF
+                    & "      end if;" & ASCII.LF
+                    & "      raise Program_Error with"
+                    & " ""not in " & Anc_Lit & " region"";" & ASCII.LF
+                    & "   end " & Prefix & State_Lit & "_State;"
+                    & ASCII.LF & ASCII.LF);
+
+            Emit_Deeper_Steppers
+              (D, Natural (C), Prefix & State_Lit & "_",
+               With_Clauses, Decls, Bodies);
+         end;
+      end loop;
+   end Emit_Deeper_Steppers;
+
    procedure Generate_Region
      (D              : State_Diagram;
       Region         : Natural;
@@ -635,11 +735,25 @@ package body PlantUML2Code_Ada is
 
             Append (On_Enter_Arms,
                     "         when " & State_Lit & " =>" & ASCII.LF
-                    & "            if not Via_History (Self) then"
-                    & ASCII.LF
-                    & "               " & Child_Pkg & ".Base.Reset"
+                    & "            case Via_History (Self) is" & ASCII.LF
+                    & "               when History_None =>" & ASCII.LF
+                    & "                  " & Child_Pkg & ".Base.Reset"
                     & " (Self." & Child_Field & ");" & ASCII.LF
-                    & "            end if;" & ASCII.LF);
+                    & "               when History_Shallow =>" & ASCII.LF
+                    & "                  " & Child_Pkg
+                    & ".Base.Reset_To_Current"
+                    & " (Self." & Child_Field & ");" & ASCII.LF
+                    & "               when History_Deep =>" & ASCII.LF
+                    & "                  null;" & ASCII.LF
+                    & "            end case;" & ASCII.LF);
+
+            --  Recursively emit Step_<Path>_<Descendant> for this
+            --  region's grandchildren and deeper.
+            Emit_Deeper_Steppers
+              (D, Natural (C), Prefix => State_Lit & "_",
+               With_Clauses => With_Clauses,
+               Decls  => Step_Decls,
+               Bodies => Step_Bodies);
          end;
       end loop;
 
@@ -792,10 +906,29 @@ package body PlantUML2Code_Ada is
       Insert (T, Assoc ("ACTION_DECLS", Action_Decls_Text));
       Insert (T, Assoc ("ACTION_BODIES", Action_Bodies_Text));
 
+      declare
+         Has_Actions : constant Boolean :=
+           Action_Decls_Text'Length > 0;
+         With_Txt : Unbounded_String := Null_Unbounded_String;
+         Use_Txt  : Unbounded_String := Null_Unbounded_String;
+      begin
+         if Has_Actions then
+            With_Txt := To_Unbounded_String
+              ("with " & Package_Name & "_Actions;" & ASCII.LF & ASCII.LF);
+            Use_Txt := To_Unbounded_String
+              ("   use " & Package_Name & "_Actions;" & ASCII.LF);
+         end if;
+         Insert (T, Assoc ("ACTIONS_WITH", With_Txt));
+         Insert (T, Assoc ("ACTIONS_USE", Use_Txt));
+      end;
+
       Render_To ("state.ads.tmplt", Ads_File, T);
       Render_To ("state.adb.tmplt", Adb_File, T);
-      Render_If_Missing ("actions.ads.tmplt", Act_Ads, T);
-      Render_If_Missing ("actions.adb.tmplt", Act_Adb, T);
+
+      if Action_Decls_Text'Length > 0 then
+         Render_If_Missing ("actions.ads.tmplt", Act_Ads, T);
+         Render_If_Missing ("actions.adb.tmplt", Act_Adb, T);
+      end if;
 
       for C of Child_States loop
          Generate_Region

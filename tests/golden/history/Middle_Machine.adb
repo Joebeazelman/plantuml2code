@@ -1,16 +1,19 @@
 --  ---------------------------------------------------------------------
---  @_PACKAGE_NAME_@ (body)
+--  Middle_Machine (body)
 --
---  Generated from @_SOURCE_DIAGRAM_@ on @_GENERATION_DATE_@.
+--  Generated from ../samples/history.puml on <DATE>.
 --  ---------------------------------------------------------------------
 
-@_ACTIONS_WITH_@package body @_PACKAGE_NAME_@ is
+package body Middle_Machine is
 
    use Base;
-@_ACTIONS_USE_@
+
 
    Table : constant array (State, Event) of State :=
-     [@_TRANSITION_ROWS_@];
+     [Start_State =>
+        [Tick => Inner],
+      Inner =>
+        [Tick => Inner]];
 
    overriding
    function Next_State (Self : Machine; On : Event) return State
@@ -20,7 +23,18 @@
    procedure On_Enter (Self : in out Machine) is
    begin
       case Current_State (Self) is
-@_ON_ENTER_CASES_@
+         when Inner =>
+            case Via_History (Self) is
+               when History_None =>
+                  Inner_Machine.Base.Reset (Self.Inner_Child);
+               when History_Shallow =>
+                  Inner_Machine.Base.Reset_To_Current (Self.Inner_Child);
+               when History_Deep =>
+                  null;
+            end case;
+         when Start_State =>
+            null;
+
       end case;
    end On_Enter;
 
@@ -28,7 +42,11 @@
    procedure On_Exit (Self : in out Machine) is
    begin
       case Current_State (Self) is
-@_ON_EXIT_CASES_@
+         when Start_State =>
+            null;
+         when Inner =>
+            null;
+
       end case;
    end On_Exit;
 
@@ -36,7 +54,7 @@
    procedure On_Tick (Self : in out Machine) is
    begin
       case Current_State (Self) is
-@_ON_TICK_CASES_@
+
          when others => null;
       end case;
    end On_Tick;
@@ -45,7 +63,7 @@
    function On_Internal (Self : in out Machine; On : Event) return Boolean is
    begin
       case Current_State (Self) is
-@_ON_INTERNAL_CASES_@
+
          when others =>
             return False;
       end case;
@@ -56,13 +74,28 @@
      (Self : Machine; From : State; On : Event) return Base.History_Mode is
    begin
       case From is
-@_HISTORY_CASES_@
+         when others =>
+            return History_None;
+
       end case;
    end Is_History_Entry;
 
    overriding
    function Name (Self : Machine) return String is
-     ("@_PACKAGE_NAME_@");
+     ("Middle_Machine");
 
-@_STEP_CHILD_BODIES_@
-end @_PACKAGE_NAME_@;
+   procedure Step_Inner (Self : in out Machine;
+                            On : Inner_Machine.Event) is
+   begin
+      if Current_State (Self) = Inner then
+         Inner_Machine.Base.Step (Self.Inner_Child, On);
+      end if;
+   end Step_Inner;
+
+   function Inner_State (Self : Machine) return Inner_Machine.State is
+   begin
+      return Inner_Machine.Base.Current_State (Self.Inner_Child);
+   end Inner_State;
+
+
+end Middle_Machine;

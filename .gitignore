@@ -37,3 +37,9 @@ alire/
 /class_test/src/Pet*.ad[bs]
 /class_test/src/Color*.ad[bs]
 /class_test/src/Toy*.ad[bs]
+
+# Generated Ada in history_test (regenerable)
+/history_test/src/HistoryTest*.ad[bs]
+/history_test/src/Outer_Machine*.ad[bs]
+/history_test/src/Middle_Machine*.ad[bs]
+/history_test/src/Inner_Machine*.ad[bs]
