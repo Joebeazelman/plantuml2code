@@ -17,12 +17,9 @@ package HSM.Machines is
    function Is_History_Entry
      (Self : Machine; From : State; On : Event) return Boolean
      is (False);
-   --  True if this transition is a history entry into a composite.
-   --  Generated machines override this.
 
    function Via_History (Self : Machine'Class) return Boolean
      with Inline => True;
-   --  Read inside On_Enter to decide whether to reset the child.
 
    procedure On_Enter (Self : in out Machine) is null;
    procedure On_Exit  (Self : in out Machine) is null;
@@ -37,7 +34,10 @@ package HSM.Machines is
    function Is_Terminated (Self : Machine'Class) return Boolean
      with Inline => True;
 
-   procedure Start (Self : in out Machine'Class);
+   procedure Start (Self : in out Machine'Class)
+     with Pre  => not Is_Terminated (Self);
+   --  Fire On_Enter for the current state. Idempotent: a second call
+   --  is a no-op. Also invoked automatically by the first Step.
 
    procedure Step (Self : in out Machine'Class; On : Event)
      with Pre  => not Is_Terminated (Self),
@@ -51,9 +51,10 @@ package HSM.Machines is
 private
 
    type Machine is abstract new HSM.Root with record
-      Current    : State := Initial;
-      Terminated : Boolean := False;
-      History    : Boolean := False;
+      Current     : State := Initial;
+      Terminated  : Boolean := False;
+      History     : Boolean := False;
+      Initialized : Boolean := False;
    end record;
 
    function Get (Self : Machine) return State

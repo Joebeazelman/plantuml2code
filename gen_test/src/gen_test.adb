@@ -21,7 +21,8 @@ procedure Gen_Test is
 begin
    Utilities.Tracing.Set_Tracer (Print_Trace'Unrestricted_Access);
 
-   Start (M);
+   Put_Line ("At construction: " & Current_State (M)'Image);
+   --  No explicit Start. The first Step auto-initializes.
 
    Step (M, Nested.Start);
    Show ("after Start:");
@@ -30,7 +31,7 @@ begin
    Show ("after Yield:");
 
    Step (M, Nested.Stop);
-   Show ("after Stop: ");
+   Show ("after Stop:");
 
    Step (M, Nested.Continue);
    Show ("after Continue:");

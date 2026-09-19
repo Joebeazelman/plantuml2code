@@ -25,6 +25,10 @@ package body HSM.Machines is
 
    procedure Start (Self : in out Machine'Class) is
    begin
+      if Machine (Self).Initialized then
+         return;
+      end if;
+      Machine (Self).Initialized := True;
       On_Enter (Self);
    end Start;
 
@@ -33,12 +37,17 @@ package body HSM.Machines is
       On_Exit (Self);
       Set (Machine (Self), Initial);
       Machine (Self).Terminated := False;
+      Machine (Self).Initialized := True;
       On_Enter (Self);
    end Reset;
 
    procedure Step (Self : in out Machine'Class; On : Event) is
       Previous : constant State := Current_State (Self);
    begin
+      if not Machine (Self).Initialized then
+         Start (Self);
+      end if;
+
       On_Tick (Self);
 
       if On_Internal (Machine (Self), On) then
