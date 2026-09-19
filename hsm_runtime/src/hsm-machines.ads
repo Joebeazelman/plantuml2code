@@ -31,9 +31,8 @@ package HSM.Machines is
 
    procedure Step (Self : in out Machine'Class; On : Event)
      with Pre  => not Is_Terminated (Self),
-          Post => (if Current_State (Self) /= Current_State (Self)'Old
-                   then not Is_Terminated (Self)
-                   else Is_Terminated (Self) = Is_Terminated (Self)'Old);
+          Post => (if Current_State (Self) = Current_State (Self)'Old
+                   then Is_Terminated (Self) = Is_Terminated (Self)'Old);
 
    procedure Reset (Self : in out Machine'Class)
      with Post => Current_State (Self) = Initial
