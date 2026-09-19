@@ -153,40 +153,82 @@ package body PlantUML.States is
          Raw     : out Name);
 
       function Parse_Target return Name is
+         Result : Unbounded_String;
+
+         function Parse_Single_Pseudostate return Name is
+            Kind  : State_Kind;
+            Ok    : Boolean;
+            Canon : Name;
+         begin
+            Parse_Bracket_Pseudostate (Kind, Ok);
+            if not Ok then
+               raise Parse_Error with
+                 "Unrecognized pseudostate as target";
+            end if;
+            if Kind = Start_Pseudostate then
+               Canon := To_Unbounded_String ("[*]");
+            elsif Kind = History_Shallow then
+               Canon := To_Unbounded_String (Shallow_History_Name);
+            elsif Kind = History_Deep then
+               Canon := To_Unbounded_String (Deep_History_Name);
+            else
+               raise Parse_Error with "Unknown pseudostate kind";
+            end if;
+            return Canon;
+         end Parse_Single_Pseudostate;
+
       begin
          if C.Sym_Is ("[") then
             declare
-               Kind  : State_Kind;
-               Ok    : Boolean;
-               Canon : Name;
+               Canon : constant Name := Parse_Single_Pseudostate;
             begin
-               Parse_Bracket_Pseudostate (Kind, Ok);
-               if not Ok then
-                  raise Parse_Error with
-                    "Unrecognized pseudostate as target";
-               end if;
-
-               if Kind = Start_Pseudostate then
-                  --  [*] as target is the terminal pseudostate
-                  Canon := To_Unbounded_String (Scoped (End_Pseudostate_Name));
+               if To_String (Canon) = "[*]" then
                   Register_Pseudostate
                     (Scoped (End_Pseudostate_Name), End_Pseudostate);
-               elsif Kind = History_Shallow then
-                  Canon := To_Unbounded_String (Scoped (Shallow_History_Name));
+                  return To_Unbounded_String
+                    (Scoped (End_Pseudostate_Name));
+               elsif To_String (Canon) = Shallow_History_Name then
                   Register_Pseudostate
                     (Scoped (Shallow_History_Name), History_Shallow);
-               elsif Kind = History_Deep then
-                  Canon := To_Unbounded_String (Scoped (Deep_History_Name));
+                  return To_Unbounded_String
+                    (Scoped (Shallow_History_Name));
+               elsif To_String (Canon) = Deep_History_Name then
                   Register_Pseudostate
                     (Scoped (Deep_History_Name), History_Deep);
+                  return To_Unbounded_String
+                    (Scoped (Deep_History_Name));
                else
-                  raise Parse_Error with
-                    "Unrecognized pseudostate as target";
+                  return Canon;
                end if;
-               return Canon;
             end;
          elsif C.Peek.Kind = Word then
-            return Consume.Text;
+            Result := Consume.Text;
+            while C.Sym_Is (".") loop
+               Append (Result, ".");
+               C.Next;
+               if C.Sym_Is ("[") then
+                  declare
+                     Canon : constant Name := Parse_Single_Pseudostate;
+                  begin
+                     Append (Result, To_String (Canon));
+                     if To_String (Canon) = "[*]" then
+                        Register_Pseudostate
+                          (To_String (Result), Start_Pseudostate);
+                     elsif To_String (Canon) = Shallow_History_Name then
+                        Register_Pseudostate
+                          (To_String (Result), History_Shallow);
+                     elsif To_String (Canon) = Deep_History_Name then
+                        Register_Pseudostate
+                          (To_String (Result), History_Deep);
+                     end if;
+                  end;
+               elsif C.Peek.Kind = Word then
+                  Append (Result, Consume.Text);
+               else
+                  exit;
+               end if;
+            end loop;
+            return Result;
          else
             raise Parse_Error with "Expected transition target";
          end if;
