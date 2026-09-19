@@ -4,6 +4,7 @@ generic
    Initial : State;
 package HSM.Machines is
    pragma Preelaborate;
+   pragma Unevaluated_Use_Of_Old (Allow);
 
    type Machine is abstract new HSM.Root with private;
 
@@ -16,30 +17,33 @@ package HSM.Machines is
    procedure On_Enter (Self : in out Machine) is null;
    procedure On_Exit  (Self : in out Machine) is null;
    procedure On_Tick  (Self : in out Machine) is null;
-   --  Called at the start of every Step. Generated machines override
-   --  this to dispatch "do" activities for the current state.
 
    function On_Internal (Self : in out Machine; On : Event) return Boolean
      is (False);
-   --  Return True if the event was handled as an internal transition
-   --  (no state change). Step calls this before computing Next_State.
+
+   procedure Mark_Terminated (Self : in out Machine'Class)
+     with Post => Is_Terminated (Self);
+
+   function Is_Terminated (Self : Machine'Class) return Boolean
+     with Inline => True;
 
    procedure Start (Self : in out Machine'Class);
-   --  Fire On_Enter for the current state. Intended for the
-   --  top-level machine immediately after construction. Composite
-   --  children are Started implicitly by their parent's On_Enter.
 
-   procedure Step (Self : in out Machine'Class; On : Event);
+   procedure Step (Self : in out Machine'Class; On : Event)
+     with Pre  => not Is_Terminated (Self),
+          Post => (if Current_State (Self) /= Current_State (Self)'Old
+                   then not Is_Terminated (Self)
+                   else Is_Terminated (Self) = Is_Terminated (Self)'Old);
 
-   procedure Reset (Self : in out Machine'Class);
-   --  Fire On_Exit for the current state, set to Initial, fire
-   --  On_Enter for Initial. Intended for composite children when
-   --  their parent enters the composite state.
+   procedure Reset (Self : in out Machine'Class)
+     with Post => Current_State (Self) = Initial
+                  and then not Is_Terminated (Self);
 
 private
 
    type Machine is abstract new HSM.Root with record
-      Current : State := Initial;
+      Current    : State := Initial;
+      Terminated : Boolean := False;
    end record;
 
    function Get (Self : Machine) return State

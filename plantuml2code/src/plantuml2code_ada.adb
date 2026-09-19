@@ -567,17 +567,25 @@ package body PlantUML2Code_Ada is
             if not Is_Composite then
                Append (On_Enter_Arms,
                        "         when " & Lit & " =>" & ASCII.LF);
-               for A of D.Pool (Positive (I)).Annotations loop
-                  if A.Kind = Entry_Action and then Length (A.Action) > 0 then
-                     Append (On_Enter_Arms,
-                             "            "
-                             & Sanitize (To_String (A.Action))
-                             & ";" & ASCII.LF);
-                  end if;
-               end loop;
-               if not Has_Entry then
+               if Lit = "End_State" then
                   Append (On_Enter_Arms,
-                          "            null;" & ASCII.LF);
+                          "            Mark_Terminated (Self);"
+                          & ASCII.LF);
+               else
+                  for A of D.Pool (Positive (I)).Annotations loop
+                     if A.Kind = Entry_Action
+                       and then Length (A.Action) > 0
+                     then
+                        Append (On_Enter_Arms,
+                                "            "
+                                & Sanitize (To_String (A.Action))
+                                & ";" & ASCII.LF);
+                     end if;
+                  end loop;
+                  if not Has_Entry then
+                     Append (On_Enter_Arms,
+                             "            null;" & ASCII.LF);
+                  end if;
                end if;
             end if;
 

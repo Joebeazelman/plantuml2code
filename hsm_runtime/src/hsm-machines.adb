@@ -2,8 +2,7 @@ with Utilities.Tracing;
 
 package body HSM.Machines is
 
-   function Get (Self : Machine) return State is
-     (Self.Current);
+   function Get (Self : Machine) return State is (Self.Current);
 
    procedure Set (Self : in out Machine; S : State) is
    begin
@@ -12,6 +11,14 @@ package body HSM.Machines is
 
    function Current_State (Self : Machine'Class) return State is
      (Get (Machine (Self)));
+
+   function Is_Terminated (Self : Machine'Class) return Boolean is
+     (Machine (Self).Terminated);
+
+   procedure Mark_Terminated (Self : in out Machine'Class) is
+   begin
+      Machine (Self).Terminated := True;
+   end Mark_Terminated;
 
    procedure Start (Self : in out Machine'Class) is
    begin
@@ -22,6 +29,7 @@ package body HSM.Machines is
    begin
       On_Exit (Self);
       Set (Machine (Self), Initial);
+      Machine (Self).Terminated := False;
       On_Enter (Self);
    end Reset;
 

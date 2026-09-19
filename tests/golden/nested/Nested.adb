@@ -48,7 +48,7 @@ package body Nested is
          when Idle =>
             Log_Idle;
          when End_State =>
-            null;
+            Mark_Terminated (Self);
 
       end case;
    end On_Enter;
