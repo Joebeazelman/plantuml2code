@@ -248,7 +248,98 @@ fail unless `-t` is passed. This is why `bootstrap.sh` `cd`s into
   which Ada supports, but we haven't tested method resolution in
   that case.
 
+## Pending corrections
+
+These are known deviations from the intended design. They are
+technical debt, not features. Each has a concrete remediation.
+
+### 1. Templates are shells, not drivers
+
+**What was intended.** Templates decide the shape of the emitted
+code. Ada supplies a flat set of tags describing the model. If you
+want to change how the generated code looks, you edit a `.tmplt` file.
+
+**What exists.** `plantuml2code_ada.adb` and
+`plantuml2code_ada_classes.adb` build the emitted text as Ada string
+concatenation. The templates are `@_TAG_@` interpolations of
+already-formatted lines. Changing the code shape means editing Ada.
+
+**Why.** The first attempt at `@@IF@@` inside `@@TABLE@@` produced
+literal `@@IF@@` in the output instead of a conditional. Rather than
+diagnose, I sidestepped it by moving formatting into Ada.
+
+**Correct approach.** Templates Parser ships a working example at
+`docs/src/table_if.tmplt` that uses `@@IF@@` inside `@@TABLE@@` with
+a boolean composite tag. That is exactly our use case.
+
+**Remediation.**
+
+- Step 1: Build a minimal reproduction using the exact
+  `table_if.tmplt` pattern. Determine definitively whether `@@IF@@`
+  works in this version.
+- Step 2: Redesign the bindings. Instead of pre-formatted strings,
+  emit rich tags:
+  `STATE_NAMES`, `STATE_KINDS`, `STATE_HAS_ENTRY`, `STATE_HAS_EXIT`,
+  `STATE_IS_COMPOSITE`, `STATE_IS_TERMINAL`,
+  `TRANS_FROM`, `TRANS_TO`, `TRANS_TRIGGER`, `TRANS_HAS_GUARD`,
+  `TRANS_GUARD`, `TRANS_IS_HISTORY`, `TRANS_IS_INTERNAL`,
+  `ACTION_NAME`, `ACTION_KIND`, `ACTION_STATE`.
+- Step 3: Rewrite the four Ada templates to make the shape decisions.
+- Step 4: Verify against golden files — output must be unchanged.
+
+Genuinely hard for templates and acceptable as Ada:
+- recursive child-package generation (each region is its own template
+  invocation with its own tags)
+- transition-table aggregate `[...]` syntax (nested constructs)
+
+### 2. No AUnit suites in any crate
+
+**What was intended.** Each crate ships its own AUnit test suite,
+runnable via `alr test`, with named test cases and per-assertion
+messages.
+
+**What exists.**
+
+- `plantuml_parser/tests/` has two standalone drivers (`test_states`,
+  `test_classes`) that print output for human inspection.
+- `hsm_runtime` has no tests at all.
+- `plantuml2code` has no tests at all.
+- Repo-level `tests/run_tests.sh` does golden-file comparison.
+- `gen_test`, `class_test`, `history_test` are integration samples.
+
+The AUnit suite from the original single-crate script
+(`test_plantuml.ads`/`.adb` with `AUnit.Test_Cases`) was lost when
+we split into crates. It was never restored.
+
+**Remediation.**
+
+- `plantuml_parser/tests/`: AUnit suites `Test_Tokens`, `Test_States`,
+  `Test_Classes`. Assertions on `Detect_Kind`, `Tokenize`,
+  `Parse_Target` on dotted names, composite nesting, annotation kinds,
+  relation kinds.
+- `hsm_runtime/tests/`: AUnit suite `Test_Machines`. Mock `State` and
+  `Event`; cover `Step` on terminated machine (contract fires under
+  `-gnata`), `Reset`, `Start` idempotency, history modes.
+- `plantuml2code/tests/`: AUnit suites `Test_CLI`, `Test_Ansi`,
+  `Test_Help`. Assertions on argument parsing edge cases, `NO_COLOR`
+  handling, unknown topics.
+- Each crate gets a `<crate>_tests.gpr` and a `[[test]]` stanza in
+  `alire.toml`.
+- Golden files stay as the repo-level integration test.
+
+### 3. Minor known issues
+
+- `PlantUML.Tokens` has an unused `with Ada.Characters.Handling`.
+- `plantuml2code_template_path.adb` has a debug block guarded by
+  `PLANTUML2CODE_DEBUG`; harmless but should be removed once the
+  search logic is settled.
+- `plantuml2code_ada.adb` has an unused `Child_Field` constant and
+  `plantuml2code_ada_classes.adb` has unused `Has_Parents` and
+  `Parents` functions. Cosmetic.
+
 ## Publishing
+
+
 
 Both `plantuml_parser` and `hsm_runtime` are publishable to the Alire
 community index. Their manifests are at:
