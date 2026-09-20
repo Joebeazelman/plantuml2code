@@ -1,10 +1,26 @@
---  driver.adb -- starter program for @_MACHINE_NAME_@.
---  Edit to exercise your model.
+--  driver.adb -- starter driver for @_MACHINE_NAME_@.
+--
+--  Starts the machine and prints its initial state. Edit to send
+--  real events, e.g.:
+--
+--     Step (M, @_MACHINE_NAME_@.<Event>);
+--     Put_Line (Current_State (M)'Image);
 
-with Ada.Text_IO;  use Ada.Text_IO;
+with Ada.Text_IO;              use Ada.Text_IO;
+with State_Machine.Tracing;
+with @_MACHINE_NAME_@;
 
 procedure Driver is
+   use @_MACHINE_NAME_@.Base;
+
+   procedure Print_Trace (Msg : String) is
+   begin
+      Put_Line (Msg);
+   end Print_Trace;
+
+   M : @_MACHINE_NAME_@.Machine;
 begin
-   Put_Line ("@_MACHINE_NAME_@: replace this driver with real code.");
-   --  TODO: instantiate and drive your generated packages.
+   State_Machine.Tracing.Set_Tracer (Print_Trace'Unrestricted_Access);
+   Start (M);
+   Put_Line ("Initial state: " & Current_State (M)'Image);
 end Driver;
