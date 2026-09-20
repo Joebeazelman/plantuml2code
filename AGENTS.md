@@ -317,15 +317,22 @@ Current coverage:
 
 Gaps still to fill:
 
-- `CLI.Parse` is essentially untested because Ada.Command_Line is
-  set at process start and cannot be replaced under AUnit. A proper
-  test would refactor `Parse` to take an argument vector rather than
-  reading the process command line directly.
 - Help text has no tests.
 - Generated code and the shipped runtime templates have no unit
   tests. They are covered indirectly by the golden-file suite and
   the three sample projects under `gen_test/`, `class_test/`, and
   `history_test/`.
+
+### Argument-vector parsing
+
+`PlantUML2Code_CLI.Parse` has two forms:
+
+- `Parse (Args : Argument_Vectors.Vector)` — pure, used by tests.
+- `Parse` — reads `Ada.Command_Line`, delegates to the above.
+
+All CLI edge cases (attached vs. separated option values, missing
+values, unknown options, multiple commands, help topics, color
+modes, stdin) are covered by `Test_CLI`.
 
 ### 2. Minor known issues
 
