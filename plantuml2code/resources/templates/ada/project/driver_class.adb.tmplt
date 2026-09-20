@@ -1,0 +1,12 @@
+--  driver.adb -- starter program for @_MODEL_NAME_@.
+--
+--  Constructs concrete classes to prove they link, prints each
+--  class name, then exits. Replace with real code.
+
+with Ada.Text_IO;              use Ada.Text_IO;
+@_DRIVER_WITH_CLAUSES_@
+procedure Driver is
+begin
+   Put_Line ("@_MODEL_NAME_@: replace this driver with real code.");
+@_DRIVER_INSTANTIATIONS_@
+end Driver;

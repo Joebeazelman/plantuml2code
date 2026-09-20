@@ -1,0 +1,11 @@
+--  @_CLASS_NAME_@ (body, enumeration)
+
+package body @_CLASS_NAME_@ is
+
+   function Class_Name (Self : T) return String is
+      pragma Unreferenced (Self);
+   begin
+      return "@_CLASS_NAME_@";
+   end Class_Name;
+
+end @_CLASS_NAME_@;

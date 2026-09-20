@@ -590,6 +590,11 @@ package body PlantUML2Code_Ada is
       Emit_Setup (Out_Dir, Machine_Name);
    end Emit_Runtime_And_Project;
 
+   procedure Emit_Setup_Only (Out_Dir, Machine_Name : String) is
+   begin
+      Emit_Setup (Out_Dir, Machine_Name);
+   end Emit_Setup_Only;
+
    procedure Emit_Runtime (Src_Dir : String) is
       Empty_Set : Translate_Set;
 

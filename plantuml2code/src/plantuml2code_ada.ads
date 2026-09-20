@@ -15,6 +15,8 @@ package PlantUML2Code_Ada is
      (Src_Dir, Tests_Dir, Out_Dir : String;
       Machine_Name : String;
       Include_State_Runtime : Boolean := True);
+
+   procedure Emit_Setup_Only (Out_Dir, Machine_Name : String);
    --  Emit the shared state-machine runtime and a starter project.
    --  Class diagrams set Include_State_Runtime to False; they still
    --  get a project skeleton and a driver, but no state-machine files.

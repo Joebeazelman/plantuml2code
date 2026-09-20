@@ -7,6 +7,7 @@ with Ada.Containers.Vectors;
 
 with PlantUML.Classes;         use PlantUML.Classes;
 with PlantUML2Code_Utils;
+with PlantUML2Code_Template_Path;
 with PlantUML2Code_Ada;      use PlantUML2Code_Utils;
 with Templates_Parser;         use Templates_Parser;
 
@@ -238,7 +239,8 @@ package body PlantUML2Code_Ada_Classes is
    begin
       case K.Kind is
          when Interface_Kind =>
-            return "   type T is interface;";
+            return "   type T is limited interface"
+                 & " and Class_Runtime.Object;";
 
          when Enumeration =>
             declare
@@ -260,12 +262,14 @@ package body PlantUML2Code_Ada_Classes is
          when Abstract_Class =>
             if Parents'Length = 0 then
                if Has_Attrs then
-                  return "   type T is abstract tagged record"
+                  return "   type T is abstract new Class_Runtime.Object"
+                       & " with record"
                        & ASCII.LF & "      "
                        & Record_Fields (D, Idx)
                        & ASCII.LF & "   end record;";
                else
-                  return "   type T is abstract tagged null record;";
+                  return "   type T is abstract new Class_Runtime.Object"
+                       & " with null record;";
                end if;
             else
                if Has_Attrs then
@@ -283,12 +287,14 @@ package body PlantUML2Code_Ada_Classes is
          when others =>
             if Parents'Length = 0 then
                if Has_Attrs then
-                  return "   type T is tagged record"
+                  return "   type T is new Class_Runtime.Object"
+                       & " with record"
                        & ASCII.LF & "      "
                        & Record_Fields (D, Idx)
                        & ASCII.LF & "   end record;";
                else
-                  return "   type T is tagged null record;";
+                  return "   type T is new Class_Runtime.Object"
+                       & " with null record;";
                end if;
             else
                if Has_Attrs then
@@ -457,6 +463,14 @@ package body PlantUML2Code_Ada_Classes is
             end;
          end if;
       end loop;
+
+      if Is_Interface then
+         Append (R, "   overriding" & ASCII.LF
+                 & "   function Class_Name (Self : T) return String"
+                 & " is abstract;" & ASCII.LF);
+         --  Class_Runtime.Object already declares Class_Name abstract;
+         --  restating it here is legal and needed for the interface.
+      end if;
 
       --  Inherited abstract methods not overridden here: emit overrides
       --  so a concrete derived type compiles.
@@ -713,6 +727,16 @@ package body PlantUML2Code_Ada_Classes is
       Parents : constant String :=
         To_String (Parents_Of (D, To_String (K.Id)));
    begin
+      --  Only root classes actually reference Class_Runtime in their
+      --  spec. Derived classes inherit it indirectly.
+      declare
+         Parents : constant String :=
+           To_String (Parents_Of (D, To_String (K.Id)));
+      begin
+         if Parents'Length = 0 then
+            Append (R, "with Class_Runtime;" & ASCII.LF);
+         end if;
+      end;
       if Uses_Unbounded (D, Idx) then
          Append (R, "with Ada.Strings.Unbounded;"
                  & "  use Ada.Strings.Unbounded;" & ASCII.LF);
@@ -825,10 +849,11 @@ package body PlantUML2Code_Ada_Classes is
          return;
       end if;
 
-      --  Enumeration: spec only, no body
+      --  Enumeration: spec + minimal body for Class_Name
       if K.Kind = Enumeration then
          Insert (T, Assoc ("TYPE_DECL", Type_Decl (D, Idx)));
          Render_To ("class_enum.ads.tmplt", Ads_File, T);
+         Render_To ("class_enum.adb.tmplt", Adb_File, T);
          return;
       end if;
 
@@ -836,25 +861,139 @@ package body PlantUML2Code_Ada_Classes is
       Insert (T, Assoc ("WITH_CLAUSES", With_Clauses (D, Idx)));
       Insert (T, Assoc ("TYPE_DECL", Type_Decl (D, Idx)));
       Insert (T, Assoc ("METHOD_DECLS", Method_Decls (D, Idx)));
+      Insert (T, Assoc ("BODY_WITH",
+                        (if Has_Methods
+                         then "with " & Class_Name & "_Actions;"
+                              & ASCII.LF & ASCII.LF
+                         else "")));
       Render_To ("class.ads.tmplt", Ads_File, T);
 
+      --  Always emit a body: Class_Name lives there even when the
+      --  class has no methods.
       declare
          Bodies : constant String := Method_Bodies (D, Idx);
+         Body_Text : constant String :=
+           Bodies
+           & "   overriding" & ASCII.LF
+           & "   function Class_Name (Self : T) return String is"
+           & ASCII.LF
+           & "      pragma Unreferenced (Self);" & ASCII.LF
+           & "   begin" & ASCII.LF
+           & "      return """
+           & Sanitize (To_String (K.Id)) & """;" & ASCII.LF
+           & "   end Class_Name;" & ASCII.LF;
       begin
-         if Bodies'Length > 0 then
-            Insert (T, Assoc ("METHOD_BODIES", Bodies));
-            Render_To ("class.adb.tmplt", Adb_File, T);
-         end if;
+         Insert (T, Assoc ("METHOD_BODIES", Body_Text));
       end;
+      Render_To ("class.adb.tmplt", Adb_File, T);
 
-      Insert (T, Assoc ("METHOD_DECLS", Actions_Decls (D, Idx)));
-      Render_If_Missing ("class_actions.ads.tmplt", Act_Ads, T);
+      --  Actions files are only useful when there is something to
+      --  implement. Skip them for method-less classes.
+      if Has_Methods then
+         Insert (T, Assoc ("METHOD_DECLS", Actions_Decls (D, Idx)));
+         Render_If_Missing ("class_actions.ads.tmplt", Act_Ads, T);
 
-      Insert (T, Assoc ("METHOD_BODIES", Actions_Bodies (D, Idx)));
-      Render_If_Missing ("class_actions.adb.tmplt", Act_Adb, T);
-
-      pragma Unreferenced (Has_Methods);
+         Insert (T, Assoc ("METHOD_BODIES", Actions_Bodies (D, Idx)));
+         Render_If_Missing ("class_actions.adb.tmplt", Act_Adb, T);
+      end if;
    end Emit_One;
+
+   procedure Emit_Class_Runtime (Src_Dir : String) is
+      Empty_Set : Translate_Set;
+
+      procedure One (Tmpl, File_Name : String) is
+         Output : constant String :=
+           Ada.Directories.Compose (Src_Dir, File_Name);
+         Path   : constant String :=
+           PlantUML2Code_Template_Path.Locate ("ada/runtime", Tmpl);
+         Content : constant String :=
+           Templates_Parser.Parse (Path, Empty_Set);
+         F : File_Type;
+      begin
+         if Ada.Directories.Exists (Output) then
+            Put_Line ("kept  " & Output);
+         else
+            Create (F, Out_File, Output);
+            Put (F, Content);
+            Close (F);
+            Put_Line ("wrote " & Output);
+         end if;
+      end One;
+   begin
+      One ("class_runtime.ads.tmplt", "class_runtime.ads");
+      One ("class_runtime-tracing.ads.tmplt",
+           "class_runtime-tracing.ads");
+      One ("class_runtime-tracing.adb.tmplt",
+           "class_runtime-tracing.adb");
+   end Emit_Class_Runtime;
+
+   procedure Emit_Class_Driver
+     (Tests_Dir, Out_Dir : String; D : Class_Diagram)
+   is
+      pragma Unreferenced (Out_Dir);
+      Output : constant String :=
+        Ada.Directories.Compose (Tests_Dir, "driver.adb");
+      Path   : constant String :=
+        PlantUML2Code_Template_Path.Locate ("ada/project",
+                                            "driver_class.adb.tmplt");
+      T      : Translate_Set;
+
+      Withs  : Unbounded_String;
+      Insts  : Unbounded_String;
+      Model  : constant String :=
+        (if Length (D.Diagram_Name) > 0
+         then To_String (D.Diagram_Name) else "Model");
+      F : File_Type;
+   begin
+      if Ada.Directories.Exists (Output) then
+         Put_Line ("kept  " & Output);
+         return;
+      end if;
+
+      for K of D.Pool loop
+         if K.Kind in Class | Record_Type then
+            --  Construct only concrete class and record types.
+            declare
+               N : constant String := Sanitize (To_String (K.Id));
+            begin
+               Append (Withs, "with " & N & ";" & ASCII.LF);
+               Append (Insts, "   declare" & ASCII.LF
+                       & "      X : " & N & ".T;" & ASCII.LF
+                       & "      pragma Unreferenced (X);" & ASCII.LF
+                       & "   begin" & ASCII.LF
+                       & "      Put_Line (" & '"' & N
+                       & ": "" & " & N & ".Class_Name (X));"
+                       & ASCII.LF
+                       & "   end;" & ASCII.LF);
+            end;
+         elsif K.Kind = Enumeration then
+            --  Enums are concrete too; just reference the type.
+            declare
+               N : constant String := Sanitize (To_String (K.Id));
+            begin
+               Append (Withs, "with " & N & ";" & ASCII.LF);
+               Append (Insts, "   Put_Line (" & '"' & N
+                       & ": "" & " & N
+                       & ".Class_Name (" & N & ".T'First));"
+                       & ASCII.LF);
+            end;
+         end if;
+      end loop;
+
+      Insert (T, Assoc ("MODEL_NAME", Model));
+      Insert (T, Assoc ("DRIVER_WITH_CLAUSES", To_String (Withs)));
+      Insert (T, Assoc ("DRIVER_INSTANTIATIONS", To_String (Insts)));
+
+      declare
+         Content : constant String :=
+           Templates_Parser.Parse (Path, T);
+      begin
+         Create (F, Out_File, Output);
+         Put (F, Content);
+         Close (F);
+      end;
+      Put_Line ("wrote " & Output);
+   end Emit_Class_Driver;
 
    procedure Generate
      (D              : Class_Diagram;
@@ -898,9 +1037,10 @@ package body PlantUML2Code_Ada_Classes is
          Ada.Directories.Create_Path (Src_Dir);
          Ada.Directories.Create_Path (Tests_Dir);
 
-         PlantUML2Code_Ada.Emit_Runtime_And_Project
-           (Src_Dir, Tests_Dir, Out_Dir, Machine_Name,
-            Include_State_Runtime => False);
+         --  Class runtime is separate from state machine runtime.
+         Emit_Class_Runtime (Src_Dir);
+         Emit_Class_Driver (Tests_Dir, Out_Dir, D);
+         PlantUML2Code_Ada.Emit_Setup_Only (Out_Dir, Machine_Name);
 
          for I in D.Pool.First_Index .. D.Pool.Last_Index loop
             if D.Pool (I).Kind /= Package_Kind then
