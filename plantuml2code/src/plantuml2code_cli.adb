@@ -12,9 +12,7 @@ package body PlantUML2Code_CLI is
      Plantuml2code_Config.Crate_Name & ": error: ";
    Hint_Prefix  : constant String := "       ";
 
-   Result : Parse_Result;
-
-   procedure Fail (Msg : String) is
+   procedure Fail (Result : in out Parse_Result; Msg : String) is
    begin
       Put_Line (Standard_Error, Error_Prefix & Msg);
       Result.Ok := False;
@@ -40,16 +38,20 @@ package body PlantUML2Code_CLI is
       end if;
    end Parse_Command;
 
-   procedure Set_Format (S : String) is
+   procedure Set_Format
+     (Result : in out Parse_Result; S : String)
+   is
    begin
       Result.Format := PlantUML2Code_Formats.Parse (S);
    exception
       when Constraint_Error =>
-         Fail ("unknown format '" & S & "'");
+         Fail (Result, "unknown format '" & S & "'");
          Hint ("valid formats: text, json, ada");
    end Set_Format;
 
-   procedure Set_Color (S : String) is
+   procedure Set_Color
+     (Result : in out Parse_Result; S : String)
+   is
    begin
       if S = "auto" then
          Result.Color := PlantUML2Code_Ansi.Auto;
@@ -58,40 +60,47 @@ package body PlantUML2Code_CLI is
       elsif S = "never" then
          Result.Color := PlantUML2Code_Ansi.Never;
       else
-         Fail ("unknown color mode '" & S & "'");
+         Fail (Result, "unknown color mode '" & S & "'");
          Hint ("valid modes: auto, always, never");
       end if;
    end Set_Color;
 
-   function Parse return Parse_Result is
+   function Arg (Args : Argument_Vectors.Vector;
+                 I    : Positive) return String
+   is
+     (To_String (Args (I)));
+
+   function Parse (Args : Argument_Vectors.Vector) return Parse_Result is
+      Result : Parse_Result := (others => <>);
+      Total  : constant Natural := Natural (Args.Length);
    begin
-      Result := (others => <>);
+      if Total = 0 then
+         return Result;
+      end if;
 
       declare
          I : Positive := 1;
       begin
-         while I <= Argument_Count loop
+         while I <= Total loop
             declare
-               A : constant String := Argument (I);
+               A : constant String := Arg (Args, I);
             begin
-               --  Command word
                if Parse_Command (A) /= Cmd_None then
                   if Result.Cmd /= Cmd_None then
-                     Fail ("multiple commands given");
+                     Fail (Result, "multiple commands given");
                      return Result;
                   end if;
                   Result.Cmd := Parse_Command (A);
                   I := I + 1;
 
-                  --  help consumes one optional topic word.
-                  --  The word may coincide with a command name.
+                  --  help consumes one optional topic word
                   if Result.Cmd = Cmd_Help
-                    and then I <= Argument_Count
-                    and then Argument (I)'Length > 0
-                    and then Argument (I) (Argument (I)'First) /= '-'
+                    and then I <= Total
+                    and then Arg (Args, I)'Length > 0
+                    and then Arg (Args, I) (Arg (Args, I)'First) /= '-'
                   then
                      Result.Help_Topic :=
-                       To_Unbounded_String (Argument (I));
+                       To_Unbounded_String (Arg (Args, I));
                      I := I + 1;
                   end if;
 
@@ -104,32 +113,32 @@ package body PlantUML2Code_CLI is
                   I := I + 1;
 
                elsif A = "-f" or else A = "--format" then
-                  if I = Argument_Count then
-                     Fail (A & " requires a value");
+                  if I = Total then
+                     Fail (Result, A & " requires a value");
                      return Result;
                   end if;
-                  Set_Format (Argument (I + 1));
+                  Set_Format (Result, Arg (Args, I + 1));
                   I := I + 2;
 
                elsif A'Length > 9
                  and then A (A'First .. A'First + 8) = "--format="
                then
-                  Set_Format (A (A'First + 9 .. A'Last));
+                  Set_Format (Result, A (A'First + 9 .. A'Last));
                   I := I + 1;
 
                elsif A'Length > 2
                  and then A (A'First .. A'First + 1) = "-f"
                then
-                  Set_Format (A (A'First + 2 .. A'Last));
+                  Set_Format (Result, A (A'First + 2 .. A'Last));
                   I := I + 1;
 
                elsif A = "-t" or else A = "--templates" then
-                  if I = Argument_Count then
-                     Fail (A & " requires a value");
+                  if I = Total then
+                     Fail (Result, A & " requires a value");
                      return Result;
                   end if;
                   Result.Templates_Dir :=
-                    To_Unbounded_String (Argument (I + 1));
+                    To_Unbounded_String (Arg (Args, I + 1));
                   I := I + 2;
 
                elsif A'Length > 12
@@ -147,12 +156,12 @@ package body PlantUML2Code_CLI is
                   I := I + 1;
 
                elsif A = "-o" or else A = "--output" then
-                  if I = Argument_Count then
-                     Fail (A & " requires a value");
+                  if I = Total then
+                     Fail (Result, A & " requires a value");
                      return Result;
                   end if;
                   Result.Out_Dir :=
-                    To_Unbounded_String (Argument (I + 1));
+                    To_Unbounded_String (Arg (Args, I + 1));
                   Result.Out_Set := True;
                   I := I + 2;
 
@@ -173,24 +182,24 @@ package body PlantUML2Code_CLI is
                   I := I + 1;
 
                elsif A = "--color" then
-                  if I = Argument_Count then
-                     Fail (A & " requires a value");
+                  if I = Total then
+                     Fail (Result, A & " requires a value");
                      return Result;
                   end if;
-                  Set_Color (Argument (I + 1));
+                  Set_Color (Result, Arg (Args, I + 1));
                   I := I + 2;
 
                elsif A'Length > 8
                  and then A (A'First .. A'First + 7) = "--color="
                then
-                  Set_Color (A (A'First + 8 .. A'Last));
+                  Set_Color (Result, A (A'First + 8 .. A'Last));
                   I := I + 1;
 
                elsif A'Length > 0
                  and then A (A'First) = '-'
                  and then A /= "-"
                then
-                  Fail ("unknown option '" & A & "'");
+                  Fail (Result, "unknown option '" & A & "'");
                   Hint ("run '" & Plantuml2code_Config.Crate_Name
                         & " help'");
                   return Result;
@@ -204,6 +213,15 @@ package body PlantUML2Code_CLI is
       end;
 
       return Result;
+   end Parse;
+
+   function Parse return Parse_Result is
+      Args : Argument_Vectors.Vector;
+   begin
+      for I in 1 .. Argument_Count loop
+         Args.Append (To_Unbounded_String (Argument (I)));
+      end loop;
+      return Parse (Args);
    end Parse;
 
 end PlantUML2Code_CLI;

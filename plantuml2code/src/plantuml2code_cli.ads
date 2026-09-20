@@ -1,5 +1,9 @@
---  Command-line argument parsing. Produces a Parse_Result that the
---  main program can inspect without doing any string juggling itself.
+--  Command-line argument parsing.
+--
+--  Two entry points:
+--
+--    Parse (Args)  pure; takes an argument vector; used by tests.
+--    Parse         reads the process command line; used by the main.
 
 with Ada.Containers.Vectors;
 with Ada.Strings.Unbounded;
@@ -13,6 +17,9 @@ package PlantUML2Code_CLI is
 
    type Command_Kind is
      (Cmd_None, Cmd_Dump, Cmd_Kind, Cmd_Help, Cmd_Version);
+
+   package Argument_Vectors is new Ada.Containers.Vectors
+     (Positive, Unbounded_String);
 
    package File_Vectors is new Ada.Containers.Vectors
      (Positive, Unbounded_String);
@@ -31,8 +38,11 @@ package PlantUML2Code_CLI is
       Files         : File_Vectors.Vector;
    end record;
 
-   --  Parse the process command line. Errors are printed to
+   --  Parse an explicit argument vector. Errors are printed to
    --  Standard_Error; the Result's Ok field is set False.
+   function Parse (Args : Argument_Vectors.Vector) return Parse_Result;
+
+   --  Parse the process command line. Delegates to Parse (Args).
    function Parse return Parse_Result;
 
 end PlantUML2Code_CLI;
