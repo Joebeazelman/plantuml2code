@@ -4,6 +4,7 @@ with Ada.Directories;
 with Ada.Calendar;
 with Ada.Strings.Unbounded;    use Ada.Strings.Unbounded;
 with Ada.Strings.Fixed;
+with Ada.Characters.Handling;  use Ada.Characters.Handling;
 
 with PlantUML.States;          use PlantUML.States;
 with PlantUML2Code_Utils;
@@ -560,17 +561,7 @@ package body PlantUML2Code_Ada is
       end if;
    end Render_If_Missing;
 
-   function To_Lower (S : String) return String is
-      R : String (S'Range);
-   begin
-      for I in S'Range loop
-         R (I) :=
-           (if S (I) in 'A' .. 'Z'
-            then Character'Val (Character'Pos (S (I)) + 32)
-            else S (I));
-      end loop;
-      return R;
-   end To_Lower;
+
 
    procedure Emit_Runtime (Src_Dir : String);
    procedure Emit_Test_Driver

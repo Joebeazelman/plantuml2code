@@ -1,4 +1,5 @@
-with Ada.Text_IO;             use Ada.Text_IO;
+with Ada.Text_IO;                         use Ada.Text_IO;
+with Ada.Characters.Handling;             use Ada.Characters.Handling;
 
 with Plantuml2code_Config;
 with PlantUML2Code_Ansi;      use PlantUML2Code_Ansi;
@@ -59,12 +60,7 @@ package body PlantUML2Code_Help is
    end Print_Usage;
 
    procedure Print_Topic (Topic : String) is
-      T : constant String :=
-        (if Topic'Length = 0 then ""
-         else [for C of Topic => (if C in 'A' .. 'Z'
-                                   then Character'Val
-                                     (Character'Pos (C) + 32)
-                                   else C)]);
+      T : constant String := To_Lower (Topic);
    begin
       if T = "" or else T = "dump" then
          Put_Line (Bold ("dump") & " — parse and emit a diagram");

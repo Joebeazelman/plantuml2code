@@ -1,5 +1,6 @@
 with Ada.Text_IO;                      use Ada.Text_IO;
 with Ada.Strings.Unbounded;            use Ada.Strings.Unbounded;
+with Ada.Characters.Handling;          use Ada.Characters.Handling;
 
 with Templates_Parser;                 use Templates_Parser;
 
@@ -18,17 +19,8 @@ package body PlantUML2Code_Formats is
    end Set_Output_Dir;
 
    function Parse (S : String) return Format is
-      Low : String (S'Range);
+      Low : constant String := To_Lower (S);
    begin
-      for I in S'Range loop
-         Low (I) :=
-           (if S (I) in 'A' .. 'Z'
-            then Character'Val
-              (Character'Pos (S (I))
-               + Character'Pos ('a') - Character'Pos ('A'))
-            else S (I));
-      end loop;
-
       if Low = "text" then
          return Text;
       elsif Low = "json" then

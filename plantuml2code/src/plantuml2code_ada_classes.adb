@@ -3,6 +3,7 @@ with Ada.Directories;
 with Ada.Calendar;
 with Ada.Strings.Unbounded;    use Ada.Strings.Unbounded;
 with Ada.Strings.Fixed;
+with Ada.Characters.Handling;  use Ada.Characters.Handling;
 with Ada.Containers.Vectors;
 
 with PlantUML.Classes;         use PlantUML.Classes;
