@@ -34,20 +34,22 @@ package body HistoryTest is
    procedure On_Enter (Self : in out Machine) is
    begin
       case Current_State (Self) is
-         when Outer =>
-            case Via_History (Self) is
-               when History_None =>
-                  Outer_Machine.Base.Reset (Self.Outer_Child);
-               when History_Shallow =>
-                  Outer_Machine.Base.Reset_To_Current (Self.Outer_Child);
-               when History_Deep =>
-                  null;
-            end case;
          when Start_State =>
             null;
          when Idle =>
             null;
-
+         when Outer =>
+            case Via_History (Self) is
+               when History_None =>
+                  Outer_Machine.Base.Reset
+                    (Self.Outer_Child);
+               when History_Shallow =>
+                  Outer_Machine.Base.Reset_To_Current
+                    (Self.Outer_Child);
+               when History_Deep =>
+                  null;
+            end case;
+         when others => null;
       end case;
    end On_Enter;
 

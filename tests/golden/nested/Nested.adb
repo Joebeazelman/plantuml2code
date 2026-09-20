@@ -46,22 +46,24 @@ package body Nested is
    procedure On_Enter (Self : in out Machine) is
    begin
       case Current_State (Self) is
-         when Running =>
-            case Via_History (Self) is
-               when History_None =>
-                  Running_Machine.Base.Reset (Self.Running_Child);
-               when History_Shallow =>
-                  Running_Machine.Base.Reset_To_Current (Self.Running_Child);
-               when History_Deep =>
-                  null;
-            end case;
          when Start_State =>
             null;
          when Idle =>
             Log_Idle;
+         when Running =>
+            case Via_History (Self) is
+               when History_None =>
+                  Running_Machine.Base.Reset
+                    (Self.Running_Child);
+               when History_Shallow =>
+                  Running_Machine.Base.Reset_To_Current
+                    (Self.Running_Child);
+               when History_Deep =>
+                  null;
+            end case;
          when End_State =>
             Mark_Terminated (Self);
-
+         when others => null;
       end case;
    end On_Enter;
 

@@ -40,7 +40,7 @@ package body Running_Machine is
             null;
          when Waiting =>
             null;
-
+         when others => null;
       end case;
    end On_Enter;
 

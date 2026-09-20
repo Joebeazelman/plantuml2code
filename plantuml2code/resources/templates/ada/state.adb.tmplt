@@ -20,7 +20,31 @@
    procedure On_Enter (Self : in out Machine) is
    begin
       case Current_State (Self) is
-@_ON_ENTER_CASES_@
+@@TABLE@@
+         when @_ENTER_STATE_LIT_@ =>
+@@IF@@ @_ENTER_IS_END_@
+            Mark_Terminated (Self);
+@@END_IF@@
+@@IF@@ @_ENTER_IS_COMPOSITE_@
+            case Via_History (Self) is
+               when History_None =>
+                  @_ENTER_CHILD_PKG_@.Base.Reset
+                    (Self.@_ENTER_CHILD_FIELD_@);
+               when History_Shallow =>
+                  @_ENTER_CHILD_PKG_@.Base.Reset_To_Current
+                    (Self.@_ENTER_CHILD_FIELD_@);
+               when History_Deep =>
+                  null;
+            end case;
+@@END_IF@@
+@@IF@@ @_ENTER_IS_LEAF_WITH_ACTION_@
+            @_ENTER_ACTION_CALL_@;
+@@END_IF@@
+@@IF@@ @_ENTER_IS_LEAF_NO_ACTION_@
+            null;
+@@END_IF@@
+@@END_TABLE@@
+         when others => null;
       end case;
    end On_Enter;
 

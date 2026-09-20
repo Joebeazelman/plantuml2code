@@ -34,7 +34,7 @@ package body Inner_Machine is
             Entered_A;
          when B =>
             Entered_B;
-
+         when others => null;
       end case;
    end On_Enter;
 

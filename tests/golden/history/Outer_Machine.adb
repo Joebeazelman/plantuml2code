@@ -23,18 +23,20 @@ package body Outer_Machine is
    procedure On_Enter (Self : in out Machine) is
    begin
       case Current_State (Self) is
+         when Start_State =>
+            null;
          when Middle =>
             case Via_History (Self) is
                when History_None =>
-                  Middle_Machine.Base.Reset (Self.Middle_Child);
+                  Middle_Machine.Base.Reset
+                    (Self.Middle_Child);
                when History_Shallow =>
-                  Middle_Machine.Base.Reset_To_Current (Self.Middle_Child);
+                  Middle_Machine.Base.Reset_To_Current
+                    (Self.Middle_Child);
                when History_Deep =>
                   null;
             end case;
-         when Start_State =>
-            null;
-
+         when others => null;
       end case;
    end On_Enter;
 

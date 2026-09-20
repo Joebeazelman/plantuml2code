@@ -793,6 +793,15 @@ package body PlantUML2Code_Ada is
       Step_Decls    : Unbounded_String;
       Step_Bodies   : Unbounded_String;
       On_Enter_Arms : Unbounded_String;
+
+      Enter_State_Lit    : Tag;
+      Enter_Is_Composite : Tag;
+      Enter_Is_Leaf_With : Tag;
+      Enter_Is_Leaf_No   : Tag;
+      Enter_Is_End       : Tag;
+      Enter_Child_Pkg    : Tag;
+      Enter_Child_Field  : Tag;
+      Enter_Action_Call  : Tag;
       On_Exit_Arms  : Unbounded_String;
       On_Internal_Arms : Unbounded_String;
       On_Tick_Arms  : Unbounded_String;
@@ -924,6 +933,52 @@ package body PlantUML2Code_Ada is
                end if;
             end if;
 
+            declare
+               Child_Pkg_L : Unbounded_String := Null_Unbounded_String;
+               Child_Fld_L : Unbounded_String := Null_Unbounded_String;
+               Entry_Call  : Unbounded_String := Null_Unbounded_String;
+            begin
+               if Is_Composite then
+                  for C of Child_States loop
+                     if State_Literal
+                          (To_String (D.Pool (Positive (C)).Id)) = Lit
+                     then
+                        Child_Pkg_L :=
+                          To_Unbounded_String (Child_Package_Name (D, C));
+                        Child_Fld_L :=
+                          To_Unbounded_String (Child_Field_Name (D, C));
+                        exit;
+                     end if;
+                  end loop;
+               end if;
+               for A of D.Pool (Positive (I)).Annotations loop
+                  if A.Kind = Entry_Action
+                    and then Length (A.Action) > 0
+                  then
+                     Entry_Call :=
+                       To_Unbounded_String
+                         (Sanitize (To_String (A.Action)));
+                  end if;
+               end loop;
+
+               Enter_State_Lit    := Enter_State_Lit & Lit;
+               Enter_Is_Composite := Enter_Is_Composite & Is_Composite;
+               Enter_Is_End       := Enter_Is_End & (Lit = "End_State");
+               Enter_Is_Leaf_With :=
+                 Enter_Is_Leaf_With
+                 & (not Is_Composite and Lit /= "End_State" and Has_Entry);
+               Enter_Is_Leaf_No   :=
+                 Enter_Is_Leaf_No
+                 & (not Is_Composite and Lit /= "End_State"
+                    and not Has_Entry);
+               Enter_Child_Pkg    := Enter_Child_Pkg
+                                     & To_String (Child_Pkg_L);
+               Enter_Child_Field  := Enter_Child_Field
+                                     & To_String (Child_Fld_L);
+               Enter_Action_Call  := Enter_Action_Call
+                                     & To_String (Entry_Call);
+            end;
+
             Append (On_Exit_Arms,
                     "         when " & Lit & " =>" & ASCII.LF);
             for A of D.Pool (Positive (I)).Annotations loop
@@ -1019,7 +1074,14 @@ package body PlantUML2Code_Ada is
       Insert (T, Assoc ("INITIAL_STATE", Initial));
       Insert (T, Assoc ("STEP_CHILD_DECLS", To_String (Step_Decls)));
       Insert (T, Assoc ("TRANSITION_ROWS", Rows));
-      Insert (T, Assoc ("ON_ENTER_CASES", To_String (On_Enter_Arms)));
+      Insert (T, Assoc ("ENTER_STATE_LIT",     Enter_State_Lit));
+      Insert (T, Assoc ("ENTER_IS_COMPOSITE",  Enter_Is_Composite));
+      Insert (T, Assoc ("ENTER_IS_END",        Enter_Is_End));
+      Insert (T, Assoc ("ENTER_IS_LEAF_WITH_ACTION", Enter_Is_Leaf_With));
+      Insert (T, Assoc ("ENTER_IS_LEAF_NO_ACTION",   Enter_Is_Leaf_No));
+      Insert (T, Assoc ("ENTER_CHILD_PKG",     Enter_Child_Pkg));
+      Insert (T, Assoc ("ENTER_CHILD_FIELD",   Enter_Child_Field));
+      Insert (T, Assoc ("ENTER_ACTION_CALL",   Enter_Action_Call));
       Insert (T, Assoc ("ON_EXIT_CASES", To_String (On_Exit_Arms)));
       Insert (T, Assoc ("ON_INTERNAL_CASES", To_String (On_Internal_Arms)));
       Insert (T, Assoc ("ON_TICK_CASES", To_String (On_Tick_Arms)));
