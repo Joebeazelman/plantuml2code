@@ -303,6 +303,27 @@ The generated `driver.adb` constructs each concrete class, calls
 `Class_Name`, and prints it. Abstract classes and interfaces are
 skipped (they cannot be constructed).
 
+## Deferred refactors
+
+### ansiada
+
+Replace the hand-rolled SGR code in `PlantUML2Code_Ansi` with the
+[`ansiada`](https://github.com/mosteo/ansi-ada) crate. `ansiada`
+generates ANSI escape sequences for text style and colour; it does
+not do TTY detection, so the `Auto` mode policy stays in our
+wrapper.
+
+When doing this:
+
+1. `cd plantuml2code && alr with ansiada`
+2. Delegate `Bold`, `Dim`, `Red`, … to `AnsiAda`; keep the
+   `Set_Mode` / `Enabled` policy and the `Icon_*` glyph constants.
+3. Update `Test_Ansi` to match the new byte sequences.
+4. Fix `Auto` to check `isatty (stdout)` (via
+   `Interfaces.C_Streams.isatty`) instead of `NO_COLOR` + `TERM`.
+   The `TERM` heuristic can emit escape codes into redirected
+   output.
+
 ## Known limitations
 
 - **History pseudostates** (`[H]`, `[H*]`) parse but are inert. They
