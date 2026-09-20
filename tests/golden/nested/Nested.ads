@@ -7,7 +7,7 @@
 --  Do not edit by hand; regenerate from the diagram instead.
 --  ---------------------------------------------------------------------
 
-with HSM.Machines;
+with State_Machine.Machines;
 with Running_Machine;
 
 package Nested is
@@ -18,7 +18,7 @@ package Nested is
    type Event is
      (Start, Continue, Stop, Finish, Tick);
 
-   package Base is new HSM.Machines
+   package Base is new State_Machine.Machines
      (State   => State,
       Event   => Event,
       Initial => Idle);

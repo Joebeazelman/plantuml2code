@@ -7,7 +7,7 @@
 --  Do not edit by hand; regenerate from the diagram instead.
 --  ---------------------------------------------------------------------
 
-with HSM.Machines;
+with State_Machine.Machines;
 with Outer_Machine;
 with Middle_Machine;
 with Inner_Machine;
@@ -20,7 +20,7 @@ package HistoryTest is
    type Event is
      (Enter_Fresh, Enter_Shallow, Enter_Deep, Back);
 
-   package Base is new HSM.Machines
+   package Base is new State_Machine.Machines
      (State   => State,
       Event   => Event,
       Initial => Idle);

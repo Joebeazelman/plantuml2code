@@ -29,7 +29,7 @@ update_case () {
 
   rm -f "$golden_dir"/*.ads "$golden_dir"/*.adb
 
-  for f in "$out"/*.ads "$out"/*.adb; do
+  for f in "$out/src"/*.ads "$out/src"/*.adb; do
     [ -e "$f" ] || continue
     local base
     base=$(basename "$f")

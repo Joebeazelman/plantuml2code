@@ -7,7 +7,7 @@
 --  Do not edit by hand; regenerate from the diagram instead.
 --  ---------------------------------------------------------------------
 
-with HSM.Machines;
+with State_Machine.Machines;
 
 package Inner_Machine is
 
@@ -17,7 +17,7 @@ package Inner_Machine is
    type Event is
      (Advance);
 
-   package Base is new HSM.Machines
+   package Base is new State_Machine.Machines
      (State   => State,
       Event   => Event,
       Initial => A);

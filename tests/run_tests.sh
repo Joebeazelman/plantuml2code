@@ -39,7 +39,7 @@ check_case () {
 
   # Normalize every generated file, then compare
   local diff_count=0
-  for gen_file in "$out"/*.ads "$out"/*.adb; do
+  for gen_file in "$out/src"/*.ads "$out/src"/*.adb; do
     [ -e "$gen_file" ] || continue
     local base
     base=$(basename "$gen_file")
@@ -68,7 +68,7 @@ check_case () {
     [ -e "$golden_file" ] || continue
     local base
     base=$(basename "$golden_file")
-    if [ ! -f "$out/$base" ]; then
+    if [ ! -f "$out/src/$base" ]; then
       echo "  STALE golden (no longer generated): $base"
       diff_count=$((diff_count + 1))
     fi

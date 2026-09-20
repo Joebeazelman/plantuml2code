@@ -7,7 +7,7 @@
 --  Do not edit by hand; regenerate from the diagram instead.
 --  ---------------------------------------------------------------------
 
-with HSM.Machines;
+with State_Machine.Machines;
 with Inner_Machine;
 
 package Middle_Machine is
@@ -18,7 +18,7 @@ package Middle_Machine is
    type Event is
      (Tick);
 
-   package Base is new HSM.Machines
+   package Base is new State_Machine.Machines
      (State   => State,
       Event   => Event,
       Initial => Inner);

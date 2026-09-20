@@ -7,7 +7,7 @@
 --  Do not edit by hand; regenerate from the diagram instead.
 --  ---------------------------------------------------------------------
 
-with HSM.Machines;
+with State_Machine.Machines;
 @_CHILD_WITH_CLAUSES_@
 package @_PACKAGE_NAME_@ is
 
@@ -17,7 +17,7 @@ package @_PACKAGE_NAME_@ is
    type Event is
      (@_EVENT_LITERALS_@);
 
-   package Base is new HSM.Machines
+   package Base is new State_Machine.Machines
      (State   => State,
       Event   => Event,
       Initial => @_INITIAL_STATE_@);

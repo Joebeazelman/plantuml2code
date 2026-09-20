@@ -1,11 +1,13 @@
-with Ada.Text_IO;              use Ada.Text_IO;
+with Ada.Text_IO;
+with GNAT.OS_Lib;              use Ada.Text_IO;
 with Ada.Directories;
 with Ada.Calendar;
 with Ada.Strings.Unbounded;    use Ada.Strings.Unbounded;
 with Ada.Strings.Fixed;
 
 with PlantUML.States;          use PlantUML.States;
-with PlantUML2Code_Utils;      use PlantUML2Code_Utils;
+with PlantUML2Code_Utils;
+with PlantUML2Code_Template_Path;      use PlantUML2Code_Utils;
 with Templates_Parser;         use Templates_Parser;
 
 package body PlantUML2Code_Ada is
@@ -555,6 +557,109 @@ package body PlantUML2Code_Ada is
       end if;
    end Render_If_Missing;
 
+   function To_Lower (S : String) return String is
+      R : String (S'Range);
+   begin
+      for I in S'Range loop
+         R (I) :=
+           (if S (I) in 'A' .. 'Z'
+            then Character'Val (Character'Pos (S (I)) + 32)
+            else S (I));
+      end loop;
+      return R;
+   end To_Lower;
+
+   procedure Emit_Runtime (Src_Dir : String) is
+      Empty_Set : Translate_Set;
+
+      procedure One (Tmpl, File_Name : String) is
+         Output : constant String :=
+           Ada.Directories.Compose (Src_Dir, File_Name);
+         Path   : constant String :=
+           PlantUML2Code_Template_Path.Locate ("ada/runtime", Tmpl);
+         Content   : constant String :=
+           Templates_Parser.Parse (Path, Empty_Set);
+         F      : File_Type;
+      begin
+         if Ada.Directories.Exists (Output) then
+            Put_Line ("kept  " & Output);
+         else
+            Create (F, Out_File, Output);
+            Put (F, Content);
+            Close (F);
+            Put_Line ("wrote " & Output);
+         end if;
+      end One;
+   begin
+      One ("state_machine.ads.tmplt", "state_machine.ads");
+      One ("state_machine-machines.ads.tmplt",
+           "state_machine-machines.ads");
+      One ("state_machine-machines.adb.tmplt",
+           "state_machine-machines.adb");
+      One ("state_machine-tracing.ads.tmplt",
+           "state_machine-tracing.ads");
+      One ("state_machine-tracing.adb.tmplt",
+           "state_machine-tracing.adb");
+   end Emit_Runtime;
+
+   procedure Emit_Test_Driver
+     (Tests_Dir, Machine_Name : String)
+   is
+      Output : constant String :=
+        Ada.Directories.Compose (Tests_Dir, "driver.adb");
+      Path   : constant String :=
+        PlantUML2Code_Template_Path.Locate ("ada/project",
+                                            "driver.adb.tmplt");
+      T      : Translate_Set;
+      F      : File_Type;
+   begin
+      if Ada.Directories.Exists (Output) then
+         Put_Line ("kept  " & Output);
+         return;
+      end if;
+      Insert (T, Assoc ("MACHINE_NAME", Machine_Name));
+      declare
+         Content : constant String := Templates_Parser.Parse (Path, T);
+      begin
+         Create (F, Out_File, Output);
+         Put (F, Content);
+         Close (F);
+      end;
+      Put_Line ("wrote " & Output);
+   end Emit_Test_Driver;
+
+   procedure Emit_Setup
+     (Out_Dir, Machine_Name : String)
+   is
+      Output : constant String :=
+        Ada.Directories.Compose (Out_Dir, "setup.sh");
+      Path   : constant String :=
+        PlantUML2Code_Template_Path.Locate ("ada/project",
+                                            "setup.sh.tmplt");
+      T      : Translate_Set;
+      F      : File_Type;
+   begin
+      if Ada.Directories.Exists (Output) then
+         Put_Line ("kept  " & Output);
+         return;
+      end if;
+      Insert (T, Assoc ("MACHINE_NAME", Machine_Name));
+      Insert (T, Assoc ("PROJECT_NAME", To_Lower (Machine_Name)));
+      declare
+         Content : constant String := Templates_Parser.Parse (Path, T);
+      begin
+         Create (F, Out_File, Output);
+         Put (F, Content);
+         Close (F);
+      end;
+      declare
+         use GNAT.OS_Lib;
+      begin
+         Set_Executable (Output);
+      end;
+      Put_Line ("wrote " & Output & "  (run: bash " & Output & ")");
+   end Emit_Setup;
+
    procedure Emit_Deeper_Steppers
      (D : State_Diagram;
       Region : Natural;
@@ -972,13 +1077,27 @@ package body PlantUML2Code_Ada is
                  Ada.Strings.Both));
       end;
 
-      Generate_Region
-        (D              => D,
-         Region         => Top_Level,
-         Package_Name   => Package_Name,
-         Source_Diagram => Source_Diagram,
-         Date_Str       => To_String (Date_Str),
-         Out_Dir        => Out_Dir);
+      declare
+         Src_Dir   : constant String :=
+           Ada.Directories.Compose (Out_Dir, "src");
+         Tests_Dir : constant String :=
+           Ada.Directories.Compose (Out_Dir, "tests");
+      begin
+         Ada.Directories.Create_Path (Src_Dir);
+         Ada.Directories.Create_Path (Tests_Dir);
+
+         Emit_Runtime (Src_Dir);
+         Emit_Test_Driver (Tests_Dir, Package_Name);
+         Emit_Setup (Out_Dir, Package_Name);
+
+         Generate_Region
+           (D              => D,
+            Region         => Top_Level,
+            Package_Name   => Package_Name,
+            Source_Diagram => Source_Diagram,
+            Date_Str       => To_String (Date_Str),
+            Out_Dir        => Src_Dir);
+      end;
    end Generate;
 
 end PlantUML2Code_Ada;
