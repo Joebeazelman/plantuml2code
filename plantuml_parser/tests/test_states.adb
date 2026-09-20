@@ -1,75 +1,171 @@
-with Ada.Text_IO;              use Ada.Text_IO;
-with Ada.Strings.Unbounded;    use Ada.Strings.Unbounded;
-with PlantUML.States;          use PlantUML.States;
+with AUnit.Assertions;   use AUnit.Assertions;
+with AUnit.Test_Cases;   use AUnit.Test_Cases;
 
-procedure Test_States is
+with Ada.Strings.Unbounded;
+with Ada.Strings.Fixed;  use Ada.Strings.Unbounded;
 
-   Src : constant String :=
-     "@startuml Nested"                             & ASCII.LF &
-     "[*] --> Idle"                                 & ASCII.LF &
-     "state Idle"                                   & ASCII.LF &
-     "Idle : entry / Log_Idle"                      & ASCII.LF &
-     "Idle : exit / Cleanup_Idle"                   & ASCII.LF &
-     "Idle : Tick [Count < 10] / Bump"              & ASCII.LF &
-     "Idle --> Running : Start"                     & ASCII.LF &
-     "state Running {"                              & ASCII.LF &
-     "  [*] --> Spinning"                           & ASCII.LF &
-     "  state Spinning"                             & ASCII.LF &
-     "  Spinning : do / Poll"                       & ASCII.LF &
-     "  Spinning : Pause / Halt"                    & ASCII.LF &
-     "  Spinning --> Waiting : Yield"               & ASCII.LF &
-     "  state Waiting"                              & ASCII.LF &
-     "  Waiting --> Spinning : Resume"              & ASCII.LF &
-     "  Waiting --> [H] : Suspend"                  & ASCII.LF &
-     "}"                                            & ASCII.LF &
-     "Running --> Idle : Stop"                      & ASCII.LF &
-     "Running --> [*] : Finish"                     & ASCII.LF &
-     "@enduml";
+with PlantUML;
+with PlantUML.States;
 
-   D : constant State_Diagram := Parse (Src);
+use type PlantUML.Diagram_Kind;    use PlantUML.States;
 
-   procedure Dump_State (D : State_Diagram;
-                         Idx : State_Index;
-                         Depth : Natural) is
-      Pad : constant String (1 .. Depth * 2) := [others => ' '];
-      S   : constant State := Get (D, Idx);
+package body Test_States is
+
+   function Find (D : State_Diagram; Name : String) return State is
    begin
-      Put_Line (Pad & "- " & To_String (S.Id)
-                & "  kind=" & S.Kind'Image
-                & (if Length (S.Display) > 0
-                   then "  as=" & To_String (S.Display) else ""));
+      for S of D.Pool loop
+         if To_String (S.Id) = Name then
+            return S;
+         end if;
+      end loop;
+      raise Constraint_Error with "state not found: " & Name;
+   end Find;
+
+   procedure Test_Detect_Unknown (T : in out Test_Case'Class) is
+      pragma Unreferenced (T);
+   begin
+      Assert (PlantUML.Detect_Kind ("") = PlantUML.Unknown,
+              "empty is Unknown");
+   end Test_Detect_Unknown;
+
+   procedure Test_Detect_State (T : in out Test_Case'Class) is
+      pragma Unreferenced (T);
+   begin
+      Assert (PlantUML.Detect_Kind
+                ("@startuml" & ASCII.LF & "state A" & ASCII.LF & "@enduml")
+              = PlantUML.State_Diagram,
+              "state diagram detected");
+   end Test_Detect_State;
+
+   procedure Test_Empty_Diagram (T : in out Test_Case'Class) is
+      pragma Unreferenced (T);
+      D : constant State_Diagram :=
+        Parse ("@startuml" & ASCII.LF & "@enduml");
+   begin
+      Assert (D.Pool.Is_Empty, "no states");
+      Assert (D.Transitions.Is_Empty, "no transitions");
+   end Test_Empty_Diagram;
+
+   procedure Test_Two_States (T : in out Test_Case'Class) is
+      pragma Unreferenced (T);
+      D : constant State_Diagram :=
+        Parse ("@startuml" & ASCII.LF
+               & "state Idle" & ASCII.LF
+               & "state Busy" & ASCII.LF
+               & "@enduml");
+   begin
+      Assert (Natural (D.Pool.Length) = 2,
+              "two states, got" & D.Pool.Length'Image);
+   end Test_Two_States;
+
+   procedure Test_Transition_Trigger (T : in out Test_Case'Class) is
+      pragma Unreferenced (T);
+      D : constant State_Diagram :=
+        Parse ("@startuml" & ASCII.LF
+               & "state A" & ASCII.LF
+               & "state B" & ASCII.LF
+               & "A --> B : Go" & ASCII.LF
+               & "@enduml");
+      Tr : constant Transition := D.Transitions (1);
+   begin
+      Assert (To_String (Tr.From) = "A", "from A");
+      Assert (To_String (Tr.To) = "B", "to B");
+      Assert (To_String (Tr.Trigger) = "Go", "trigger Go");
+   end Test_Transition_Trigger;
+
+   procedure Test_Guard (T : in out Test_Case'Class) is
+      pragma Unreferenced (T);
+      D : constant State_Diagram :=
+        Parse ("@startuml" & ASCII.LF
+               & "state A" & ASCII.LF
+               & "state B" & ASCII.LF
+               & "A --> B : Go [X > 0]" & ASCII.LF
+               & "@enduml");
+      Tr : constant Transition := D.Transitions (1);
+   begin
+      Assert (To_String (Tr.Trigger) = "Go", "trigger Go");
+      Assert (Ada.Strings.Fixed.Index (To_String (Tr.Guard), "X > 0") > 0,
+              "guard captured, got '" & To_String (Tr.Guard) & "'");
+   end Test_Guard;
+
+   procedure Test_Composite_Children (T : in out Test_Case'Class) is
+      pragma Unreferenced (T);
+      D : constant State_Diagram :=
+        Parse ("@startuml" & ASCII.LF
+               & "state Outer {" & ASCII.LF
+               & "  state A" & ASCII.LF
+               & "  state B" & ASCII.LF
+               & "}" & ASCII.LF
+               & "@enduml");
+      Outer : constant State := Find (D, "Outer");
+   begin
+      Assert (Outer.Kind = Composite, "Outer is Composite");
+      Assert (Natural (Outer.Children.Length) = 2,
+              "two children, got" & Outer.Children.Length'Image);
+   end Test_Composite_Children;
+
+   procedure Test_Entry_Annotation (T : in out Test_Case'Class) is
+      pragma Unreferenced (T);
+      D : constant State_Diagram :=
+        Parse ("@startuml" & ASCII.LF
+               & "state Idle" & ASCII.LF
+               & "Idle : entry / Log_It" & ASCII.LF
+               & "@enduml");
+      S : constant State := Find (D, "Idle");
+      Found : Boolean := False;
+   begin
       for A of S.Annotations loop
-         Put_Line (Pad & "    * ann=" & A.Kind'Image
-                   & (if Length (A.Trigger) > 0
-                      then "  trigger=" & To_String (A.Trigger) else "")
-                   & (if Length (A.Guard) > 0
-                      then "  guard=[" & To_String (A.Guard) & "]" else "")
-                   & (if Length (A.Action) > 0
-                      then "  body=" & To_String (A.Action) else ""));
+         if A.Kind = Entry_Action
+           and then To_String (A.Action) = "Log_It"
+         then
+            Found := True;
+         end if;
       end loop;
-      for I in S.Children.First_Index .. S.Children.Last_Index loop
-         Dump_State (D, S.Children (I), Depth + 1);
+      Assert (Found, "entry annotation captured");
+   end Test_Entry_Annotation;
+
+   procedure Test_Region_Scoped_History (T : in out Test_Case'Class) is
+      pragma Unreferenced (T);
+      D : constant State_Diagram :=
+        Parse ("@startuml" & ASCII.LF
+               & "state Outer {" & ASCII.LF
+               & "  [*] --> A" & ASCII.LF
+               & "  state A" & ASCII.LF
+               & "  A --> [H]" & ASCII.LF
+               & "}" & ASCII.LF
+               & "@enduml");
+      Found : Boolean := False;
+   begin
+      for S of D.Pool loop
+         if To_String (S.Id) = "Outer.[H]" then
+            Assert (S.Kind = History_Shallow,
+                    "Outer.[H] is History_Shallow");
+            Found := True;
+         end if;
       end loop;
-   end Dump_State;
+      Assert (Found, "region-scoped history state present");
+   end Test_Region_Scoped_History;
 
-begin
-   Put_Line ("Diagram: " & To_String (D.Diagram_Name));
-   Put_Line ("Pool:" & D.Pool.Length'Image);
-   Put_Line ("Roots:" & D.Roots.Length'Image);
-   for I in D.Roots.First_Index .. D.Roots.Last_Index loop
-      Dump_State (D, D.Roots (I), 1);
-   end loop;
+   overriding
+   procedure Register_Tests (T : in out Case_Type) is
+      use AUnit.Test_Cases.Registration;
+   begin
+      Register_Routine (T, Test_Detect_Unknown'Access, "detect unknown");
+      Register_Routine (T, Test_Detect_State'Access, "detect state");
+      Register_Routine (T, Test_Empty_Diagram'Access, "empty diagram");
+      Register_Routine (T, Test_Two_States'Access, "two states");
+      Register_Routine (T, Test_Transition_Trigger'Access, "trigger");
+      Register_Routine (T, Test_Guard'Access, "guard");
+      Register_Routine (T, Test_Composite_Children'Access, "composite");
+      Register_Routine (T, Test_Entry_Annotation'Access, "entry");
+      Register_Routine (T, Test_Region_Scoped_History'Access, "history");
+   end Register_Tests;
 
-   Put_Line ("Transitions:" & D.Transitions.Length'Image);
-   for T of D.Transitions loop
-      Put_Line ("  " & To_String (T.From)
-                & " -> " & To_String (T.To)
-                & "  kind=" & T.Kind'Image
-                & (if Length (T.Trigger) > 0
-                   then "  trigger=" & To_String (T.Trigger) else "")
-                & (if Length (T.Guard) > 0
-                   then "  guard=[" & To_String (T.Guard) & "]" else "")
-                & (if Length (T.Effect) > 0
-                   then "  effect=" & To_String (T.Effect) else ""));
-   end loop;
+   overriding
+   function Name (T : Case_Type) return AUnit.Message_String is
+      pragma Unreferenced (T);
+   begin
+      return AUnit.Format ("States");
+   end Name;
+
 end Test_States;

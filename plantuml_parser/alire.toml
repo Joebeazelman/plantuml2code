@@ -13,6 +13,5 @@ tags = ["plantuml", "parser", "uml", "state-machine", "class-diagram"]
 "*".style_checks = "No"
 "*".optimization = "Performance"
 
-[[test]]
-name = "plantuml_parser_tests"
-runner = "test_states"
+[[depends-on]]
+aunit = "^23.0.0"
