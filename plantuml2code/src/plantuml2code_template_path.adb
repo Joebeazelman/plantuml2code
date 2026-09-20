@@ -2,7 +2,6 @@ with Ada.Directories;              use Ada.Directories;
 with Ada.Environment_Variables;
 with Ada.Strings.Unbounded;        use Ada.Strings.Unbounded;
 with Ada.Command_Line;
-with Ada.Text_IO;
 
 package body PlantUML2Code_Template_Path is
 
@@ -121,14 +120,6 @@ package body PlantUML2Code_Template_Path is
             end if;
          end;
       end loop;
-
-      if Ada.Environment_Variables.Exists ("PLANTUML2CODE_DEBUG") then
-         for R of Candidates loop
-            Ada.Text_IO.Put_Line
-              (Ada.Text_IO.Standard_Error,
-               "  tried: " & To_String (R) & "/" & Subdir & "/" & File);
-         end loop;
-      end if;
 
       raise Template_Not_Found with
         "template not found: " & Subdir & "/" & File;

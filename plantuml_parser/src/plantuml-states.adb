@@ -8,7 +8,7 @@ package body PlantUML.States is
    end record;
 
    function Parse (Source : String) return State_Diagram is
-      Toks : aliased List := Tokenize (Source);
+      Toks : aliased constant List := Tokenize (Source);
       C    : Cursor  := Make (Toks);
       B    : Builder;
 

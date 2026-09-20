@@ -1,5 +1,3 @@
-with Ada.Characters.Handling;  use Ada.Characters.Handling;
-with Ada.Strings.Fixed;        use Ada.Strings.Fixed;
 
 package body PlantUML.Tokens is
 
@@ -9,7 +7,7 @@ package body PlantUML.Tokens is
       Line : Positive := 1;
 
       procedure Emit (K : Token_Kind; S : String) is
-         T : Token := (Kind => K,
+         T : constant Token := (Kind => K,
                        Text => To_Unbounded_String (S),
                        Line => Line);
       begin

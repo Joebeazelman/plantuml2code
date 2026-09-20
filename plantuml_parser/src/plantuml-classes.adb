@@ -9,7 +9,7 @@ package body PlantUML.Classes is
    end record;
 
    function Parse (Source : String) return Class_Diagram is
-      Toks : aliased List := Tokenize (Source);
+      Toks : aliased constant List := Tokenize (Source);
       C    : Cursor  := Make (Toks);
       B    : Builder;
 
