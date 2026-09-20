@@ -43,3 +43,6 @@ alire/
 /history_test/src/Outer_Machine*.ad[bs]
 /history_test/src/Middle_Machine*.ad[bs]
 /history_test/src/Inner_Machine*.ad[bs]
+
+# Scratch scripts used during development
+fix.sh
