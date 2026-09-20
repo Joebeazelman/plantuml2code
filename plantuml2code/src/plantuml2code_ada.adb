@@ -807,6 +807,10 @@ package body PlantUML2Code_Ada is
       Exit_Has_Action  : Tag;
       Exit_No_Action   : Tag;
       Exit_Action_Call : Tag;
+
+      Tick_State_Lit   : Tag;
+      Tick_Has_Action  : Tag;
+      Tick_Action_Call : Tag;
       On_Exit_Arms  : Unbounded_String;
       On_Internal_Arms : Unbounded_String;
       On_Tick_Arms  : Unbounded_String;
@@ -1004,6 +1008,26 @@ package body PlantUML2Code_Ada is
                   Exit_Action_Call := Exit_Action_Call
                                       & To_String (Exit_Call);
                end;
+
+               declare
+                  Do_Call : Unbounded_String := Null_Unbounded_String;
+               begin
+                  for A of D.Pool (Positive (I)).Annotations loop
+                     if A.Kind = Do_Activity
+                       and then Length (A.Action) > 0
+                     then
+                        Do_Call :=
+                          To_Unbounded_String
+                            (Sanitize (To_String (A.Action)));
+                     end if;
+                  end loop;
+
+                  Tick_State_Lit   := Tick_State_Lit & Lit;
+                  Tick_Has_Action  := Tick_Has_Action
+                                       & (Length (Do_Call) > 0);
+                  Tick_Action_Call := Tick_Action_Call
+                                       & To_String (Do_Call);
+               end;
             end;
 
             Append (On_Exit_Arms,
@@ -1114,7 +1138,9 @@ package body PlantUML2Code_Ada is
       Insert (T, Assoc ("EXIT_NO_ACTION",   Exit_No_Action));
       Insert (T, Assoc ("EXIT_ACTION_CALL", Exit_Action_Call));
       Insert (T, Assoc ("ON_INTERNAL_CASES", To_String (On_Internal_Arms)));
-      Insert (T, Assoc ("ON_TICK_CASES", To_String (On_Tick_Arms)));
+      Insert (T, Assoc ("TICK_STATE_LIT",   Tick_State_Lit));
+      Insert (T, Assoc ("TICK_HAS_ACTION",  Tick_Has_Action));
+      Insert (T, Assoc ("TICK_ACTION_CALL", Tick_Action_Call));
       Insert (T, Assoc ("HISTORY_CASES",
                         History_Cases (D, States, Ts)));
       Insert (T, Assoc ("STEP_CHILD_BODIES", To_String (Step_Bodies)));

@@ -69,7 +69,12 @@
    procedure On_Tick (Self : in out Machine) is
    begin
       case Current_State (Self) is
-@_ON_TICK_CASES_@
+@@TABLE@@
+@@IF@@ @_TICK_HAS_ACTION_@
+         when @_TICK_STATE_LIT_@ =>
+            @_TICK_ACTION_CALL_@;
+@@END_IF@@
+@@END_TABLE@@
          when others => null;
       end case;
    end On_Tick;

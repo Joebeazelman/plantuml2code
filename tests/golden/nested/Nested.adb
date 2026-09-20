@@ -87,7 +87,6 @@ package body Nested is
    procedure On_Tick (Self : in out Machine) is
    begin
       case Current_State (Self) is
-
          when others => null;
       end case;
    end On_Tick;

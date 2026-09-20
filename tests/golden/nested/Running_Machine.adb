@@ -64,7 +64,6 @@ package body Running_Machine is
       case Current_State (Self) is
          when Spinning =>
             Poll;
-
          when others => null;
       end case;
    end On_Tick;
