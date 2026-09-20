@@ -84,7 +84,16 @@ package body PlantUML.Tokens is
                end if;
                I := I + 1;
 
-            elsif C = ''' then
+            elsif C = '''
+              and then (I = Source'First
+                        or else Source (I - 1) = ASCII.LF
+                        or else (I > Source'First
+                                 and then (Source (I - 1) = ' '
+                                           or else Source (I - 1) = ASCII.HT)))
+            then
+               --  Apostrophe starts a line comment only at the start
+               --  of a line (possibly after spaces/tabs). Mid-line it
+               --  is ordinary text.
                while I <= Source'Last and then Source (I) /= ASCII.LF loop
                   I := I + 1;
                end loop;

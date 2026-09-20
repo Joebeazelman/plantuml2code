@@ -67,6 +67,18 @@ package body PlantUML.States is
       procedure Close_Composite is
       begin
          if not B.Open.Is_Empty then
+            declare
+               Idx : constant State_Index := B.Open.Last_Element;
+               S   : State := B.D.Pool (Positive (Idx));
+            begin
+               --  A composite state that ended up with no children
+               --  is really a simple state. Downgrade so downstream
+               --  code does not try to emit a child package.
+               if S.Children.Is_Empty then
+                  S.Kind := Simple;
+                  B.D.Pool.Replace_Element (Positive (Idx), S);
+               end if;
+            end;
             B.Open.Delete_Last;
          end if;
       end Close_Composite;
