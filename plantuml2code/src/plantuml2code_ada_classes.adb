@@ -6,7 +6,8 @@ with Ada.Strings.Fixed;
 with Ada.Containers.Vectors;
 
 with PlantUML.Classes;         use PlantUML.Classes;
-with PlantUML2Code_Utils;      use PlantUML2Code_Utils;
+with PlantUML2Code_Utils;
+with PlantUML2Code_Ada;      use PlantUML2Code_Utils;
 with Templates_Parser;         use Templates_Parser;
 
 package body PlantUML2Code_Ada_Classes is
@@ -885,12 +886,29 @@ package body PlantUML2Code_Ada_Classes is
                  Ada.Strings.Both));
       end;
 
-      for I in D.Pool.First_Index .. D.Pool.Last_Index loop
-         if D.Pool (I).Kind /= Package_Kind then
-            Emit_One (D, Class_Index (I), Source_Diagram,
-                      To_String (Date_Str), Out_Dir);
-         end if;
-      end loop;
+      declare
+         Src_Dir   : constant String :=
+           Ada.Directories.Compose (Out_Dir, "src");
+         Tests_Dir : constant String :=
+           Ada.Directories.Compose (Out_Dir, "tests");
+         Machine_Name : constant String :=
+           (if Length (D.Diagram_Name) > 0
+            then To_String (D.Diagram_Name) else "Model");
+      begin
+         Ada.Directories.Create_Path (Src_Dir);
+         Ada.Directories.Create_Path (Tests_Dir);
+
+         PlantUML2Code_Ada.Emit_Runtime_And_Project
+           (Src_Dir, Tests_Dir, Out_Dir, Machine_Name,
+            Include_State_Runtime => False);
+
+         for I in D.Pool.First_Index .. D.Pool.Last_Index loop
+            if D.Pool (I).Kind /= Package_Kind then
+               Emit_One (D, Class_Index (I), Source_Diagram,
+                         To_String (Date_Str), Src_Dir);
+            end if;
+         end loop;
+      end;
    end Generate;
 
 end PlantUML2Code_Ada_Classes;

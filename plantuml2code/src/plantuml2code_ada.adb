@@ -569,6 +569,24 @@ package body PlantUML2Code_Ada is
       return R;
    end To_Lower;
 
+   procedure Emit_Runtime (Src_Dir : String);
+   procedure Emit_Test_Driver
+     (Tests_Dir, Machine_Name : String);
+   procedure Emit_Setup (Out_Dir, Machine_Name : String);
+
+   procedure Emit_Runtime_And_Project
+     (Src_Dir, Tests_Dir, Out_Dir : String;
+      Machine_Name : String;
+      Include_State_Runtime : Boolean := True)
+   is
+   begin
+      if Include_State_Runtime then
+         Emit_Runtime (Src_Dir);
+      end if;
+      Emit_Test_Driver (Tests_Dir, Machine_Name);
+      Emit_Setup (Out_Dir, Machine_Name);
+   end Emit_Runtime_And_Project;
+
    procedure Emit_Runtime (Src_Dir : String) is
       Empty_Set : Translate_Set;
 
