@@ -324,7 +324,113 @@ When doing this:
    The `TERM` heuristic can emit escape codes into redirected
    output.
 
+## Roadmap
+
+Agreed improvements, in order. Each is a substantial change; do not
+combine them into one commit.
+
+### 1. Normalized internal UML model
+
+Establish a single internal representation that every parser targets
+and every generator consumes.
+
+    package UML.Model
+
+    type Diagram is tagged record
+       Name        : Name;
+       Kind        : Diagram_Kind;
+       Elements    : Element_Vectors.Vector;
+       Relations   : Relation_Vectors.Vector;
+       Notes       : Note_Vectors.Vector;
+    end record;
+
+Required properties:
+
+- **Full fidelity.** Every parser-specific detail has a home in the
+  model: pseudostate kinds, transition guards and effects,
+  multiplicities, stereotypes, annotations, notes. No parser throws
+  information away when translating into the model.
+- **Comments and notes are first-class.** A `Note` record with a
+  text, an optional subject element, and a source location.
+- **Both current parsers translate into it.**
+  `PlantUML.States` and `PlantUML.Classes` become internal or
+  disappear; their public API becomes a function that returns
+  `UML.Model.Diagram`. External consumers (generators, tests) only
+  see the model.
+- **Future parsers target the same model.** A Mermaid parser, a
+  Graphviz parser, a hand-written diagram builder — all produce
+  `UML.Model.Diagram`.
+
+Decision recorded: the current parser-specific public types
+(`PlantUML.States.State_Diagram`, `PlantUML.Classes.Class_Diagram`)
+are replaced by the model. Consumers migrate to `UML.Model`.
+
+### 2. Template set chosen by format name
+
+The format name selects the template directory, and the diagram
+kind selects the subdirectory within it. Users can add their own
+template sets by dropping a directory under the template root.
+
+    resources/templates/
+      ada/
+        state/       Ada output for state diagrams
+        class/       Ada output for class diagrams
+        runtime/     shared Ada runtime sources
+      json/
+        state/
+        class/
+      rust/          (future)
+        state/
+        class/
+
+Invocation: `uml2code dump -f rust state.puml` reads from
+`resources/templates/rust/state/`.
+
+### 3. User-chosen template location
+
+The template root directory must be relocatable by the user.
+Required behaviour:
+
+- A config file (location TBD: `uml2code.toml` in the project,
+  `~/.config/uml2code/config.toml`, or similar) names the root
+  template directory.
+- A `-t <dir>` command-line flag overrides the config for one run.
+- An environment variable (`UML2CODE_TEMPLATES`) is a third
+  mechanism, or is dropped in favour of the config file.
+
+Decision recorded: the ad-hoc search chain currently in
+`plantuml2code_template_path.adb` (cwd, parent-of-cwd, exe-relative,
+env var) is replaced by "read config, allow `-t` override". One
+canonical location, no implicit fallbacks.
+
+### 4. Block comments and diagram comments in generated code
+
+Two kinds of comments in the output:
+
+- **Static block comments** explaining each generated section.
+  Small, targeted, near the code they describe. Beyond the
+  existing "generated from X on date Y, do not edit" header.
+- **Diagram comments** lifted from the source. PlantUML `note`
+  statements and `'` comments attached to a state or class appear
+  in the generated output near the corresponding element.
+
+Long notes go into the file header comment block. Short notes stay
+adjacent to the element they annotate.
+
+This depends on the model (item 1) carrying notes and on templates
+(item 2) deciding where comments land.
+
+### 5. Rename the project to uml2code
+
+Rename everything: crate names, project names, executable names,
+GPR projects, `with` clauses, install prefix, environment variable
+names, documentation. Directory names too.
+
+This is deferred to last so the four refactors above do not fight
+a moving name.
+
 ## Known limitations
+
 
 - **History pseudostates** (`[H]`, `[H*]`) parse but are inert. They
   behave like ordinary states with self-loops.
