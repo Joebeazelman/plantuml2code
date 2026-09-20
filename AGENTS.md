@@ -292,40 +292,35 @@ Genuinely hard for templates and acceptable as Ada:
   invocation with its own tags)
 - transition-table aggregate `[...]` syntax (nested constructs)
 
-### 2. No AUnit suites in any crate
+### 2. AUnit coverage (partial)
 
-**What was intended.** Each crate ships its own AUnit test suite,
-runnable via `alr test`, with named test cases and per-assertion
-messages.
+`plantuml_parser` and `plantuml2code` each ship an AUnit suite.
+Run each with:
 
-**What exists.**
+    cd plantuml_parser   && ./run_tests.sh
+    cd ../plantuml2code  && ./run_tests.sh
 
-- `plantuml_parser/tests/` has two standalone drivers (`test_states`,
-  `test_classes`) that print output for human inspection.
-- `hsm_runtime` has no tests at all.
-- `plantuml2code` has no tests at all.
-- Repo-level `tests/run_tests.sh` does golden-file comparison.
-- `gen_test`, `class_test`, `history_test` are integration samples.
+Current coverage:
 
-The AUnit suite from the original single-crate script
-(`test_plantuml.ads`/`.adb` with `AUnit.Test_Cases`) was lost when
-we split into crates. It was never restored.
+- `plantuml_parser`: Tokens (8 tests), States (9 tests),
+  Classes (6 tests). Covers the tokenizer, diagram-kind detection,
+  transition parsing (trigger, guard), composite children,
+  entry annotations, region-scoped history, and class-model
+  parsing (members, inheritance, interfaces, enumerations).
+- `plantuml2code`: Ansi (2 tests), CLI (1 test), Formats
+  (5 tests). Covers color-mode toggling and format-name parsing.
 
-**Remediation.**
+Gaps still to fill:
 
-- `plantuml_parser/tests/`: AUnit suites `Test_Tokens`, `Test_States`,
-  `Test_Classes`. Assertions on `Detect_Kind`, `Tokenize`,
-  `Parse_Target` on dotted names, composite nesting, annotation kinds,
-  relation kinds.
-- `hsm_runtime/tests/`: AUnit suite `Test_Machines`. Mock `State` and
-  `Event`; cover `Step` on terminated machine (contract fires under
-  `-gnata`), `Reset`, `Start` idempotency, history modes.
-- `plantuml2code/tests/`: AUnit suites `Test_CLI`, `Test_Ansi`,
-  `Test_Help`. Assertions on argument parsing edge cases, `NO_COLOR`
-  handling, unknown topics.
-- Each crate gets a `<crate>_tests.gpr` and a `[[test]]` stanza in
-  `alire.toml`.
-- Golden files stay as the repo-level integration test.
+- `CLI.Parse` is essentially untested because Ada.Command_Line is
+  set at process start and cannot be replaced under AUnit. A proper
+  test would refactor `Parse` to take an argument vector rather than
+  reading the process command line directly.
+- Help text has no tests.
+- Generated code and the shipped runtime templates have no unit
+  tests. They are covered indirectly by the golden-file suite and
+  the three sample projects under `gen_test/`, `class_test/`, and
+  `history_test/`.
 
 ### 3. Minor known issues
 
