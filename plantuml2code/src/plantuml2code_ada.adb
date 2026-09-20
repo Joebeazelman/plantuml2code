@@ -811,6 +811,12 @@ package body PlantUML2Code_Ada is
       Tick_State_Lit   : Tag;
       Tick_Has_Action  : Tag;
       Tick_Action_Call : Tag;
+
+      Internal_State_Lit   : Tag;
+      Internal_Has_Any     : Tag;
+      Internal_Has_Event   : Tag;
+      Internal_Event_Lit   : Tag;
+      Internal_Action_Call : Tag;
       On_Exit_Arms  : Unbounded_String;
       On_Internal_Arms : Unbounded_String;
       On_Tick_Arms  : Unbounded_String;
@@ -1028,6 +1034,36 @@ package body PlantUML2Code_Ada is
                   Tick_Action_Call := Tick_Action_Call
                                        & To_String (Do_Call);
                end;
+
+               declare
+                  Has_Int   : Boolean := False;
+                  Int_Event : Unbounded_String := Null_Unbounded_String;
+                  Int_Act   : Unbounded_String := Null_Unbounded_String;
+               begin
+                  for A of D.Pool (Positive (I)).Annotations loop
+                     if A.Kind = Internal_Transition
+                       and then Length (A.Trigger) > 0
+                       and then Length (A.Action) > 0
+                     then
+                        Has_Int := True;
+                        Int_Event :=
+                          To_Unbounded_String
+                            (Sanitize (To_String (A.Trigger)));
+                        Int_Act :=
+                          To_Unbounded_String
+                            (Sanitize (To_String (A.Action)));
+                        exit;
+                     end if;
+                  end loop;
+
+                  Internal_State_Lit   := Internal_State_Lit & Lit;
+                  Internal_Has_Any     := Internal_Has_Any & Has_Int;
+                  Internal_Has_Event   := Internal_Has_Event & Has_Int;
+                  Internal_Event_Lit   := Internal_Event_Lit
+                                          & To_String (Int_Event);
+                  Internal_Action_Call := Internal_Action_Call
+                                          & To_String (Int_Act);
+               end;
             end;
 
             Append (On_Exit_Arms,
@@ -1137,7 +1173,11 @@ package body PlantUML2Code_Ada is
       Insert (T, Assoc ("EXIT_HAS_ACTION",  Exit_Has_Action));
       Insert (T, Assoc ("EXIT_NO_ACTION",   Exit_No_Action));
       Insert (T, Assoc ("EXIT_ACTION_CALL", Exit_Action_Call));
-      Insert (T, Assoc ("ON_INTERNAL_CASES", To_String (On_Internal_Arms)));
+      Insert (T, Assoc ("INTERNAL_STATE_LIT",   Internal_State_Lit));
+      Insert (T, Assoc ("INTERNAL_HAS_ANY",     Internal_Has_Any));
+      Insert (T, Assoc ("INTERNAL_HAS_EVENT",   Internal_Has_Event));
+      Insert (T, Assoc ("INTERNAL_EVENT_LIT",   Internal_Event_Lit));
+      Insert (T, Assoc ("INTERNAL_ACTION_CALL", Internal_Action_Call));
       Insert (T, Assoc ("TICK_STATE_LIT",   Tick_State_Lit));
       Insert (T, Assoc ("TICK_HAS_ACTION",  Tick_Has_Action));
       Insert (T, Assoc ("TICK_ACTION_CALL", Tick_Action_Call));

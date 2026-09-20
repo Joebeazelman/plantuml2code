@@ -83,7 +83,18 @@
    function On_Internal (Self : in out Machine; On : Event) return Boolean is
    begin
       case Current_State (Self) is
-@_ON_INTERNAL_CASES_@
+@@TABLE@@
+@@IF@@ @_INTERNAL_HAS_ANY_@
+         when @_INTERNAL_STATE_LIT_@ =>
+@@IF@@ @_INTERNAL_HAS_EVENT_@
+            if On = @_INTERNAL_EVENT_LIT_@ then
+               @_INTERNAL_ACTION_CALL_@;
+               return True;
+            end if;
+@@END_IF@@
+            return False;
+@@END_IF@@
+@@END_TABLE@@
          when others =>
             return False;
       end case;

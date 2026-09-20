@@ -64,7 +64,6 @@ package body Outer_Machine is
    function On_Internal (Self : in out Machine; On : Event) return Boolean is
    begin
       case Current_State (Self) is
-
          when others =>
             return False;
       end case;

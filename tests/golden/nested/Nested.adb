@@ -101,7 +101,6 @@ package body Nested is
                return True;
             end if;
             return False;
-
          when others =>
             return False;
       end case;

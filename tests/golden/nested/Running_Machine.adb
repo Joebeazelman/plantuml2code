@@ -78,7 +78,6 @@ package body Running_Machine is
                return True;
             end if;
             return False;
-
          when others =>
             return False;
       end case;
