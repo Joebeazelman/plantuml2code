@@ -13,30 +13,39 @@ package body Nested is
 
 
    Table : constant array (State, Event) of State :=
-     [Start_State =>
+     [
+      Start_State =>
         [Start => Start_State,
          Continue => Start_State,
          Stop => Start_State,
          Finish => Start_State,
-         Tick => Idle],
+         Tick => Idle,
+         others => Start_State]
+,
       Idle =>
         [Start => Running,
          Continue => Running,
          Stop => Idle,
          Finish => Idle,
-         Tick => Idle],
+         Tick => Idle,
+         others => Idle]
+,
       Running =>
         [Start => Running,
          Continue => Running,
          Stop => Idle,
          Finish => End_State,
-         Tick => Running],
+         Tick => Running,
+         others => Running]
+,
       End_State =>
         [Start => End_State,
          Continue => End_State,
          Stop => End_State,
          Finish => End_State,
-         Tick => End_State]];
+         Tick => End_State,
+         others => End_State]
+     ];
 
    overriding
    function Next_State (Self : Machine; On : Event) return State

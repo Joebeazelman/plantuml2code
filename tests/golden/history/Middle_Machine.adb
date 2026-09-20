@@ -10,10 +10,15 @@ package body Middle_Machine is
 
 
    Table : constant array (State, Event) of State :=
-     [Start_State =>
-        [Tick => Inner],
+     [
+      Start_State =>
+        [Tick => Inner,
+         others => Start_State]
+,
       Inner =>
-        [Tick => Inner]];
+        [Tick => Inner,
+         others => Inner]
+     ];
 
    overriding
    function Next_State (Self : Machine; On : Event) return State

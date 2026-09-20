@@ -13,18 +13,25 @@ package body Running_Machine is
 
 
    Table : constant array (State, Event) of State :=
-     [Start_State =>
+     [
+      Start_State =>
         [Yield => Start_State,
          Resume => Start_State,
-         Pause => Start_State],
+         Pause => Start_State,
+         others => Start_State]
+,
       Spinning =>
         [Yield => Waiting,
          Resume => Spinning,
-         Pause => Spinning],
+         Pause => Spinning,
+         others => Spinning]
+,
       Waiting =>
         [Yield => Waiting,
          Resume => Spinning,
-         Pause => Waiting]];
+         Pause => Waiting,
+         others => Waiting]
+     ];
 
    overriding
    function Next_State (Self : Machine; On : Event) return State

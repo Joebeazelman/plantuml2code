@@ -10,21 +10,28 @@ package body HistoryTest is
 
 
    Table : constant array (State, Event) of State :=
-     [Start_State =>
+     [
+      Start_State =>
         [Enter_Fresh => Start_State,
          Enter_Shallow => Start_State,
          Enter_Deep => Start_State,
-         Back => Start_State],
+         Back => Start_State,
+         others => Start_State]
+,
       Idle =>
         [Enter_Fresh => Outer,
          Enter_Shallow => Outer,
          Enter_Deep => Outer,
-         Back => Idle],
+         Back => Idle,
+         others => Idle]
+,
       Outer =>
         [Enter_Fresh => Outer,
          Enter_Shallow => Outer,
          Enter_Deep => Outer,
-         Back => Idle]];
+         Back => Idle,
+         others => Outer]
+     ];
 
    overriding
    function Next_State (Self : Machine; On : Event) return State

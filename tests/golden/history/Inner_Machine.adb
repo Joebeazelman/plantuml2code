@@ -13,12 +13,19 @@ package body Inner_Machine is
 
 
    Table : constant array (State, Event) of State :=
-     [Start_State =>
-        [Advance => Start_State],
+     [
+      Start_State =>
+        [Advance => Start_State,
+         others => Start_State]
+,
       A =>
-        [Advance => B],
+        [Advance => B,
+         others => A]
+,
       B =>
-        [Advance => B]];
+        [Advance => B,
+         others => B]
+     ];
 
    overriding
    function Next_State (Self : Machine; On : Event) return State

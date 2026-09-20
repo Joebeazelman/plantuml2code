@@ -10,7 +10,16 @@
 @_ACTIONS_USE_@
 
    Table : constant array (State, Event) of State :=
-     [@_TRANSITION_ROWS_@];
+     [
+@@TABLE@@
+      @_TABLE_ROW_STATE_@ =>
+        [@_TABLE_ROW_EVENTS_@,
+         others => @_TABLE_ROW_STATE_@]
+@@IF@@ @_TABLE_ROW_NOTLAST_@
+,
+@@END_IF@@
+@@END_TABLE@@
+     ];
 
    overriding
    function Next_State (Self : Machine; On : Event) return State

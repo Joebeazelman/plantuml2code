@@ -314,16 +314,18 @@ package body PlantUML2Code_Ada is
       return "Idle";
    end Initial_State_Of;
 
-   function Transition_Rows
-     (D : State_Diagram; Region : Natural; States : Index_Vectors.Vector)
-      return String
+   procedure Build_Transition_Row_Tags
+     (D       : State_Diagram;
+      Region  : Natural;
+      States  : Index_Vectors.Vector;
+      Row_State   : in out Tag;
+      Row_Events  : in out Tag;
+      Row_NotLast : in out Tag)
    is
       Ts : constant Transition_Vectors.Vector :=
         Transitions_In (D, Region);
       Events : constant String := Collect_Events (D, Ts, States);
       Ev_List : Unbounded_String;
-      R : Unbounded_String;
-      First_State : Boolean := True;
 
       procedure Split_Events is
          I : Natural := Events'First;
@@ -366,24 +368,23 @@ package body PlantUML2Code_Ada is
          return From_Lit;
       end Target_For;
 
+      Row_Index  : Natural := 0;
+      Total_Rows : constant Natural := Natural (States.Length);
    begin
       Split_Events;
 
       for I of States loop
+         Row_Index := Row_Index + 1;
          declare
             From_Lit : constant String :=
               State_Literal (To_String (D.Pool (Positive (I)).Id));
+            Events_Text : Unbounded_String := Null_Unbounded_String;
+            First_Ev : Boolean := True;
          begin
-            if not First_State then
-               Append (R, "," & ASCII.LF & "      ");
-            end if;
-            First_State := False;
-            Append (R, From_Lit & " =>" & ASCII.LF & "        [");
             declare
                Evs : constant String := To_String (Ev_List);
                J   : Natural := Evs'First;
                St  : Natural;
-               First_Ev : Boolean := True;
             begin
                while J <= Evs'Last loop
                   St := J;
@@ -392,25 +393,27 @@ package body PlantUML2Code_Ada is
                   end loop;
                   declare
                      Ev_Lit : constant String := Evs (St .. J - 1);
-                     Tgt : constant String := Target_For (From_Lit, Ev_Lit);
+                     Tgt : constant String :=
+                       Target_For (From_Lit, Ev_Lit);
                   begin
                      if not First_Ev then
-                        Append (R, "," & ASCII.LF & "         ");
+                        Append (Events_Text, "," & ASCII.LF & "         ");
                      end if;
                      First_Ev := False;
-                     Append (R, Ev_Lit & " => " & Tgt);
+                     Append (Events_Text, Ev_Lit & " => " & Tgt);
                   end;
                   if J <= Evs'Last then
                      J := J + 1;
                   end if;
                end loop;
-               Append (R, "]");
             end;
+
+            Row_State   := Row_State & From_Lit;
+            Row_Events  := Row_Events & To_String (Events_Text);
+            Row_NotLast := Row_NotLast & (Row_Index < Total_Rows);
          end;
       end loop;
-
-      return To_String (R);
-   end Transition_Rows;
+   end Build_Transition_Row_Tags;
 
    function History_Cases
      (D : State_Diagram; States : Index_Vectors.Vector;
@@ -783,7 +786,7 @@ package body PlantUML2Code_Ada is
       State_Lits : constant String := State_Literals_Of (D, States);
       Events     : constant String := Collect_Events (D, Ts, States);
       Initial    : constant String := Initial_State_Of (D, Region, States);
-      Rows       : constant String := Transition_Rows (D, Region, States);
+      pragma Unreferenced (D);
 
       Action_Decls_Text  : constant String := Action_Decls (D, States);
       Action_Bodies_Text : constant String := Action_Bodies (D, States);
@@ -817,6 +820,10 @@ package body PlantUML2Code_Ada is
       Internal_Has_Event   : Tag;
       Internal_Event_Lit   : Tag;
       Internal_Action_Call : Tag;
+
+      Table_Row_State    : Tag;
+      Table_Row_Events   : Tag;
+      Table_Row_NotLast  : Tag;
       On_Exit_Arms  : Unbounded_String;
       On_Internal_Arms : Unbounded_String;
       On_Tick_Arms  : Unbounded_String;
@@ -1160,7 +1167,12 @@ package body PlantUML2Code_Ada is
       Insert (T, Assoc ("EVENT_LITERALS", Events));
       Insert (T, Assoc ("INITIAL_STATE", Initial));
       Insert (T, Assoc ("STEP_CHILD_DECLS", To_String (Step_Decls)));
-      Insert (T, Assoc ("TRANSITION_ROWS", Rows));
+      Build_Transition_Row_Tags
+        (D, Region, States,
+         Table_Row_State, Table_Row_Events, Table_Row_NotLast);
+      Insert (T, Assoc ("TABLE_ROW_STATE",   Table_Row_State));
+      Insert (T, Assoc ("TABLE_ROW_EVENTS",  Table_Row_Events));
+      Insert (T, Assoc ("TABLE_ROW_NOTLAST", Table_Row_NotLast));
       Insert (T, Assoc ("ENTER_STATE_LIT",     Enter_State_Lit));
       Insert (T, Assoc ("ENTER_IS_COMPOSITE",  Enter_Is_Composite));
       Insert (T, Assoc ("ENTER_IS_END",        Enter_Is_End));
