@@ -344,13 +344,33 @@ Current coverage:
 - `plantuml2code`: Ansi (2 tests), CLI (1 test), Formats
   (5 tests). Covers color-mode toggling and format-name parsing.
 
-Gaps still to fill:
+Test suites:
+
+| Suite | Tests |
+|-------|-------|
+| Tokens | 8 |
+| States | 9 |
+| Classes | 6 |
+| Ansi | 2 |
+| CLI | 18 |
+| Formats | 5 |
+| Generator.Class | 5 |
+| Generator.States | 10 |
+
+The generator suites run the real generator against tiny
+diagrams, writing to `/tmp/gen_test_*`, then assert on the
+generated source text: state enums, initial state, transition
+tables, entry/exit actions, internal transitions, composite
+children and resets, terminal marking, interface kinds, and
+subclass derivation.
+
+Remaining gaps:
 
 - Help text has no tests.
-- Generated code and the shipped runtime templates have no unit
-  tests. They are covered indirectly by the golden-file suite and
-  the three sample projects under `gen_test/`, `class_test/`, and
-  `history_test/`.
+- The shipped runtime templates (`state_machine.*`,
+  `class_runtime.*`) have no direct tests. They are exercised
+  indirectly by the golden files and the three sample projects
+  under `gen_test/`, `class_test/`, and `history_test/`.
 
 ### Argument-vector parsing
 
