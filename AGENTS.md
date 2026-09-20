@@ -276,6 +276,33 @@ fail unless `-t` is passed. This is why `bootstrap.sh` `cd`s into
   gitignored. The `.gitignore` exception requires `git add -f`.
 - `alr run` uses `--args="..."`, not `-- ...`.
 
+## Class-diagram output
+
+Generating `ada` from a class diagram produces a self-contained
+Alire project like the state side. Files emitted:
+
+    <Output>/
+      src/
+        class_runtime.ads           root interface (Class_Runtime.Object)
+        class_runtime-tracing.ads/.adb
+        <Class>.ads/.adb            one package per classifier
+        <Class>_Actions.ads/.adb    only when the class has methods
+      tests/
+        driver.adb                  constructs every concrete class
+      setup.sh                      builds and runs
+
+All classes derive from `Class_Runtime.Object`, a limited interface
+with a single abstract `Class_Name` function. Interfaces use
+`type T is limited interface and Class_Runtime.Object;`. Concrete
+classes use `type T is new Class_Runtime.Object with ...`.
+
+Enumerations get a concrete `T` with a `Class_Name` body but no
+Actions file.
+
+The generated `driver.adb` constructs each concrete class, calls
+`Class_Name`, and prints it. Abstract classes and interfaces are
+skipped (they cannot be constructed).
+
 ## Known limitations
 
 - **History pseudostates** (`[H]`, `[H*]`) parse but are inert. They
@@ -283,14 +310,16 @@ fail unless `-t` is passed. This is why `bootstrap.sh` `cd`s into
 - **Pseudostate transiency.** `Start_State` requires an explicit
   `Start (M)` call. UML says the initial pseudostate should
   auto-fire on entry to the region.
-- **No generator test suite.** We test by running `bootstrap.sh` and
-  eyeballing output. A real test would compare generated files
-  against golden files.
 - **Multi-segment path components** not fully supported in the
   template path resolver.
 - **Diamond inheritance** would produce `type T is new A.T and B.T`
   which Ada supports, but we haven't tested method resolution in
   that case.
+- **Class associations** generate access-typed fields, but the
+  driver never populates them. Allocation and ownership are the
+  user's responsibility.
+- **Class method bodies** raise `Program_Error` when unimplemented.
+  The user edits `<Class>_Actions.adb` to provide real bodies.
 
 ## Pending corrections
 
