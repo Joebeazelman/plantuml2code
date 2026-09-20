@@ -23,15 +23,13 @@ package body PlantUML2Code_Template_Path is
    end Exists;
 
    function Slash (A, B : String) return String is
-   begin
-      if A'Length = 0 then
-         return B;
-      elsif A (A'Last) = '/' then
-         return A & B;
-      else
-         return A & "/" & B;
-      end if;
-   end Slash;
+     --  Ada.Directories.Compose refuses multi-segment second
+     --  arguments, and B may be "resources/templates". Join
+     --  manually with the platform separator.
+     (if A'Length = 0 then B
+      elsif B'Length = 0 then A
+      elsif A (A'Last) = '/' then A & B
+      else A & "/" & B);
 
    function Try_Under (Root, Subdir, File : String) return String is
       P1 : constant String := Slash (Slash (Root, Subdir), File);

@@ -3,6 +3,7 @@ with GNAT.OS_Lib;              use Ada.Text_IO;
 with Ada.Directories;
 with Ada.Calendar;
 with Ada.Strings.Unbounded;    use Ada.Strings.Unbounded;
+with Ada.Containers.Vectors;
 with Ada.Strings.Fixed;
 with Ada.Characters.Handling;  use Ada.Characters.Handling;
 
@@ -12,6 +13,11 @@ with PlantUML2Code_Template_Path;      use PlantUML2Code_Utils;
 with Templates_Parser;         use Templates_Parser;
 
 package body PlantUML2Code_Ada is
+
+   package US renames Ada.Strings.Unbounded;
+   package UV is new Ada.Containers.Vectors
+     (Positive, Unbounded_String);
+
 
    Top_Level : constant Natural := 0;
 
@@ -211,29 +217,21 @@ package body PlantUML2Code_Ada is
       return Result;
    end Composite_Children_Of;
 
-   type Seen_Array is array (1 .. 64) of Unbounded_String;
-
    procedure Add_Event
-     (Seen    : in out Seen_Array;
-      N       : in out Natural;
+     (Seen    : in out UV.Vector;
       Trigger : String)
    is
       Lit : constant String := Event_Literal (Trigger);
-      Found : Boolean := False;
    begin
       if Trigger'Length = 0 then
          return;
       end if;
-      for I in 1 .. N loop
-         if To_String (Seen (I)) = Lit then
-            Found := True;
-            exit;
+      for S of Seen loop
+         if To_String (S) = Lit then
+            return;
          end if;
       end loop;
-      if not Found and then N < Seen'Length then
-         N := N + 1;
-         Seen (N) := To_Unbounded_String (Lit);
-      end if;
+      Seen.Append (To_Unbounded_String (Lit));
    end Add_Event;
 
    function Collect_Events
@@ -241,31 +239,30 @@ package body PlantUML2Code_Ada is
       Ts     : Transition_Vectors.Vector;
       States : Index_Vectors.Vector) return String
    is
-      Seen : Seen_Array;
-      N    : Natural := 0;
+      Seen : UV.Vector;
       R    : Unbounded_String;
    begin
       for T of Ts loop
-         Add_Event (Seen, N, To_String (T.Trigger));
+         Add_Event (Seen, To_String (T.Trigger));
       end loop;
 
       for I of States loop
          for A of D.Pool (Positive (I)).Annotations loop
             if A.Kind = Internal_Transition then
-               Add_Event (Seen, N, To_String (A.Trigger));
+               Add_Event (Seen, To_String (A.Trigger));
             end if;
          end loop;
       end loop;
 
-      if N = 0 then
+      if Seen.Is_Empty then
          return "Tick";
       end if;
 
-      for I in 1 .. N loop
-         if I > 1 then
+      for S of Seen loop
+         if Length (R) > 0 then
             Append (R, ", ");
          end if;
-         Append (R, Seen (I));
+         Append (R, S);
       end loop;
 
       return To_String (R);

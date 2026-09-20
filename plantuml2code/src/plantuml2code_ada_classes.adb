@@ -91,6 +91,9 @@ package body PlantUML2Code_Ada_Classes is
       end if;
    end Dummy_Value;
 
+   function Returns_Nothing (M : Member) return Boolean is
+     (Length (M.Type_Name) = 0 or else To_String (M.Type_Name) = "void");
+
    function Parents_Of (D : Class_Diagram; Name : String)
                         return Unbounded_String
    is
@@ -442,9 +445,7 @@ package body PlantUML2Code_Ada_Classes is
                Has_Parent : constant Boolean :=
                  Has_Parent_Method (D, Class_Name, To_String (M.Id));
                Ret : constant String := Map_Type (To_String (M.Type_Name));
-               Is_Proc : constant Boolean :=
-                 Length (M.Type_Name) = 0
-                 or else To_String (M.Type_Name) = "void";
+               Is_Proc : constant Boolean := Returns_Nothing (M);
             begin
                if Has_Parent then
                   Append (R, "   overriding" & ASCII.LF);
@@ -513,9 +514,7 @@ package body PlantUML2Code_Ada_Classes is
             declare
                Name : constant String := Sanitize (To_String (M.Id));
                Ret : constant String := Map_Type (To_String (M.Type_Name));
-               Is_Proc : constant Boolean :=
-                 Length (M.Type_Name) = 0
-                 or else To_String (M.Type_Name) = "void";
+               Is_Proc : constant Boolean := Returns_Nothing (M);
             begin
                if Is_Proc then
                   Append (R, "   procedure " & Name
@@ -585,9 +584,7 @@ package body PlantUML2Code_Ada_Classes is
             declare
                Name : constant String := Sanitize (To_String (M.Id));
                Ret : constant String := Map_Type (To_String (M.Type_Name));
-               Is_Proc : constant Boolean :=
-                 Length (M.Type_Name) = 0
-                 or else To_String (M.Type_Name) = "void";
+               Is_Proc : constant Boolean := Returns_Nothing (M);
             begin
                if Is_Proc then
                   Append (R, "   procedure " & Name
@@ -688,9 +685,7 @@ package body PlantUML2Code_Ada_Classes is
             declare
                Name : constant String := Sanitize (To_String (M.Id));
                Ret : constant String := Map_Type (To_String (M.Type_Name));
-               Is_Proc : constant Boolean :=
-                 Length (M.Type_Name) = 0
-                 or else To_String (M.Type_Name) = "void";
+               Is_Proc : constant Boolean := Returns_Nothing (M);
             begin
                if Is_Proc then
                   Append (R, "   procedure " & Name
@@ -753,29 +748,31 @@ package body PlantUML2Code_Ada_Classes is
          end if;
       end loop;
       declare
+         package UV is new Ada.Containers.Vectors
+           (Positive, Unbounded_String);
          Self_Name : constant String := To_String (K.Id);
-         Seen : array (1 .. 32) of Unbounded_String;
-         N : Natural := 0;
-         Already : Boolean;
+         Seen : UV.Vector;
       begin
          for Rel of D.Relations loop
             if To_String (Rel.From) = Self_Name
               and then Rel.Kind in Composition | Aggregation | PlantUML.Classes.Association
               and then To_String (Rel.To) /= Self_Name
             then
-               Already := False;
-               for J in 1 .. N loop
-                  if To_String (Seen (J)) = To_String (Rel.To) then
-                     Already := True;
-                     exit;
+               declare
+                  Already : Boolean := False;
+               begin
+                  for S of Seen loop
+                     if S = Rel.To then
+                        Already := True;
+                        exit;
+                     end if;
+                  end loop;
+                  if not Already then
+                     Seen.Append (Rel.To);
+                     Append (R, "with " & Sanitize (To_String (Rel.To))
+                             & ";" & ASCII.LF);
                   end if;
-               end loop;
-               if not Already and then N < Seen'Length then
-                  N := N + 1;
-                  Seen (N) := Rel.To;
-                  Append (R, "with " & Sanitize (To_String (Rel.To))
-                          & ";" & ASCII.LF);
-               end if;
+               end;
             end if;
          end loop;
       end;
