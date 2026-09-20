@@ -23,13 +23,15 @@ package body PlantUML2Code_Template_Path is
    end Exists;
 
    function Slash (A, B : String) return String is
-     --  Ada.Directories.Compose refuses multi-segment second
-     --  arguments, and B may be "resources/templates". Join
-     --  manually with the platform separator.
-     (if A'Length = 0 then B
-      elsif B'Length = 0 then A
-      elsif A (A'Last) = '/' then A & B
-      else A & "/" & B);
+   begin
+      if A'Length = 0 then
+         return B;
+      elsif A (A'Last) = '/' then
+         return A & B;
+      else
+         return A & "/" & B;
+      end if;
+   end Slash;
 
    function Try_Under (Root, Subdir, File : String) return String is
       P1 : constant String := Slash (Slash (Root, Subdir), File);
@@ -74,12 +76,12 @@ package body PlantUML2Code_Template_Path is
       Exe_Par  : constant String := Containing_Directory (Exe);
 
       Candidates : constant array (1 .. 6) of Unbounded_String :=
-        (To_Unbounded_String (Slash (CWD,     "resources/templates")),
+        [To_Unbounded_String (Slash (CWD,     "resources/templates")),
          To_Unbounded_String (Slash (Parent,  "resources/templates")),
          To_Unbounded_String (Slash (Exe,     "../resources/templates")),
          To_Unbounded_String (Slash (Exe,     "resources/templates")),
          To_Unbounded_String (Slash (Exe_Par, "resources/templates")),
-         To_Unbounded_String (Slash (Exe_Par, "../resources/templates")));
+         To_Unbounded_String (Slash (Exe_Par, "../resources/templates"))];
    begin
       --  0. CLI override
       if Length (Override) > 0 then
@@ -120,7 +122,8 @@ package body PlantUML2Code_Template_Path is
       end loop;
 
       raise Template_Not_Found with
-        "template not found: " & Subdir & "/" & File;
+        "template not found: " & Subdir & "/" & File
+        & " (searched cwd, exe-dir, and parent-of-exe)";
    end Locate;
 
 end PlantUML2Code_Template_Path;
