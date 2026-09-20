@@ -3,8 +3,6 @@ with Ada.Text_IO;                      use Ada.Text_IO;
 with Ada.Strings.Unbounded;            use Ada.Strings.Unbounded;
 
 with Plantuml2code_Config;
-with PlantUML2Code_Formats;
-with PlantUML2Code_Ansi;
 
 package body PlantUML2Code_CLI is
 

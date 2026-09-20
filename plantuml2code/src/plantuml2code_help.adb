@@ -61,10 +61,10 @@ package body PlantUML2Code_Help is
    procedure Print_Topic (Topic : String) is
       T : constant String :=
         (if Topic'Length = 0 then ""
-         else (for C of Topic => (if C in 'A' .. 'Z'
+         else [for C of Topic => (if C in 'A' .. 'Z'
                                    then Character'Val
                                      (Character'Pos (C) + 32)
-                                   else C)));
+                                   else C)]);
    begin
       if T = "" or else T = "dump" then
          Put_Line (Bold ("dump") & " — parse and emit a diagram");

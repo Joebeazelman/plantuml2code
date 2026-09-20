@@ -5,7 +5,6 @@ with Plantuml2code_Config;
 with PlantUML;
 with PlantUML.States;
 with PlantUML.Classes;
-with PlantUML2Code_Formats;
 
 package body PlantUML2Code_Commands is
 
