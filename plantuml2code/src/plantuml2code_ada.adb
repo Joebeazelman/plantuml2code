@@ -297,6 +297,9 @@ package body PlantUML2Code_Ada is
             return State_Literal (To_String (T.To));
          end if;
       end loop;
+      --  No explicit start transition; take the first non-pseudostate
+      --  in the region. If there is none, the region is empty and
+      --  cannot be generated.
       for I of States loop
          declare
             Lit : constant String :=
@@ -309,7 +312,8 @@ package body PlantUML2Code_Ada is
             end if;
          end;
       end loop;
-      return "Idle";
+      raise Constraint_Error with
+        "region has no initial state and no non-pseudostate element";
    end Initial_State_Of;
 
    procedure Build_Transition_Row_Tags
