@@ -23,3 +23,6 @@ plantuml_parser = { path = "../plantuml_parser" }
 
 [[depends-on]]
 templates_parser = "^26.0.0"
+
+[[depends-on]]
+aunit = "^23.0.0"
