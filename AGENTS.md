@@ -172,15 +172,59 @@ Templates Parser syntax (NOT Mustache/ERB):
 
 - Tags: `@_TAG_@`
 - Filters: `@_FILTER:VAR_@`
-- Directives: `@@TABLE@@ ... @@END_TABLE@@`, `@@IF@@ @_VAR_@ ... @@END_IF@@`
+- Directives: `@@TABLE@@ ... @@END_TABLE@@`, `@@IF@@ @_BOOL_TAG_@ ... @@END_IF@@`
 - Length attribute: `@_VAR'Length_@`
 
 Tag delimiters default to `@_` and `_@`.
 
-**Gotcha:** `@@IF@@` inside `@@TABLE@@` did not work for us — the
-directive was emitted literally. We sidestepped it by pre-formatting
-each row in Ada and passing a composite string tag per table. If you
-need per-row conditionals, investigate this properly.
+### Directive placement rules
+
+The parser is strict about where directives appear:
+
+- `@@IF@@`, `@@ELSE@@`, and `@@END_IF@@` must start a line at
+  column 1 with no leading whitespace.
+- The boolean expression follows on the same line as `@@IF@@`:
+  `@@IF@@ @_TAG_@`. The tag itself can end the line; the newline
+  is consumed.
+- `@@TABLE@@` and `@@END_TABLE@@` also start a line at column 1.
+- Directives glued to preceding content on the same line are
+  emitted as literal text, not interpreted.
+
+### What the templates do
+
+The four Ada templates carry the *shape* of the emitted code. The
+generator supplies flat, aligned composite tags; the templates
+iterate them with `@@TABLE@@` and branch with `@@IF@@`.
+
+State diagram tags (from `plantuml2code_ada.adb`):
+
+| Group | Tags |
+|-------|------|
+| Header | `PACKAGE_NAME`, `DESCRIPTION`, `SOURCE_DIAGRAM`, `GENERATION_DATE` |
+| Types | `STATE_LITERALS`, `EVENT_LITERALS`, `INITIAL_STATE`, `CHILD_WITH_CLAUSES`, `PRIVATE_RECORD`, `STEP_CHILD_DECLS`, `STEP_CHILD_BODIES` |
+| On_Enter | `ENTER_STATE_LIT`, `ENTER_IS_END`, `ENTER_IS_COMPOSITE`, `ENTER_IS_LEAF_WITH_ACTION`, `ENTER_IS_LEAF_NO_ACTION`, `ENTER_CHILD_PKG`, `ENTER_CHILD_FIELD`, `ENTER_ACTION_CALL` |
+| On_Exit | `EXIT_STATE_LIT`, `EXIT_HAS_ACTION`, `EXIT_NO_ACTION`, `EXIT_ACTION_CALL` |
+| On_Tick | `TICK_STATE_LIT`, `TICK_HAS_ACTION`, `TICK_ACTION_CALL` |
+| On_Internal | `INTERNAL_STATE_LIT`, `INTERNAL_HAS_ANY`, `INTERNAL_HAS_EVENT`, `INTERNAL_EVENT_LIT`, `INTERNAL_ACTION_CALL` |
+| Transition table | `TABLE_ROW_STATE`, `TABLE_ROW_EVENTS`, `TABLE_ROW_NOTLAST` |
+| Actions files | `ACTION_DECLS`, `ACTION_BODIES` |
+
+### Adding a new output format
+
+A `.tmplt` file plus a binding function that populates the tags.
+No changes to the generator's Ada formatting logic are needed.
+
+### What still lives in Ada
+
+- Recursive child-package generation (each composite region is its
+  own template invocation).
+- The composite-tree reconstruction (`Region_Of`, `States_In`,
+  `Transitions_In`, `Composite_Children_Of`).
+- Identifier sanitization (`Sanitize`, `State_Literal`,
+  `Event_Literal`, `Effective_Target`).
+- The event list and transition target lookup.
+
+These are data preparation, not code shaping.
 
 ### Template location
 
@@ -253,46 +297,7 @@ fail unless `-t` is passed. This is why `bootstrap.sh` `cd`s into
 These are known deviations from the intended design. They are
 technical debt, not features. Each has a concrete remediation.
 
-### 1. Templates are shells, not drivers
-
-**What was intended.** Templates decide the shape of the emitted
-code. Ada supplies a flat set of tags describing the model. If you
-want to change how the generated code looks, you edit a `.tmplt` file.
-
-**What exists.** `plantuml2code_ada.adb` and
-`plantuml2code_ada_classes.adb` build the emitted text as Ada string
-concatenation. The templates are `@_TAG_@` interpolations of
-already-formatted lines. Changing the code shape means editing Ada.
-
-**Why.** The first attempt at `@@IF@@` inside `@@TABLE@@` produced
-literal `@@IF@@` in the output instead of a conditional. Rather than
-diagnose, I sidestepped it by moving formatting into Ada.
-
-**Correct approach.** Templates Parser ships a working example at
-`docs/src/table_if.tmplt` that uses `@@IF@@` inside `@@TABLE@@` with
-a boolean composite tag. That is exactly our use case.
-
-**Remediation.**
-
-- Step 1: Build a minimal reproduction using the exact
-  `table_if.tmplt` pattern. Determine definitively whether `@@IF@@`
-  works in this version.
-- Step 2: Redesign the bindings. Instead of pre-formatted strings,
-  emit rich tags:
-  `STATE_NAMES`, `STATE_KINDS`, `STATE_HAS_ENTRY`, `STATE_HAS_EXIT`,
-  `STATE_IS_COMPOSITE`, `STATE_IS_TERMINAL`,
-  `TRANS_FROM`, `TRANS_TO`, `TRANS_TRIGGER`, `TRANS_HAS_GUARD`,
-  `TRANS_GUARD`, `TRANS_IS_HISTORY`, `TRANS_IS_INTERNAL`,
-  `ACTION_NAME`, `ACTION_KIND`, `ACTION_STATE`.
-- Step 3: Rewrite the four Ada templates to make the shape decisions.
-- Step 4: Verify against golden files — output must be unchanged.
-
-Genuinely hard for templates and acceptable as Ada:
-- recursive child-package generation (each region is its own template
-  invocation with its own tags)
-- transition-table aggregate `[...]` syntax (nested constructs)
-
-### 2. AUnit coverage (partial)
+### 1. AUnit coverage (partial)
 
 `plantuml_parser` and `plantuml2code` each ship an AUnit suite.
 Run each with:
@@ -322,7 +327,7 @@ Gaps still to fill:
   the three sample projects under `gen_test/`, `class_test/`, and
   `history_test/`.
 
-### 3. Minor known issues
+### 2. Minor known issues
 
 - `PlantUML.Tokens` has an unused `with Ada.Characters.Handling`.
 - `plantuml2code_template_path.adb` has a debug block guarded by
