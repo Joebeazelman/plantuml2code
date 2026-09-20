@@ -48,7 +48,7 @@ package body Outer_Machine is
             null;
          when Middle =>
             null;
-
+         when others => null;
       end case;
    end On_Exit;
 

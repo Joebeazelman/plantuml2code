@@ -63,7 +63,7 @@ package body HistoryTest is
             null;
          when Outer =>
             null;
-
+         when others => null;
       end case;
    end On_Exit;
 

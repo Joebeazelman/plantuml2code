@@ -802,6 +802,11 @@ package body PlantUML2Code_Ada is
       Enter_Child_Pkg    : Tag;
       Enter_Child_Field  : Tag;
       Enter_Action_Call  : Tag;
+
+      Exit_State_Lit   : Tag;
+      Exit_Has_Action  : Tag;
+      Exit_No_Action   : Tag;
+      Exit_Action_Call : Tag;
       On_Exit_Arms  : Unbounded_String;
       On_Internal_Arms : Unbounded_String;
       On_Tick_Arms  : Unbounded_String;
@@ -977,6 +982,28 @@ package body PlantUML2Code_Ada is
                                      & To_String (Child_Fld_L);
                Enter_Action_Call  := Enter_Action_Call
                                      & To_String (Entry_Call);
+
+               declare
+                  Exit_Call : Unbounded_String := Null_Unbounded_String;
+               begin
+                  for A of D.Pool (Positive (I)).Annotations loop
+                     if A.Kind = Exit_Action
+                       and then Length (A.Action) > 0
+                     then
+                        Exit_Call :=
+                          To_Unbounded_String
+                            (Sanitize (To_String (A.Action)));
+                     end if;
+                  end loop;
+
+                  Exit_State_Lit   := Exit_State_Lit & Lit;
+                  Exit_Has_Action  := Exit_Has_Action
+                                      & (Length (Exit_Call) > 0);
+                  Exit_No_Action   := Exit_No_Action
+                                      & (Length (Exit_Call) = 0);
+                  Exit_Action_Call := Exit_Action_Call
+                                      & To_String (Exit_Call);
+               end;
             end;
 
             Append (On_Exit_Arms,
@@ -1082,7 +1109,10 @@ package body PlantUML2Code_Ada is
       Insert (T, Assoc ("ENTER_CHILD_PKG",     Enter_Child_Pkg));
       Insert (T, Assoc ("ENTER_CHILD_FIELD",   Enter_Child_Field));
       Insert (T, Assoc ("ENTER_ACTION_CALL",   Enter_Action_Call));
-      Insert (T, Assoc ("ON_EXIT_CASES", To_String (On_Exit_Arms)));
+      Insert (T, Assoc ("EXIT_STATE_LIT",   Exit_State_Lit));
+      Insert (T, Assoc ("EXIT_HAS_ACTION",  Exit_Has_Action));
+      Insert (T, Assoc ("EXIT_NO_ACTION",   Exit_No_Action));
+      Insert (T, Assoc ("EXIT_ACTION_CALL", Exit_Action_Call));
       Insert (T, Assoc ("ON_INTERNAL_CASES", To_String (On_Internal_Arms)));
       Insert (T, Assoc ("ON_TICK_CASES", To_String (On_Tick_Arms)));
       Insert (T, Assoc ("HISTORY_CASES",

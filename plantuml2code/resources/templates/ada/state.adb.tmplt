@@ -52,7 +52,16 @@
    procedure On_Exit (Self : in out Machine) is
    begin
       case Current_State (Self) is
-@_ON_EXIT_CASES_@
+@@TABLE@@
+         when @_EXIT_STATE_LIT_@ =>
+@@IF@@ @_EXIT_HAS_ACTION_@
+            @_EXIT_ACTION_CALL_@;
+@@END_IF@@
+@@IF@@ @_EXIT_NO_ACTION_@
+            null;
+@@END_IF@@
+@@END_TABLE@@
+         when others => null;
       end case;
    end On_Exit;
 

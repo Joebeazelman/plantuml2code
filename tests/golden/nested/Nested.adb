@@ -79,7 +79,7 @@ package body Nested is
             null;
          when End_State =>
             null;
-
+         when others => null;
       end case;
    end On_Exit;
 
