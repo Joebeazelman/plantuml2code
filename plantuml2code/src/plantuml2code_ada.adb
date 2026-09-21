@@ -20,7 +20,6 @@ package body PlantUML2Code_Ada is
    --  the type. Nothing in this body references the literal.
    subtype Tag is Templates_Parser.Tag;
 
-   package US renames Ada.Strings.Unbounded;
    package UV is new Ada.Containers.Vectors
      (Positive, Unbounded_String);
 
@@ -605,7 +604,6 @@ package body PlantUML2Code_Ada is
       for C of Composites loop
          declare
             Child_Pkg   : constant String := Child_Package_Name (D, C);
-            Child_Field : constant String := Child_Field_Name (D, C);
             State_Lit   : constant String :=
               State_Literal (To_String (D.Elements (Positive (C)).Id));
             Proc_Name   : constant String := "Step_" & Prefix & State_Lit;
@@ -697,7 +695,6 @@ package body PlantUML2Code_Ada is
       State_Lits : constant String := State_Literals_Of (D, States);
       Events     : constant String := Collect_Events (D, Ts, States);
       Initial    : constant String := Initial_State_Of (D, Region, States);
-      pragma Unreferenced (D);
 
       Action_Decls_Text  : constant String := Action_Decls (D, States);
       Action_Bodies_Text : constant String := Action_Bodies (D, States);
