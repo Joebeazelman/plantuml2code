@@ -1,30 +1,19 @@
 -----------------------------------------------------------------------
---  Inner_Machine (body)
+--  ADB_Reset_Machine (body)
 --
---  Generated from ../samples/history.puml on <DATE>.
+--  Generated from ../samples/adb_protocol.puml on <DATE>.
 -----------------------------------------------------------------------
 
-with Inner_Machine_Actions;
-
-package body Inner_Machine is
+package body ADB_Reset_Machine is
 
    use Base;
-   use Inner_Machine_Actions;
 
 
    Table : constant array (State, Event) of State :=
      [
-      Start_State =>
-        [Advance => Start_State,
-         others => Start_State]
-,
-      A =>
-        [Advance => B,
-         others => A]
-,
-      B =>
-        [Advance => B,
-         others => B]
+      Send_Reset_Cmd =>
+        [Tick => Send_Reset_Cmd,
+         others => Send_Reset_Cmd]
      ];
 
    overriding
@@ -35,12 +24,8 @@ package body Inner_Machine is
    procedure On_Enter (Self : in out Machine) is
    begin
       case Current_State (Self) is
-         when Start_State =>
+         when Send_Reset_Cmd =>
             null;
-         when A =>
-            Entered_A;
-         when B =>
-            Entered_B;
          when others => null;
       end case;
    end On_Enter;
@@ -49,11 +34,7 @@ package body Inner_Machine is
    procedure On_Exit (Self : in out Machine) is
    begin
       case Current_State (Self) is
-         when Start_State =>
-            null;
-         when A =>
-            null;
-         when B =>
+         when Send_Reset_Cmd =>
             null;
          when others => null;
       end case;
@@ -89,7 +70,7 @@ package body Inner_Machine is
 
    overriding
    function Name (Self : Machine) return String is
-     ("Inner_Machine");
+     ("ADB_Reset_Machine");
 
 
-end Inner_Machine;
+end ADB_Reset_Machine;

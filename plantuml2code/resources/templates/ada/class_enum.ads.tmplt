@@ -1,4 +1,7 @@
 --  @_CLASS_NAME_@ (enumeration)
+@@IF@@ @_HAS_TITLE_@
+@_TITLE_LINE_@
+@@END_IF@@
 --
 --  Generated from @_SOURCE_DIAGRAM_@ on @_GENERATION_DATE_@.
 

@@ -1,7 +1,7 @@
 --  @_CLASS_NAME_@ (body)
 --
 --  Generated from @_SOURCE_DIAGRAM_@ on @_GENERATION_DATE_@.
---  ---------------------------------------------------------------------
+-----------------------------------------------------------------------
 
 @_BODY_WITH_@package body @_CLASS_NAME_@ is
 

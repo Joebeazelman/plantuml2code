@@ -1,10 +1,10 @@
---  ---------------------------------------------------------------------
+-----------------------------------------------------------------------
 --  Inner_Machine_Actions
 --
 --  Hand-written action bodies for Inner_Machine.
 --  This file is emitted once and never overwritten. Fill in the
 --  procedure bodies with your application logic.
---  ---------------------------------------------------------------------
+-----------------------------------------------------------------------
 
 package Inner_Machine_Actions is
 

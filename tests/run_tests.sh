@@ -98,6 +98,8 @@ echo
 check_case zoo     samples/zoo.puml
 echo
 check_case history samples/history.puml
+echo
+check_case adb     samples/adb_protocol.puml
 
 echo
 if [ "$FAIL" -eq 0 ]; then

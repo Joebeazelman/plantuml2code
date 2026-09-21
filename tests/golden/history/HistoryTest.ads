@@ -1,11 +1,11 @@
---  ---------------------------------------------------------------------
+-----------------------------------------------------------------------
 --  HistoryTest
 --
 --  State machine generated from ../samples/history.puml
 --
 --  Generated from ../samples/history.puml on <DATE>.
 --  Do not edit by hand; regenerate from the diagram instead.
---  ---------------------------------------------------------------------
+-----------------------------------------------------------------------
 
 with State_Machine.Machines;
 with Outer_Machine;

@@ -20,6 +20,7 @@ update_case () {
   local golden_dir="$ROOT/tests/golden/$name"
 
   echo "==> $name"
+  mkdir -p "$golden_dir"
 
   local out
   out=$(mktemp -d)
@@ -45,6 +46,8 @@ echo
 update_case zoo     samples/zoo.puml
 echo
 update_case history samples/history.puml
+echo
+update_case adb     samples/adb_protocol.puml
 
 echo
 echo "Golden files updated. Review with:"

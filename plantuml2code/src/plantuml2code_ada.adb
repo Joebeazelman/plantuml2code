@@ -74,6 +74,16 @@ package body PlantUML2Code_Ada is
                    return String is
      (To_String (D.Elements (Positive (Idx)).Id));
 
+   function Title_Line_Of (D : UML.Model.Diagram) return String is
+   begin
+      for M of D.Metadata loop
+         if M.Kind = UML.Model.Title and then Length (M.Text) > 0 then
+            return "--  " & To_String (M.Text);
+         end if;
+      end loop;
+      return "";
+   end Title_Line_Of;
+
    function State_Literal (Name : String) return String is
       Dot : Natural := 0;
    begin
@@ -1066,6 +1076,8 @@ package body PlantUML2Code_Ada is
       end;
 
       Insert (T, Assoc ("PACKAGE_NAME", Package_Name));
+      Insert (T, Assoc ("HAS_TITLE", Title_Line_Of (D)'Length > 0));
+      Insert (T, Assoc ("TITLE_LINE", Title_Line_Of (D)));
       Insert (T, Assoc ("DESCRIPTION",
                         "State machine generated from " & Source_Diagram));
       Insert (T, Assoc ("SOURCE_DIAGRAM", Source_Diagram));

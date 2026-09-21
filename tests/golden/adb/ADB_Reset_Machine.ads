@@ -1,26 +1,27 @@
 -----------------------------------------------------------------------
---  Running_Machine
+--  ADB_Reset_Machine
+--  Apple Desktop Bus (ADB) Host Protocol Operations
 --
---  State machine generated from ../samples/nested.puml
+--  State machine generated from ../samples/adb_protocol.puml
 --
---  Generated from ../samples/nested.puml on <DATE>.
+--  Generated from ../samples/adb_protocol.puml on <DATE>.
 --  Do not edit by hand; regenerate from the diagram instead.
 -----------------------------------------------------------------------
 
 with State_Machine.Machines;
 
-package Running_Machine is
+package ADB_Reset_Machine is
 
    type State is
-     (Start_State, Spinning, Waiting);
+     (Send_Reset_Cmd);
 
    type Event is
-     (Yield, Resume, Pause);
+     (Tick);
 
    package Base is new State_Machine.Machines
      (State   => State,
       Event   => Event,
-      Initial => Spinning);
+      Initial => Send_Reset_Cmd);
 
    type Machine is new Base.Machine with private;
 
@@ -51,4 +52,4 @@ private
 
    type Machine is new Base.Machine with null record;
 
-end Running_Machine;
+end ADB_Reset_Machine;

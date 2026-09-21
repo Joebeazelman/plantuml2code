@@ -1,26 +1,27 @@
 -----------------------------------------------------------------------
---  Running_Machine
+--  SRQ_Resolution_Machine
+--  Apple Desktop Bus (ADB) Host Protocol Operations
 --
---  State machine generated from ../samples/nested.puml
+--  State machine generated from ../samples/adb_protocol.puml
 --
---  Generated from ../samples/nested.puml on <DATE>.
+--  Generated from ../samples/adb_protocol.puml on <DATE>.
 --  Do not edit by hand; regenerate from the diagram instead.
 -----------------------------------------------------------------------
 
 with State_Machine.Machines;
 
-package Running_Machine is
+package SRQ_Resolution_Machine is
 
    type State is
-     (Start_State, Spinning, Waiting);
+     (Identify_Source, Route_SRQ, Start_State, End_State);
 
    type Event is
-     (Yield, Resume, Pause);
+     (Data_Received, SRQ_Line_Cleared, Timeout_Try_Next_Address);
 
    package Base is new State_Machine.Machines
      (State   => State,
       Event   => Event,
-      Initial => Spinning);
+      Initial => Identify_Source);
 
    type Machine is new Base.Machine with private;
 
@@ -51,4 +52,4 @@ private
 
    type Machine is new Base.Machine with null record;
 
-end Running_Machine;
+end SRQ_Resolution_Machine;

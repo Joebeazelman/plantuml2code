@@ -1,30 +1,39 @@
 -----------------------------------------------------------------------
---  Inner_Machine (body)
+--  SRQ_Resolution_Machine (body)
 --
---  Generated from ../samples/history.puml on <DATE>.
+--  Generated from ../samples/adb_protocol.puml on <DATE>.
 -----------------------------------------------------------------------
 
-with Inner_Machine_Actions;
-
-package body Inner_Machine is
+package body SRQ_Resolution_Machine is
 
    use Base;
-   use Inner_Machine_Actions;
 
 
    Table : constant array (State, Event) of State :=
      [
+      Identify_Source =>
+        [Data_Received => Route_SRQ,
+         SRQ_Line_Cleared => Identify_Source,
+         Timeout_Try_Next_Address => Identify_Source,
+         others => Identify_Source]
+,
+      Route_SRQ =>
+        [Data_Received => Route_SRQ,
+         SRQ_Line_Cleared => End_State,
+         Timeout_Try_Next_Address => Route_SRQ,
+         others => Route_SRQ]
+,
       Start_State =>
-        [Advance => Start_State,
+        [Data_Received => Start_State,
+         SRQ_Line_Cleared => Start_State,
+         Timeout_Try_Next_Address => Start_State,
          others => Start_State]
 ,
-      A =>
-        [Advance => B,
-         others => A]
-,
-      B =>
-        [Advance => B,
-         others => B]
+      End_State =>
+        [Data_Received => End_State,
+         SRQ_Line_Cleared => End_State,
+         Timeout_Try_Next_Address => End_State,
+         others => End_State]
      ];
 
    overriding
@@ -35,12 +44,14 @@ package body Inner_Machine is
    procedure On_Enter (Self : in out Machine) is
    begin
       case Current_State (Self) is
+         when Identify_Source =>
+            null;
+         when Route_SRQ =>
+            null;
          when Start_State =>
             null;
-         when A =>
-            Entered_A;
-         when B =>
-            Entered_B;
+         when End_State =>
+            Mark_Terminated (Self);
          when others => null;
       end case;
    end On_Enter;
@@ -49,11 +60,13 @@ package body Inner_Machine is
    procedure On_Exit (Self : in out Machine) is
    begin
       case Current_State (Self) is
+         when Identify_Source =>
+            null;
+         when Route_SRQ =>
+            null;
          when Start_State =>
             null;
-         when A =>
-            null;
-         when B =>
+         when End_State =>
             null;
          when others => null;
       end case;
@@ -89,7 +102,7 @@ package body Inner_Machine is
 
    overriding
    function Name (Self : Machine) return String is
-     ("Inner_Machine");
+     ("SRQ_Resolution_Machine");
 
 
-end Inner_Machine;
+end SRQ_Resolution_Machine;

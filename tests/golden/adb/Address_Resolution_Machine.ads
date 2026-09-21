@@ -1,26 +1,27 @@
 -----------------------------------------------------------------------
---  Running_Machine
+--  Address_Resolution_Machine
+--  Apple Desktop Bus (ADB) Host Protocol Operations
 --
---  State machine generated from ../samples/nested.puml
+--  State machine generated from ../samples/adb_protocol.puml
 --
---  Generated from ../samples/nested.puml on <DATE>.
+--  Generated from ../samples/adb_protocol.puml on <DATE>.
 --  Do not edit by hand; regenerate from the diagram instead.
 -----------------------------------------------------------------------
 
 with State_Machine.Machines;
 
-package Running_Machine is
+package Address_Resolution_Machine is
 
    type State is
-     (Start_State, Spinning, Waiting);
+     (Check_Default_Address, Await_Default_Response, Relocate_Devices, Resolve_Collisions, Validate_Winner, Start_State, End_State);
 
    type Event is
-     (Yield, Resume, Pause);
+     (Command_Sent, Response_Detected, Relocation_Command_Sent, Winner_Data_Received, Repeat_For_Remaining_Devices, Timeout_No_Devices);
 
    package Base is new State_Machine.Machines
      (State   => State,
       Event   => Event,
-      Initial => Spinning);
+      Initial => Check_Default_Address);
 
    type Machine is new Base.Machine with private;
 
@@ -51,4 +52,4 @@ private
 
    type Machine is new Base.Machine with null record;
 
-end Running_Machine;
+end Address_Resolution_Machine;

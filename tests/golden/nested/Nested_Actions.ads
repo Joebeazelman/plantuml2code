@@ -1,10 +1,10 @@
---  ---------------------------------------------------------------------
+-----------------------------------------------------------------------
 --  Nested_Actions
 --
 --  Hand-written action bodies for Nested.
 --  This file is emitted once and never overwritten. Fill in the
 --  procedure bodies with your application logic.
---  ---------------------------------------------------------------------
+-----------------------------------------------------------------------
 
 package Nested_Actions is
 

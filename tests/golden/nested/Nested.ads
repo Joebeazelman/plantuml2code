@@ -1,11 +1,11 @@
---  ---------------------------------------------------------------------
+-----------------------------------------------------------------------
 --  Nested
 --
 --  State machine generated from ../samples/nested.puml
 --
 --  Generated from ../samples/nested.puml on <DATE>.
 --  Do not edit by hand; regenerate from the diagram instead.
---  ---------------------------------------------------------------------
+-----------------------------------------------------------------------
 
 with State_Machine.Machines;
 with Running_Machine;

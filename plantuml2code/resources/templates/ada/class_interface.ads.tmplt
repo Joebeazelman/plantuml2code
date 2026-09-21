@@ -1,7 +1,11 @@
 --  @_CLASS_NAME_@ (interface)
+@@IF@@ @_HAS_TITLE_@
+@_TITLE_LINE_@
+@@END_IF@@
 --
 --  Generated from @_SOURCE_DIAGRAM_@ on @_GENERATION_DATE_@.
---  ---------------------------------------------------------------------
+-----------------------------------------------------------------------
+
 @_WITH_CLAUSES_@package @_CLASS_NAME_@ is
 
 @_TYPE_DECL_@

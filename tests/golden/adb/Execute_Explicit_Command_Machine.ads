@@ -1,26 +1,27 @@
 -----------------------------------------------------------------------
---  Running_Machine
+--  Execute_Explicit_Command_Machine
+--  Apple Desktop Bus (ADB) Host Protocol Operations
 --
---  State machine generated from ../samples/nested.puml
+--  State machine generated from ../samples/adb_protocol.puml
 --
---  Generated from ../samples/nested.puml on <DATE>.
+--  Generated from ../samples/adb_protocol.puml on <DATE>.
 --  Do not edit by hand; regenerate from the diagram instead.
 -----------------------------------------------------------------------
 
 with State_Machine.Machines;
 
-package Running_Machine is
+package Execute_Explicit_Command_Machine is
 
    type State is
-     (Start_State, Spinning, Waiting);
+     (Transmit_Explicit, Await_Explicit, Delegate_Explicit, Start_State, End_State);
 
    type Event is
-     (Yield, Resume, Pause);
+     (Is_Talk_Command, Is_Listen_Or_Flush_Command, Data_Received, Timeout_Transaction_Failed);
 
    package Base is new State_Machine.Machines
      (State   => State,
       Event   => Event,
-      Initial => Spinning);
+      Initial => Transmit_Explicit);
 
    type Machine is new Base.Machine with private;
 
@@ -51,4 +52,4 @@ private
 
    type Machine is new Base.Machine with null record;
 
-end Running_Machine;
+end Execute_Explicit_Command_Machine;

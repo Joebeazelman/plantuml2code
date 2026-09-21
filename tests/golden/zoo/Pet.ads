@@ -1,7 +1,8 @@
 --  Pet (interface)
 --
 --  Generated from ../samples/zoo.puml on <DATE>.
---  ---------------------------------------------------------------------
+-----------------------------------------------------------------------
+
 with Class_Runtime;
 with Ada.Strings.Unbounded;  use Ada.Strings.Unbounded;
 

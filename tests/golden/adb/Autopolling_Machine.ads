@@ -1,26 +1,27 @@
 -----------------------------------------------------------------------
---  Running_Machine
+--  Autopolling_Machine
+--  Apple Desktop Bus (ADB) Host Protocol Operations
 --
---  State machine generated from ../samples/nested.puml
+--  State machine generated from ../samples/adb_protocol.puml
 --
---  Generated from ../samples/nested.puml on <DATE>.
+--  Generated from ../samples/adb_protocol.puml on <DATE>.
 --  Do not edit by hand; regenerate from the diagram instead.
 -----------------------------------------------------------------------
 
 with State_Machine.Machines;
 
-package Running_Machine is
+package Autopolling_Machine is
 
    type State is
-     (Start_State, Spinning, Waiting);
+     (Select_Next_Target, Send_Poll_Command, Await_Poll_Response, Route_Poll_Data, Start_State, End_State);
 
    type Event is
-     (Yield, Resume, Pause);
+     (Target_Selected, Command_Sent, Payload_Received, Timeout_Normal_No_Data);
 
    package Base is new State_Machine.Machines
      (State   => State,
       Event   => Event,
-      Initial => Spinning);
+      Initial => Select_Next_Target);
 
    type Machine is new Base.Machine with private;
 
@@ -51,4 +52,4 @@ private
 
    type Machine is new Base.Machine with null record;
 
-end Running_Machine;
+end Autopolling_Machine;
