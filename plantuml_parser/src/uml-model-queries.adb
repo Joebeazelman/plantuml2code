@@ -28,24 +28,21 @@ package body UML.Model.Queries is
    function Is_Composite (D : UML.Model.Diagram;
                           Idx : UML.Model.Element_Index) return Boolean
    is
-      E : UML.Model.Element renames D.Elements (Positive (Idx));
-   begin
-      return E.Kind = UML.Model.Composite_State
-        or else not E.Children.Is_Empty;
-   end Is_Composite;
+     (D.Elements (Positive (Idx)).Kind = UML.Model.Composite_State);
 
+   --  The parser's Region_Of scans every element's Children looking
+   --  for Idx. That version is reproduced here verbatim: it does not
+   --  rely on Element.Parent, which the translator does not populate.
    function Region_Of (D : UML.Model.Diagram;
                        Idx : UML.Model.Element_Index) return Natural
    is
-      Cur : UML.Model.Element_Index := Idx;
-      E   : UML.Model.Element;
    begin
-      while Cur /= 0 loop
-         E := D.Elements (Positive (Cur));
-         if Is_Composite (D, Cur) then
-            return Natural (Cur);
-         end if;
-         Cur := E.Parent;
+      for I in D.Elements.First_Index .. D.Elements.Last_Index loop
+         for C of D.Elements (I).Children loop
+            if C = Idx then
+               return I;
+            end if;
+         end loop;
       end loop;
       return 0;
    end Region_Of;
@@ -116,16 +113,11 @@ package body UML.Model.Queries is
             begin
                if From_Reg = Region and then To_Reg = Region then
                   Include := True;
-               elsif From_Reg = Region and then Is_History (D, R.To) then
-                  --  History target: the pseudostate's own region is
-                  --  its enclosing composite, so this transition
-                  --  belongs to that composite's region only if the
-                  --  pseudostate's parent is Region.
-                  if D.Elements (Positive (R.To)).Parent
-                       = UML.Model.Element_Index (Region)
-                  then
-                     Include := True;
-                  end if;
+               elsif From_Reg = Region
+                 and then Is_History (D, R.To)
+                 and then Region_Of (D, R.To) = Region
+               then
+                  Include := True;
                end if;
                if Include then
                   Result.Append (R);

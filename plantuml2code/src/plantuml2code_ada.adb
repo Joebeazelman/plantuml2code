@@ -7,12 +7,18 @@ with Ada.Containers.Vectors;
 with Ada.Strings.Fixed;
 with Ada.Characters.Handling;  use Ada.Characters.Handling;
 
-with PlantUML.States;          use PlantUML.States;
+with UML.Model;               use UML.Model;
+with UML.Model.Queries;       use UML.Model.Queries;
 with PlantUML2Code_Utils;
 with PlantUML2Code_Template_Path;      use PlantUML2Code_Utils;
 with Templates_Parser;         use Templates_Parser;
 
 package body PlantUML2Code_Ada is
+
+   --  Local alias: Templates_Parser.Tag. UML.Model.Annotation_Kind
+   --  has a literal named Tag; without this, `use UML.Model` hides
+   --  the type. Nothing in this body references the literal.
+   subtype Tag is Templates_Parser.Tag;
 
    package US renames Ada.Strings.Unbounded;
    package UV is new Ada.Containers.Vectors
@@ -46,13 +52,13 @@ package body PlantUML2Code_Ada is
          Tmp : Unbounded_String := R;
       begin
          while Length (Tmp) > 0
-           and then Element (Tmp, Length (Tmp)) = '_'
+           and then Ada.Strings.Unbounded.Element (Tmp, Length (Tmp)) = '_'
          loop
             Delete (Tmp, Length (Tmp), Length (Tmp));
          end loop;
 
          if Length (Tmp) > 0
-           and then Element (Tmp, 1) in '0' .. '9'
+           and then Ada.Strings.Unbounded.Element (Tmp, 1) in '0' .. '9'
          then
             return "S_" & To_String (Tmp);
          end if;
@@ -64,6 +70,10 @@ package body PlantUML2Code_Ada is
          return To_String (Tmp);
       end;
    end Sanitize;
+
+   function Id_Of (D : UML.Model.Diagram; Idx : Element_Index)
+                   return String is
+     (To_String (D.Elements (Positive (Idx)).Id));
 
    function State_Literal (Name : String) return String is
       Dot : Natural := 0;
@@ -119,104 +129,6 @@ package body PlantUML2Code_Ada is
       then State_Literal (Parent_Name (To_Name))
       else State_Literal (To_Name));
 
-   function Find_State (D : State_Diagram; Name : String)
-                        return State_Index
-   is
-   begin
-      for I in D.Pool.First_Index .. D.Pool.Last_Index loop
-         if To_String (D.Pool (I).Id) = Name then
-            return State_Index (I);
-         end if;
-      end loop;
-      raise Constraint_Error with "state not found: " & Name;
-   end Find_State;
-
-   function Region_Of (D : State_Diagram; Idx : State_Index)
-                       return Natural
-   is
-   begin
-      for I in D.Pool.First_Index .. D.Pool.Last_Index loop
-         for C of D.Pool (I).Children loop
-            if C = Idx then
-               return Natural (I);
-            end if;
-         end loop;
-      end loop;
-      return Top_Level;
-   end Region_Of;
-
-   function States_In (D : State_Diagram; Region : Natural)
-                       return Index_Vectors.Vector
-   is
-      Result : Index_Vectors.Vector;
-   begin
-      if Region = Top_Level then
-         for I of D.Roots loop
-            if D.Pool (Positive (I)).Kind
-              not in History_Shallow | History_Deep
-            then
-               Result.Append (I);
-            end if;
-         end loop;
-      else
-         for C of D.Pool (Positive (Region)).Children loop
-            Result.Append (C);
-         end loop;
-      end if;
-      return Result;
-   end States_In;
-
-   function Transitions_In (D : State_Diagram; Region : Natural)
-                            return Transition_Vectors.Vector
-   is
-      Result : Transition_Vectors.Vector;
-   begin
-      for T of D.Transitions loop
-         declare
-            From_Idx : constant State_Index :=
-              Find_State (D, To_String (T.From));
-            To_Idx   : constant State_Index :=
-              Find_State (D, To_String (T.To));
-            From_Reg : constant Natural := Region_Of (D, From_Idx);
-            To_Reg   : constant Natural := Region_Of (D, To_Idx);
-            Include  : Boolean := False;
-         begin
-            if From_Reg = Region and then To_Reg = Region then
-               Include := True;
-            elsif From_Reg = Region
-              and then Is_History_Target (To_String (T.To))
-            then
-               declare
-                  Parent_Idx : constant State_Index :=
-                    Find_State (D, Parent_Name (To_String (T.To)));
-               begin
-                  if Region_Of (D, Parent_Idx) = Region then
-                     Include := True;
-                  end if;
-               end;
-            end if;
-            if Include then
-               Result.Append (T);
-            end if;
-         end;
-      end loop;
-      return Result;
-   end Transitions_In;
-
-   function Composite_Children_Of
-     (D : State_Diagram; States : Index_Vectors.Vector)
-      return Index_Vectors.Vector
-   is
-      Result : Index_Vectors.Vector;
-   begin
-      for S of States loop
-         if D.Pool (Positive (S)).Kind = Composite then
-            Result.Append (S);
-         end if;
-      end loop;
-      return Result;
-   end Composite_Children_Of;
-
    procedure Add_Event
      (Seen    : in out UV.Vector;
       Trigger : String)
@@ -235,9 +147,9 @@ package body PlantUML2Code_Ada is
    end Add_Event;
 
    function Collect_Events
-     (D      : State_Diagram;
-      Ts     : Transition_Vectors.Vector;
-      States : Index_Vectors.Vector) return String
+     (D      : UML.Model.Diagram;
+      Ts     : Relation_Vectors.Vector;
+      States : Element_Index_Vectors.Vector) return String
    is
       Seen : UV.Vector;
       R    : Unbounded_String;
@@ -247,8 +159,8 @@ package body PlantUML2Code_Ada is
       end loop;
 
       for I of States loop
-         for A of D.Pool (Positive (I)).Annotations loop
-            if A.Kind = Internal_Transition then
+         for A of D.Elements (Positive (I)).Annotations loop
+            if A.Kind = UML.Model.Internal_Transition then
                Add_Event (Seen, To_String (A.Trigger));
             end if;
          end loop;
@@ -269,7 +181,7 @@ package body PlantUML2Code_Ada is
    end Collect_Events;
 
    function State_Literals_Of
-     (D : State_Diagram; States : Index_Vectors.Vector) return String
+     (D : UML.Model.Diagram; States : Element_Index_Vectors.Vector) return String
    is
       R : Unbounded_String;
       First : Boolean := True;
@@ -278,23 +190,25 @@ package body PlantUML2Code_Ada is
          if not First then
             Append (R, ", ");
          end if;
-         Append (R, State_Literal (To_String (D.Pool (Positive (I)).Id)));
+         Append (R, State_Literal (To_String (D.Elements (Positive (I)).Id)));
          First := False;
       end loop;
       return To_String (R);
    end State_Literals_Of;
 
    function Initial_State_Of
-     (D : State_Diagram; Region : Natural; States : Index_Vectors.Vector)
+     (D : UML.Model.Diagram; Region : Natural; States : Element_Index_Vectors.Vector)
       return String
    is
       Start_Name : constant String :=
         (if Region = Top_Level then "[*]_start"
-         else To_String (D.Pool (Positive (Region)).Id) & ".[*]_start");
+         else To_String (D.Elements (Positive (Region)).Id) & ".[*]_start");
    begin
-      for T of D.Transitions loop
-         if To_String (T.From) = Start_Name then
-            return State_Literal (To_String (T.To));
+      for T of D.Relations loop
+         if T.Kind = UML.Model.Transition
+           and then Id_Of (D, T.From) = Start_Name
+         then
+            return State_Literal (Id_Of (D, T.To));
          end if;
       end loop;
       --  No explicit start transition; take the first non-pseudostate
@@ -303,7 +217,7 @@ package body PlantUML2Code_Ada is
       for I of States loop
          declare
             Lit : constant String :=
-              State_Literal (To_String (D.Pool (Positive (I)).Id));
+              State_Literal (To_String (D.Elements (Positive (I)).Id));
          begin
             if Lit /= "Start_State" and Lit /= "End_State"
               and Lit /= "History" and Lit /= "Deep_History"
@@ -317,14 +231,14 @@ package body PlantUML2Code_Ada is
    end Initial_State_Of;
 
    procedure Build_Transition_Row_Tags
-     (D       : State_Diagram;
+     (D       : UML.Model.Diagram;
       Region  : Natural;
-      States  : Index_Vectors.Vector;
+      States  : Element_Index_Vectors.Vector;
       Row_State   : in out Tag;
       Row_Events  : in out Tag;
       Row_NotLast : in out Tag)
    is
-      Ts : constant Transition_Vectors.Vector :=
+      Ts : constant Relation_Vectors.Vector :=
         Transitions_In (D, Region);
       Events : constant String := Collect_Events (D, Ts, States);
       Ev_List : Unbounded_String;
@@ -361,10 +275,10 @@ package body PlantUML2Code_Ada is
       function Target_For (From_Lit, Ev_Lit : String) return String is
       begin
          for T of Ts loop
-            if State_Literal (To_String (T.From)) = From_Lit
+            if State_Literal (Id_Of (D, T.From)) = From_Lit
               and then Event_Literal (To_String (T.Trigger)) = Ev_Lit
             then
-               return Effective_Target (To_String (T.To));
+               return Effective_Target (Id_Of (D, T.To));
             end if;
          end loop;
          return From_Lit;
@@ -379,7 +293,7 @@ package body PlantUML2Code_Ada is
          Row_Index := Row_Index + 1;
          declare
             From_Lit : constant String :=
-              State_Literal (To_String (D.Pool (Positive (I)).Id));
+              State_Literal (To_String (D.Elements (Positive (I)).Id));
             Events_Text : Unbounded_String := Null_Unbounded_String;
             First_Ev : Boolean := True;
          begin
@@ -418,26 +332,26 @@ package body PlantUML2Code_Ada is
    end Build_Transition_Row_Tags;
 
    function History_Cases
-     (D : State_Diagram; States : Index_Vectors.Vector;
-      Ts : Transition_Vectors.Vector) return String
+     (D : UML.Model.Diagram; States : Element_Index_Vectors.Vector;
+      Ts : Relation_Vectors.Vector) return String
    is
       R : Unbounded_String;
    begin
       for I of States loop
          declare
             From_Lit : constant String :=
-              State_Literal (To_String (D.Pool (Positive (I)).Id));
+              State_Literal (To_String (D.Elements (Positive (I)).Id));
             Arms : Unbounded_String;
             First_Ev : Boolean := True;
          begin
             for T of Ts loop
-               if State_Literal (To_String (T.From)) = From_Lit
-                 and then Is_History_Target (To_String (T.To))
+               if State_Literal (Id_Of (D, T.From)) = From_Lit
+                 and then Is_History_Target (Id_Of (D, T.To))
                then
                   declare
                      Kind : constant String :=
                        (if Ada.Strings.Fixed.Index
-                             (To_String (T.To), "[H*]") > 0
+                             (Id_Of (D, T.To), "[H*]") > 0
                         then "History_Deep"
                         else "History_Shallow");
                   begin
@@ -468,32 +382,32 @@ package body PlantUML2Code_Ada is
    end History_Cases;
 
    function Child_Package_Name
-     (D : State_Diagram; Child : State_Index) return String is
-     (State_Literal (To_String (D.Pool (Positive (Child)).Id)) & "_Machine");
+     (D : UML.Model.Diagram; Child : Element_Index) return String is
+     (State_Literal (To_String (D.Elements (Positive (Child)).Id)) & "_Machine");
 
    function Child_Field_Name
-     (D : State_Diagram; Child : State_Index) return String is
-     (State_Literal (To_String (D.Pool (Positive (Child)).Id)) & "_Child");
+     (D : UML.Model.Diagram; Child : Element_Index) return String is
+     (State_Literal (To_String (D.Elements (Positive (Child)).Id)) & "_Child");
 
    function Action_Decls
-     (D : State_Diagram; States : Index_Vectors.Vector) return String
+     (D : UML.Model.Diagram; States : Element_Index_Vectors.Vector) return String
    is
       R : Unbounded_String;
    begin
       for S of States loop
-         for A of D.Pool (Positive (S)).Annotations loop
+         for A of D.Elements (Positive (S)).Annotations loop
             case A.Kind is
                when Entry_Action | Exit_Action | Do_Activity
                   | Internal_Transition =>
                   declare
                      Action_Name : constant String :=
-                       Sanitize (To_String (A.Action));
+                       Sanitize (To_String (A.Text));
                   begin
-                     if Length (A.Action) > 0 then
+                     if Length (A.Text) > 0 then
                         Append (R, "   procedure " & Action_Name
                                & ";  --  "
                                & A.Kind'Image & ": "
-                               & To_String (A.Action) & ASCII.LF);
+                               & To_String (A.Text) & ASCII.LF);
                      end if;
                   end;
                when others => null;
@@ -504,26 +418,26 @@ package body PlantUML2Code_Ada is
    end Action_Decls;
 
    function Action_Bodies
-     (D : State_Diagram; States : Index_Vectors.Vector) return String
+     (D : UML.Model.Diagram; States : Element_Index_Vectors.Vector) return String
    is
       R : Unbounded_String;
    begin
       for S of States loop
-         for A of D.Pool (Positive (S)).Annotations loop
+         for A of D.Elements (Positive (S)).Annotations loop
             case A.Kind is
                when Entry_Action | Exit_Action | Do_Activity
                   | Internal_Transition =>
                   declare
                      Action_Name : constant String :=
-                       Sanitize (To_String (A.Action));
+                       Sanitize (To_String (A.Text));
                   begin
-                     if Length (A.Action) > 0 then
+                     if Length (A.Text) > 0 then
                         Append (R, "   procedure " & Action_Name
                                & " is" & ASCII.LF
                                & "   begin" & ASCII.LF
                                & "      null;  --  TODO: "
                                & A.Kind'Image & ": "
-                               & To_String (A.Action) & ASCII.LF
+                               & To_String (A.Text) & ASCII.LF
                                & "   end " & Action_Name & ";"
                                & ASCII.LF & ASCII.LF);
                      end if;
@@ -679,13 +593,13 @@ package body PlantUML2Code_Ada is
    end Emit_Setup;
 
    procedure Emit_Deeper_Steppers
-     (D : State_Diagram;
+     (D : UML.Model.Diagram;
       Region : Natural;
       Prefix : String;
       With_Clauses, Decls, Bodies : in out Unbounded_String)
    is
-      States     : constant Index_Vectors.Vector := States_In (D, Region);
-      Composites : constant Index_Vectors.Vector :=
+      States     : constant Element_Index_Vectors.Vector := States_In (D, Region);
+      Composites : constant Element_Index_Vectors.Vector :=
         Composite_Children_Of (D, States);
    begin
       for C of Composites loop
@@ -693,7 +607,7 @@ package body PlantUML2Code_Ada is
             Child_Pkg   : constant String := Child_Package_Name (D, C);
             Child_Field : constant String := Child_Field_Name (D, C);
             State_Lit   : constant String :=
-              State_Literal (To_String (D.Pool (Positive (C)).Id));
+              State_Literal (To_String (D.Elements (Positive (C)).Id));
             Proc_Name   : constant String := "Step_" & Prefix & State_Lit;
 
             --  The first segment of Prefix identifies the ancestor
@@ -765,17 +679,17 @@ package body PlantUML2Code_Ada is
    end Emit_Deeper_Steppers;
 
    procedure Generate_Region
-     (D              : State_Diagram;
+     (D              : UML.Model.Diagram;
       Region         : Natural;
       Package_Name   : String;
       Source_Diagram : String;
       Date_Str       : String;
       Out_Dir        : String)
    is
-      States       : constant Index_Vectors.Vector := States_In (D, Region);
-      Ts           : constant Transition_Vectors.Vector :=
+      States       : constant Element_Index_Vectors.Vector := States_In (D, Region);
+      Ts           : constant Relation_Vectors.Vector :=
         Transitions_In (D, Region);
-      Child_States : constant Index_Vectors.Vector :=
+      Child_States : constant Element_Index_Vectors.Vector :=
         Composite_Children_Of (D, States);
 
       T : Translate_Set;
@@ -839,7 +753,7 @@ package body PlantUML2Code_Ada is
             Child_Pkg   : constant String := Child_Package_Name (D, C);
             Child_Field : constant String := Child_Field_Name (D, C);
             State_Lit   : constant String :=
-              State_Literal (To_String (D.Pool (Positive (C)).Id));
+              State_Literal (To_String (D.Elements (Positive (C)).Id));
             Procedure_Name : constant String := "Step_" & State_Lit;
          begin
             Append (With_Clauses,
@@ -911,20 +825,20 @@ package body PlantUML2Code_Ada is
       for I of States loop
          declare
             Lit          : constant String :=
-              State_Literal (To_String (D.Pool (Positive (I)).Id));
+              State_Literal (To_String (D.Elements (Positive (I)).Id));
             Is_Composite : Boolean := False;
             Has_Entry    : Boolean := False;
             Has_Exit     : Boolean := False;
          begin
             for C of Child_States loop
-               if State_Literal (To_String (D.Pool (Positive (C)).Id)) = Lit then
+               if State_Literal (To_String (D.Elements (Positive (C)).Id)) = Lit then
                   Is_Composite := True;
                   exit;
                end if;
             end loop;
-            for A of D.Pool (Positive (I)).Annotations loop
-               if A.Kind = Entry_Action then Has_Entry := True; end if;
-               if A.Kind = Exit_Action  then Has_Exit  := True; end if;
+            for A of D.Elements (Positive (I)).Annotations loop
+               if A.Kind = UML.Model.Entry_Action then Has_Entry := True; end if;
+               if A.Kind = UML.Model.Exit_Action  then Has_Exit  := True; end if;
             end loop;
 
             if not Is_Composite then
@@ -935,13 +849,13 @@ package body PlantUML2Code_Ada is
                           "            Mark_Terminated (Self);"
                           & ASCII.LF);
                else
-                  for A of D.Pool (Positive (I)).Annotations loop
-                     if A.Kind = Entry_Action
-                       and then Length (A.Action) > 0
+                  for A of D.Elements (Positive (I)).Annotations loop
+                     if A.Kind = UML.Model.Entry_Action
+                       and then Length (A.Text) > 0
                      then
                         Append (On_Enter_Arms,
                                 "            "
-                                & Sanitize (To_String (A.Action))
+                                & Sanitize (To_String (A.Text))
                                 & ";" & ASCII.LF);
                      end if;
                   end loop;
@@ -960,7 +874,7 @@ package body PlantUML2Code_Ada is
                if Is_Composite then
                   for C of Child_States loop
                      if State_Literal
-                          (To_String (D.Pool (Positive (C)).Id)) = Lit
+                          (To_String (D.Elements (Positive (C)).Id)) = Lit
                      then
                         Child_Pkg_L :=
                           To_Unbounded_String (Child_Package_Name (D, C));
@@ -970,13 +884,13 @@ package body PlantUML2Code_Ada is
                      end if;
                   end loop;
                end if;
-               for A of D.Pool (Positive (I)).Annotations loop
-                  if A.Kind = Entry_Action
-                    and then Length (A.Action) > 0
+               for A of D.Elements (Positive (I)).Annotations loop
+                  if A.Kind = UML.Model.Entry_Action
+                    and then Length (A.Text) > 0
                   then
                      Entry_Call :=
                        To_Unbounded_String
-                         (Sanitize (To_String (A.Action)));
+                         (Sanitize (To_String (A.Text)));
                   end if;
                end loop;
 
@@ -1000,13 +914,13 @@ package body PlantUML2Code_Ada is
                declare
                   Exit_Call : Unbounded_String := Null_Unbounded_String;
                begin
-                  for A of D.Pool (Positive (I)).Annotations loop
-                     if A.Kind = Exit_Action
-                       and then Length (A.Action) > 0
+                  for A of D.Elements (Positive (I)).Annotations loop
+                     if A.Kind = UML.Model.Exit_Action
+                       and then Length (A.Text) > 0
                      then
                         Exit_Call :=
                           To_Unbounded_String
-                            (Sanitize (To_String (A.Action)));
+                            (Sanitize (To_String (A.Text)));
                      end if;
                   end loop;
 
@@ -1022,13 +936,13 @@ package body PlantUML2Code_Ada is
                declare
                   Do_Call : Unbounded_String := Null_Unbounded_String;
                begin
-                  for A of D.Pool (Positive (I)).Annotations loop
-                     if A.Kind = Do_Activity
-                       and then Length (A.Action) > 0
+                  for A of D.Elements (Positive (I)).Annotations loop
+                     if A.Kind = UML.Model.Do_Activity
+                       and then Length (A.Text) > 0
                      then
                         Do_Call :=
                           To_Unbounded_String
-                            (Sanitize (To_String (A.Action)));
+                            (Sanitize (To_String (A.Text)));
                      end if;
                   end loop;
 
@@ -1044,10 +958,10 @@ package body PlantUML2Code_Ada is
                   Int_Event : Unbounded_String := Null_Unbounded_String;
                   Int_Act   : Unbounded_String := Null_Unbounded_String;
                begin
-                  for A of D.Pool (Positive (I)).Annotations loop
-                     if A.Kind = Internal_Transition
+                  for A of D.Elements (Positive (I)).Annotations loop
+                     if A.Kind = UML.Model.Internal_Transition
                        and then Length (A.Trigger) > 0
-                       and then Length (A.Action) > 0
+                       and then Length (A.Text) > 0
                      then
                         Has_Int := True;
                         Int_Event :=
@@ -1055,7 +969,7 @@ package body PlantUML2Code_Ada is
                             (Sanitize (To_String (A.Trigger)));
                         Int_Act :=
                           To_Unbounded_String
-                            (Sanitize (To_String (A.Action)));
+                            (Sanitize (To_String (A.Text)));
                         exit;
                      end if;
                   end loop;
@@ -1072,11 +986,11 @@ package body PlantUML2Code_Ada is
 
             Append (On_Exit_Arms,
                     "         when " & Lit & " =>" & ASCII.LF);
-            for A of D.Pool (Positive (I)).Annotations loop
-               if A.Kind = Exit_Action and then Length (A.Action) > 0 then
+            for A of D.Elements (Positive (I)).Annotations loop
+               if A.Kind = UML.Model.Exit_Action and then Length (A.Text) > 0 then
                   Append (On_Exit_Arms,
                           "            "
-                          & Sanitize (To_String (A.Action))
+                          & Sanitize (To_String (A.Text))
                           & ";" & ASCII.LF);
                end if;
             end loop;
@@ -1089,10 +1003,10 @@ package body PlantUML2Code_Ada is
                Has_Internal : Boolean := False;
                Body_Text    : Unbounded_String;
             begin
-               for A of D.Pool (Positive (I)).Annotations loop
-                  if A.Kind = Internal_Transition
+               for A of D.Elements (Positive (I)).Annotations loop
+                  if A.Kind = UML.Model.Internal_Transition
                     and then Length (A.Trigger) > 0
-                    and then Length (A.Action) > 0
+                    and then Length (A.Text) > 0
                   then
                      Has_Internal := True;
                      Append (Body_Text,
@@ -1100,7 +1014,7 @@ package body PlantUML2Code_Ada is
                              & Sanitize (To_String (A.Trigger))
                              & " then" & ASCII.LF
                              & "               "
-                             & Sanitize (To_String (A.Action))
+                             & Sanitize (To_String (A.Text))
                              & ";" & ASCII.LF
                              & "               return True;" & ASCII.LF
                              & "            end if;" & ASCII.LF);
@@ -1120,12 +1034,12 @@ package body PlantUML2Code_Ada is
                Has_Do : Boolean := False;
                Do_Body : Unbounded_String;
             begin
-               for A of D.Pool (Positive (I)).Annotations loop
-                  if A.Kind = Do_Activity and then Length (A.Action) > 0 then
+               for A of D.Elements (Positive (I)).Annotations loop
+                  if A.Kind = UML.Model.Do_Activity and then Length (A.Text) > 0 then
                      Has_Do := True;
                      Append (Do_Body,
                              "            "
-                             & Sanitize (To_String (A.Action))
+                             & Sanitize (To_String (A.Text))
                              & ";" & ASCII.LF);
                   end if;
                end loop;
@@ -1232,7 +1146,7 @@ package body PlantUML2Code_Ada is
    end Generate_Region;
 
    procedure Generate
-     (D              : State_Diagram;
+     (D              : UML.Model.Diagram;
       Package_Name   : String;
       Source_Diagram : String;
       Out_Dir        : String)

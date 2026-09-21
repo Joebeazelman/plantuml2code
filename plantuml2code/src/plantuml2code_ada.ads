@@ -1,12 +1,15 @@
 --  Ada HSM code generation from a state diagram.
+--
+--  Consumes the normalized UML.Model.Diagram; the parser is not
+--  visible here.
 
-with PlantUML.States;
+with UML.Model;
 
 package PlantUML2Code_Ada is
 
    --  Emit <Package_Name>.ads and <Package_Name>.adb into Out_Dir.
    procedure Generate
-     (D              : PlantUML.States.State_Diagram;
+     (D              : UML.Model.Diagram;
       Package_Name   : String;
       Source_Diagram : String;
       Out_Dir        : String);

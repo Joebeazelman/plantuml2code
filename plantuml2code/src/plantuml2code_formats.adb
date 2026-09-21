@@ -6,6 +6,7 @@ with Templates_Parser;                 use Templates_Parser;
 
 with PlantUML2Code_Utils;              use PlantUML2Code_Utils;
 with PlantUML2Code_Template_Bindings;  use PlantUML2Code_Template_Bindings;
+with UML.Model;
 with PlantUML2Code_Ada;
 with PlantUML2Code_Ada_Classes;
 
@@ -54,20 +55,22 @@ package body PlantUML2Code_Formats is
 
    procedure Emit_States
      (Fmt  : Format;
-      D    : PlantUML.States.State_Diagram;
+      D    : UML.Model.Diagram;
       Path : String := "")
    is
       pragma Unreferenced (Path);
    begin
       case Fmt is
          when Text | Json =>
-            Emit_To_Stdout
-              (Subdir_For (Fmt), "state.tmplt", For_States (D));
+            --  Template path not yet migrated to the model. Placeholder
+            --  until For_States gets a UML.Model.Diagram overload.
+            raise Constraint_Error with
+              "text/json state output not yet on the model path";
          when Ada_HSM =>
             declare
                Name : constant String :=
-                 (if Length (D.Diagram_Name) > 0
-                  then To_String (D.Diagram_Name) else "Machine");
+                 (if Length (D.Id) > 0
+                  then To_String (D.Id) else "Machine");
                Src : constant String :=
                  (if Path'Length > 0 then Path else Name & ".puml");
             begin

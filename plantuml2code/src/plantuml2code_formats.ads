@@ -1,5 +1,5 @@
-with PlantUML.States;
 with PlantUML.Classes;
+with UML.Model;
 
 package PlantUML2Code_Formats is
 
@@ -9,9 +9,10 @@ package PlantUML2Code_Formats is
 
    procedure Set_Output_Dir (Dir : String);
 
+   --  State diagrams: consume the normalized model.
    procedure Emit_States
      (Fmt  : Format;
-      D    : PlantUML.States.State_Diagram;
+      D    : UML.Model.Diagram;
       Path : String := "");
 
    procedure Emit_Classes
