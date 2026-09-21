@@ -799,7 +799,7 @@ package body PlantUML2Code_Ada_Classes is
       Output   : String;
       T        : Translate_Set)
    is
-      Content : constant String := Render_Template ("ada", Template, T);
+      Content : constant String := Render_Template ("ada/class", Template, T);
       F       : File_Type;
    begin
       Create (F, Out_File, Output);

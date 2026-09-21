@@ -34,11 +34,19 @@ package body PlantUML2Code_Formats is
    end Parse;
 
    --  Map a Format value to its template subdirectory name.
-   function Subdir_For (Fmt : Format) return String is
+   --  Diagram kind for template lookup. Templates live under
+   --  resources/templates/<format>/<kind>/.
+   type Diagram_Kind is (State, Class);
+
+   function Subdir_For (Fmt : Format; Kind : Diagram_Kind)
+                        return String is
      (case Fmt is
-         when Text    => "default",
-         when Json    => "json",
-         when Ada_HSM => "ada");
+         when Text    => "default/" & (if Kind = State
+                                       then "state" else "class"),
+         when Json    => "json/"    & (if Kind = State
+                                       then "state" else "class"),
+         when Ada_HSM => "ada/"     & (if Kind = State
+                                       then "state" else "class"));
 
    procedure Emit_To_Stdout
      (Subdir   : String;
@@ -63,7 +71,7 @@ package body PlantUML2Code_Formats is
       case Fmt is
          when Text | Json =>
             Emit_To_Stdout
-              (Subdir_For (Fmt), "state.tmplt", For_States (D));
+              (Subdir_For (Fmt, State), "state.tmplt", For_States (D));
          when Ada_HSM =>
             declare
                Name : constant String :=
@@ -91,7 +99,7 @@ package body PlantUML2Code_Formats is
       case Fmt is
          when Text | Json =>
             Emit_To_Stdout
-              (Subdir_For (Fmt), "class.tmplt", For_Classes (D));
+              (Subdir_For (Fmt, Class), "class.tmplt", For_Classes (D));
          when Ada_HSM =>
             PlantUML2Code_Ada_Classes.Generate
               (D              => D,
