@@ -12,4 +12,9 @@ package PlantUML2Code_Ada_Classes is
       Source_Diagram : String;
       Out_Dir        : String);
 
+   --  Raised when the diagram is structurally invalid for code
+   --  generation. All errors are printed to Standard_Error before
+   --  the exception is raised; nothing is written to Out_Dir.
+   Validation_Error : exception;
+
 end PlantUML2Code_Ada_Classes;

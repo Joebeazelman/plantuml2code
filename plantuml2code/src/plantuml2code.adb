@@ -17,6 +17,7 @@ with PlantUML2Code_Ansi;
 with PlantUML2Code_CLI;               use PlantUML2Code_CLI;
 with PlantUML2Code_Commands;
 with PlantUML2Code_Formats;           use PlantUML2Code_Formats;
+with PlantUML2Code_Ada_Classes;
 with PlantUML2Code_Help;
 with PlantUML2Code_Template_Path;
 with PlantUML2Code_Template_Bindings;
@@ -186,6 +187,9 @@ begin
                      & Args.Format'Image & "'");
                Hint ("use -t <dir> to point at a custom template "
                      & "directory");
+            when PlantUML2Code_Ada_Classes.Validation_Error =>
+               --  Validation errors already reported to stderr.
+               Ok := False;
             when E : others =>
                Fail (Ada.Exceptions.Exception_Name (E)
                      & " while processing '" & Path & "'");

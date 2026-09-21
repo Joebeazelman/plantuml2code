@@ -936,6 +936,302 @@ package body PlantUML2Code_Ada_Classes is
    --  =========================================================
    --  Entry point
    --  =========================================================
+
+   --  =========================================================
+   --  Validation
+   --  =========================================================
+   --  Structural checks run before any output is emitted. All
+   --  problems are reported to Standard_Error; if any were found
+   --  the caller raises Validation_Error.
+
+   procedure Validate (D : UML.Model.Diagram) is
+      Errors : Natural := 0;
+
+      procedure Report (Msg : String) is
+      begin
+         Put_Line (Standard_Error,
+                   "plantuml2code: error: " & Msg);
+         Errors := Errors + 1;
+      end Report;
+
+      --  Ada 2022 reserved words. Kept alphabetical for review.
+      Reserved : constant array (Positive range <>) of Unbounded_String
+        := [To_Unbounded_String ("abort"),
+            To_Unbounded_String ("abs"),
+            To_Unbounded_String ("abstract"),
+            To_Unbounded_String ("accept"),
+            To_Unbounded_String ("access"),
+            To_Unbounded_String ("aliased"),
+            To_Unbounded_String ("all"),
+            To_Unbounded_String ("and"),
+            To_Unbounded_String ("array"),
+            To_Unbounded_String ("at"),
+            To_Unbounded_String ("begin"),
+            To_Unbounded_String ("body"),
+            To_Unbounded_String ("case"),
+            To_Unbounded_String ("constant"),
+            To_Unbounded_String ("declare"),
+            To_Unbounded_String ("delay"),
+            To_Unbounded_String ("delta"),
+            To_Unbounded_String ("digits"),
+            To_Unbounded_String ("do"),
+            To_Unbounded_String ("else"),
+            To_Unbounded_String ("elsif"),
+            To_Unbounded_String ("end"),
+            To_Unbounded_String ("entry"),
+            To_Unbounded_String ("exception"),
+            To_Unbounded_String ("exit"),
+            To_Unbounded_String ("for"),
+            To_Unbounded_String ("function"),
+            To_Unbounded_String ("generic"),
+            To_Unbounded_String ("goto"),
+            To_Unbounded_String ("if"),
+            To_Unbounded_String ("in"),
+            To_Unbounded_String ("interface"),
+            To_Unbounded_String ("is"),
+            To_Unbounded_String ("limited"),
+            To_Unbounded_String ("loop"),
+            To_Unbounded_String ("mod"),
+            To_Unbounded_String ("new"),
+            To_Unbounded_String ("not"),
+            To_Unbounded_String ("null"),
+            To_Unbounded_String ("of"),
+            To_Unbounded_String ("or"),
+            To_Unbounded_String ("others"),
+            To_Unbounded_String ("out"),
+            To_Unbounded_String ("overriding"),
+            To_Unbounded_String ("package"),
+            To_Unbounded_String ("parallel"),
+            To_Unbounded_String ("pragma"),
+            To_Unbounded_String ("private"),
+            To_Unbounded_String ("procedure"),
+            To_Unbounded_String ("protected"),
+            To_Unbounded_String ("raise"),
+            To_Unbounded_String ("range"),
+            To_Unbounded_String ("record"),
+            To_Unbounded_String ("rem"),
+            To_Unbounded_String ("renames"),
+            To_Unbounded_String ("requeue"),
+            To_Unbounded_String ("return"),
+            To_Unbounded_String ("reverse"),
+            To_Unbounded_String ("select"),
+            To_Unbounded_String ("separate"),
+            To_Unbounded_String ("some"),
+            To_Unbounded_String ("subtype"),
+            To_Unbounded_String ("synchronized"),
+            To_Unbounded_String ("tagged"),
+            To_Unbounded_String ("task"),
+            To_Unbounded_String ("terminate"),
+            To_Unbounded_String ("then"),
+            To_Unbounded_String ("type"),
+            To_Unbounded_String ("until"),
+            To_Unbounded_String ("use"),
+            To_Unbounded_String ("when"),
+            To_Unbounded_String ("while"),
+            To_Unbounded_String ("with"),
+            To_Unbounded_String ("xor")];
+
+      function Is_Reserved (S : String) return Boolean is
+         L : constant String :=
+           Ada.Characters.Handling.To_Lower (S);
+      begin
+         for W of Reserved loop
+            if To_String (W) = L then
+               return True;
+            end if;
+         end loop;
+         return False;
+      end Is_Reserved;
+
+      --  For each element: reserved-word check
+      procedure Check_Names is
+      begin
+         for I in D.Elements.First_Index .. D.Elements.Last_Index loop
+            declare
+               E    : constant Element := D.Elements (I);
+               Name : constant String := Ident (To_String (E.Id));
+            begin
+               if E.Kind /= Package_Kind and then Is_Reserved (Name) then
+                  Report ("classifier name '" & To_String (E.Id)
+                          & "' is an Ada reserved word"
+                          & " (rename it in the diagram)");
+               end if;
+            end;
+         end loop;
+      end Check_Names;
+
+      --  Realization (..|>) target must be an interface.
+      procedure Check_Realizations is
+      begin
+         for R of D.Relations loop
+            if R.Kind = UML.Model.Realization
+              and then D.Elements (Positive (R.From)).Kind
+                         /= Interface_Kind
+            then
+               Report ("realization target '"
+                       & To_String (D.Elements (Positive (R.From)).Id)
+                       & "' (of '"
+                       & To_String (D.Elements (Positive (R.To)).Id)
+                       & "') is not an interface");
+            end if;
+         end loop;
+      end Check_Realizations;
+
+      --  An interface may only inherit from other interfaces.
+      procedure Check_Interface_Parents is
+      begin
+         for I in D.Elements.First_Index .. D.Elements.Last_Index loop
+            if D.Elements (I).Kind = Interface_Kind then
+               for R of D.Relations loop
+                  if R.To = Element_Index (I)
+                    and then R.Kind = UML.Model.Inheritance
+                    and then D.Elements (Positive (R.From)).Kind
+                               /= Interface_Kind
+                  then
+                     Report ("interface '"
+                             & To_String (D.Elements (I).Id)
+                             & "' inherits from '"
+                             & To_String (D.Elements (Positive (R.From)).Id)
+                             & "', which is not an interface");
+                  end if;
+               end loop;
+            end if;
+         end loop;
+      end Check_Interface_Parents;
+
+      --  A concrete class may have at most one class parent.
+      procedure Check_Multiple_Parents is
+      begin
+         for I in D.Elements.First_Index .. D.Elements.Last_Index loop
+            if D.Elements (I).Kind in Class | Abstract_Class then
+               declare
+                  Count : Natural := 0;
+                  Names : Unbounded_String;
+               begin
+                  for R of D.Relations loop
+                     if R.To = Element_Index (I)
+                       and then R.Kind = UML.Model.Inheritance
+                       and then D.Elements (Positive (R.From)).Kind
+                                  in Class | Abstract_Class
+                     then
+                        Count := Count + 1;
+                        if Length (Names) > 0 then
+                           Append (Names, ", ");
+                        end if;
+                        Append (Names,
+                                To_String
+                                  (D.Elements (Positive (R.From)).Id));
+                     end if;
+                  end loop;
+                  if Count > 1 then
+                     Report ("class '"
+                             & To_String (D.Elements (I).Id)
+                             & "' has multiple class parents: "
+                             & To_String (Names));
+                  end if;
+               end;
+            end if;
+         end loop;
+      end Check_Multiple_Parents;
+
+      --  Inheritance cycle detection: DFS on the inheritance graph.
+
+      function Has_Cycle (Start, Cur : Element_Index) return Boolean is
+      begin
+         for R of D.Relations loop
+            if R.To = Cur and then R.Kind = UML.Model.Inheritance then
+               if R.From = Start then
+                  Report ("inheritance cycle involving '"
+                          & To_String (D.Elements (Positive (Start)).Id)
+                          & "' and '"
+                          & To_String (D.Elements (Positive (Cur)).Id)
+                          & "'");
+                  return True;
+               elsif Has_Cycle (Start, R.From) then
+                  return True;
+               end if;
+            end if;
+         end loop;
+         return False;
+      end Has_Cycle;
+
+      procedure Check_Cycles is
+      begin
+         for I in D.Elements.First_Index .. D.Elements.Last_Index loop
+            if D.Elements (I).Kind in Class | Abstract_Class
+                                      | Interface_Kind
+            then
+               --  Limit recursion: only walk down; if we return to
+               --  our start, that's a cycle. Small diagrams only.
+               if Has_Cycle (Element_Index (I), Element_Index (I)) then
+                  null;  --  Error already reported.
+               end if;
+            end if;
+         end loop;
+      end Check_Cycles;
+
+      --  Concrete class must implement every inherited abstract method.
+      procedure Check_Abstract_Impls is
+      begin
+         for I in D.Elements.First_Index .. D.Elements.Last_Index loop
+            if D.Elements (I).Kind = Class then
+               declare
+                  This : constant Element := D.Elements (I);
+
+                  function Declares (Method_Name : String) return Boolean is
+                  begin
+                     for M of This.Members loop
+                        if M.Kind = UML.Model.Method
+                          and then To_String (M.Id) = Method_Name
+                        then
+                           return True;
+                        end if;
+                     end loop;
+                     return False;
+                  end Declares;
+               begin
+                  for R of D.Relations loop
+                     if R.To = Element_Index (I)
+                       and then R.Kind in UML.Model.Inheritance
+                                           | UML.Model.Realization
+                     then
+                        for M of D.Elements (Positive (R.From)).Members loop
+                           if M.Kind = UML.Model.Method
+                             and then M.Is_Abstract
+                             and then not Declares (To_String (M.Id))
+                           then
+                              Report
+                                ("concrete class '"
+                                 & To_String (This.Id)
+                                 & "' does not implement abstract method '"
+                                 & To_String (M.Id)
+                                 & "' (from '"
+                                 & To_String
+                                     (D.Elements (Positive (R.From)).Id)
+                                 & "')");
+                           end if;
+                        end loop;
+                     end if;
+                  end loop;
+               end;
+            end if;
+         end loop;
+      end Check_Abstract_Impls;
+
+   begin
+      Check_Names;
+      Check_Realizations;
+      Check_Interface_Parents;
+      Check_Multiple_Parents;
+      Check_Cycles;
+      Check_Abstract_Impls;
+
+      if Errors > 0 then
+         raise Validation_Error with
+           Errors'Image & " validation error(s)";
+      end if;
+   end Validate;
+
    procedure Generate
      (D              : UML.Model.Diagram;
       Source_Diagram : String;
@@ -943,6 +1239,8 @@ package body PlantUML2Code_Ada_Classes is
    is
       Date_Str : Unbounded_String;
    begin
+      Validate (D);
+
       declare
          Now : constant Ada.Calendar.Time := Ada.Calendar.Clock;
          Yr  : Ada.Calendar.Year_Number;
