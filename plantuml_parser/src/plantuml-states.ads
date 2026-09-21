@@ -81,6 +81,7 @@ package PlantUML.States is
 
    type State_Diagram is tagged record
       Diagram_Name : Name;
+      Title        : Name;   --  from the "title ..." directive
       Pool         : State_Vectors.Vector;
       Roots        : Index_Vectors.Vector;
       Transitions  : Transition_Vectors.Vector;

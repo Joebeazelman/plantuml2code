@@ -158,6 +158,12 @@ package body PlantUML.To_Model is
       Result.Kind := UML.Model.State_Diagram;
       Result.Id   := D.Diagram_Name;
 
+      if Length (D.Title) > 0 then
+         Result.Metadata.Append
+           (UML.Model.Metadata'(Kind => UML.Model.Title,
+                                Text => D.Title));
+      end if;
+
       for S of D.Pool loop
          declare
             E : UML.Model.Element;
@@ -224,6 +230,12 @@ package body PlantUML.To_Model is
    begin
       Result.Kind := UML.Model.Class_Diagram;
       Result.Id   := D.Diagram_Name;
+
+      if Length (D.Title) > 0 then
+         Result.Metadata.Append
+           (UML.Model.Metadata'(Kind => UML.Model.Title,
+                                Text => D.Title));
+      end if;
 
       for K of D.Pool loop
          declare

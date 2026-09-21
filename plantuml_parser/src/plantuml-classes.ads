@@ -78,6 +78,7 @@ package PlantUML.Classes is
 
    type Class_Diagram is tagged record
       Diagram_Name : Name;
+      Title        : Name;   --  from the "title ..." directive
       Pool         : Classifier_Vectors.Vector;
       Roots        : Index_Vectors.Vector;
       Relations    : Relation_Vectors.Vector;

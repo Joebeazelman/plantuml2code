@@ -509,6 +509,21 @@ package body PlantUML.States is
             elsif Tx = "@startstate" then
                C.Next;
 
+            elsif Tx = "title" then
+               C.Next;
+               declare
+                  T : Unbounded_String := Null_Unbounded_String;
+               begin
+                  while C.Peek.Kind not in Newline | Eof loop
+                     if Length (T) > 0 and then C.Peek.Space_Before then
+                        Append (T, " ");
+                     end if;
+                     Append (T, C.Peek.Text);
+                     C.Next;
+                  end loop;
+                  B.D.Title := T;
+               end;
+
             elsif T.Kind = Newline then
                C.Next;
 
