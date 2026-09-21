@@ -1,14 +1,12 @@
 ---------------------------------------------------------------------
---  @_PACKAGE_NAME_@
+--  Zoo
 --
---  Generated from @_SOURCE_DIAGRAM_@ on @_GENERATION_DATE_@.
+--  Generated from ../samples/zoo.puml on <DATE>.
 --  Do not edit by hand; regenerate from the diagram instead.
 ---------------------------------------------------------------------
 
-@_WITH_CLAUSES_@package body @_PACKAGE_NAME_@ is
+package Zoo is
 
-@@TABLE@@
-@_METHOD_BODY_@
+   type Toy is tagged null record;
 
-@@END_TABLE@@
-end @_PACKAGE_NAME_@;
+end Zoo;

@@ -1,0 +1,14 @@
+---------------------------------------------------------------------
+--  @_PACKAGE_NAME_@.Operations
+--
+--  Hand-written method bodies for @_PACKAGE_NAME_@.
+--  Emitted once and never overwritten.
+---------------------------------------------------------------------
+
+@_WITH_CLAUSES_@package @_PACKAGE_NAME_@.Operations is
+
+@@TABLE@@
+@_OP_DECL_@
+
+@@END_TABLE@@
+end @_PACKAGE_NAME_@.Operations;

@@ -28,7 +28,7 @@ update_case () {
       && ./bin/plantuml2code dump -f ada -o "$out" \
          "../$source" >/dev/null )
 
-  rm -f "$golden_dir"/*.ads "$golden_dir"/*.adb
+  rm -f "$golden_dir"/*.ads "$golden_dir"/*.adb "$golden_dir"/driver.adb
 
   for f in "$out/src"/*.ads "$out/src"/*.adb; do
     [ -e "$f" ] || continue
@@ -36,6 +36,11 @@ update_case () {
     base=$(basename "$f")
     sed -f "$NORM" "$f" > "$golden_dir/$base"
   done
+
+  # Driver lives in tests/, not src/.
+  if [ -e "$out/tests/driver.adb" ]; then
+    sed -f "$NORM" "$out/tests/driver.adb" > "$golden_dir/driver.adb"
+  fi
 
   rm -rf "$out"
   ls "$golden_dir" | wc -l | xargs echo "  files:"

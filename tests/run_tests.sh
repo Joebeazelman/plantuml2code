@@ -74,11 +74,31 @@ check_case () {
     fi
   done
 
-  # Check for golden files that no longer get generated
+  # Driver lives in tests/, not src/.
+  if [ -f "$out/tests/driver.adb" ]; then
+    if [ ! -f "$golden_dir/driver.adb" ]; then
+      echo "  MISSING golden: driver.adb"
+      diff_count=$((diff_count + 1))
+    else
+      local norm_gen="$TMP/driver.adb.gen"
+      local norm_gl="$TMP/driver.adb.gl"
+      sed -f "$NORM" "$out/tests/driver.adb" > "$norm_gen"
+      sed -f "$NORM" "$golden_dir/driver.adb" > "$norm_gl"
+      if ! diff -q "$norm_gl" "$norm_gen" >/dev/null; then
+        echo "  DIFF: driver.adb"
+        diff -u "$norm_gl" "$norm_gen" | head -30 || true
+        diff_count=$((diff_count + 1))
+      fi
+    fi
+  fi
+
+  # Check for golden files that no longer get generated.
+  # driver.adb lives in tests/, not src/, and is handled above.
   for golden_file in "$golden_dir"/*.ads "$golden_dir"/*.adb; do
     [ -e "$golden_file" ] || continue
     local base
     base=$(basename "$golden_file")
+    [ "$base" = "driver.adb" ] && continue
     if [ ! -f "$out/src/$base" ]; then
       echo "  STALE golden (no longer generated): $base"
       diff_count=$((diff_count + 1))

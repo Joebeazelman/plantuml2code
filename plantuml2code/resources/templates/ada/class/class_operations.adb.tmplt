@@ -1,0 +1,7 @@
+package body @_PACKAGE_NAME_@.Operations is
+
+@@TABLE@@
+@_OP_BODY_@
+
+@@END_TABLE@@
+end @_PACKAGE_NAME_@.Operations;

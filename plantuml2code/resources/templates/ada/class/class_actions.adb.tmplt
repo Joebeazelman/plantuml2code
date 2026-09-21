@@ -1,8 +1,0 @@
---  @_CLASS_NAME_@_Actions (body)
---
---  Hand-written method bodies. Emitted once and never overwritten.
-
-package body @_CLASS_NAME_@_Actions is
-
-@_METHOD_BODIES_@
-end @_CLASS_NAME_@_Actions;

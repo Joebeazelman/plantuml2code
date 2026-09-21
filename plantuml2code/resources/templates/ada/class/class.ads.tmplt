@@ -1,19 +1,17 @@
---  @_CLASS_NAME_@
+---------------------------------------------------------------------
+--  @_PACKAGE_NAME_@
 @@IF@@ @_HAS_TITLE_@
 @_TITLE_LINE_@
 @@END_IF@@
 --
 --  Generated from @_SOURCE_DIAGRAM_@ on @_GENERATION_DATE_@.
 --  Do not edit by hand; regenerate from the diagram instead.
------------------------------------------------------------------------
+---------------------------------------------------------------------
 
-with Class_Runtime;
-@_WITH_CLAUSES_@package @_CLASS_NAME_@ is
+@_WITH_CLAUSES_@package @_PACKAGE_NAME_@ is
 
-@_TYPE_DECL_@
+@@TABLE@@
+@_DECL_BLOCK_@
 
-@_METHOD_DECLS_@
-   overriding
-   function Class_Name (Self : T) return String;
-
-end @_CLASS_NAME_@;
+@@END_TABLE@@
+end @_PACKAGE_NAME_@;
