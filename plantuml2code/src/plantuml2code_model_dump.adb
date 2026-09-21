@@ -46,9 +46,26 @@ package body PlantUML2Code_Model_Dump is
                Put_Line ("       note (" & N.Position'Image & ") "
                          & To_String (N.Text));
             end loop;
+            if not E.Children.Is_Empty then
+               declare
+                  S : Unbounded_String := To_Unbounded_String ("[");
+                  First : Boolean := True;
+               begin
+                  for C of E.Children loop
+                     if not First then
+                        Append (S, ", ");
+                     end if;
+                     Append (S, C'Image);
+                     First := False;
+                  end loop;
+                  Append (S, "]");
+                  Put_Line ("       children=" & To_String (S));
+               end;
+            end if;
             for M of E.Members loop
                Put_Line ("       member " & M.Kind'Image
                          & " " & M.Vis'Image
+                         & (if M.Is_Abstract then " (abstract)" else "")
                          & " " & To_String (M.Id)
                          & (if Length (M.Type_Name) > 0
                             then " : " & To_String (M.Type_Name) else ""));

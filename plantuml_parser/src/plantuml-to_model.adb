@@ -302,6 +302,21 @@ package body PlantUML.To_Model is
          end;
       end loop;
 
+      --  Reverse-populate Parent from Children. The parser records
+      --  containment via Children (package -> member); the generator
+      --  needs the reverse to walk upwards.
+      for I in Result.Elements.First_Index .. Result.Elements.Last_Index loop
+         for C of Result.Elements (I).Children loop
+            declare
+               Child : UML.Model.Element :=
+                 Result.Elements (Positive (C));
+            begin
+               Child.Parent := UML.Model.Element_Index (I);
+               Result.Elements.Replace_Element (Positive (C), Child);
+            end;
+         end loop;
+      end loop;
+
       return Result;
    end From_Classes;
 
