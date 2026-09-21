@@ -7,6 +7,7 @@ with PlantUML;
 with PlantUML.States;
 with PlantUML.Classes;
 with PlantUML2Code_Model_Dump;
+with PlantUML2Code_Formats;
 
 package body PlantUML2Code_Commands is
 
@@ -61,12 +62,21 @@ package body PlantUML2Code_Commands is
       case Fmt is
          when PlantUML2Code_Formats.Text =>
             PlantUML2Code_Model_Dump.Dump (Model);
-         when others =>
-            Put_Line (Standard_Error,
-                      Program_Name & ": error: format "
-                      & Fmt'Image & " not yet supported on the "
-                      & "model path");
-            return False;
+         when PlantUML2Code_Formats.Json
+            | PlantUML2Code_Formats.Ada_HSM =>
+            --  Temporary bridge: the generators do not yet consume
+            --  UML.Model.Diagram (roadmap item 1). Re-parse through
+            --  the legacy parser entry points until they do.
+            case Model.Kind is
+               when UML.Model.State_Diagram =>
+                  PlantUML2Code_Formats.Emit_States
+                    (Fmt, PlantUML.States.Parse (Src), Path);
+               when UML.Model.Class_Diagram =>
+                  PlantUML2Code_Formats.Emit_Classes
+                    (Fmt, PlantUML.Classes.Parse (Src), Path);
+               when others =>
+                  null;  --  Unknown was rejected above
+            end case;
       end case;
       return True;
    end Run_Dump;
