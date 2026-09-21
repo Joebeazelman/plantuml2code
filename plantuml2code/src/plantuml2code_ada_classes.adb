@@ -20,6 +20,12 @@ package body PlantUML2Code_Ada_Classes is
    --  the type. Nothing here references the literal.
    subtype Tag is Templates_Parser.Tag;
 
+   --  Local alias: UML.Model.Element. Ada.Strings.Unbounded.Element is
+   --  a function with the same name; this shadows it locally so type
+   --  positions resolve to the model type. Qualified calls to the
+   --  function (Ada.Strings.Unbounded.Element (...)) still resolve.
+   subtype Element is UML.Model.Element;
+
    function Id_Of (D : UML.Model.Diagram; Idx : Element_Index)
                    return String is
      (To_String (D.Elements (Positive (Idx)).Id));
@@ -44,13 +50,13 @@ package body PlantUML2Code_Ada_Classes is
       declare
          Tmp : Unbounded_String := R;
       begin
-         while Length (Tmp) > 0 and then Element (Tmp, Length (Tmp)) = '_' loop
+         while Length (Tmp) > 0 and then Ada.Strings.Unbounded.Element (Tmp, Length (Tmp)) = '_' loop
             Delete (Tmp, Length (Tmp), Length (Tmp));
          end loop;
          if Length (Tmp) = 0 then
             return "Unnamed";
          end if;
-         if Element (Tmp, 1) in '0' .. '9' then
+         if Ada.Strings.Unbounded.Element (Tmp, 1) in '0' .. '9' then
             return "T_" & To_String (Tmp);
          end if;
          return To_String (Tmp);
@@ -758,10 +764,10 @@ package body PlantUML2Code_Ada_Classes is
          end if;
       end loop;
       declare
-         package UV is new Ada.Containers.Vectors
-           (Positive, Unbounded_String);
+         package IV is new Ada.Containers.Vectors
+           (Positive, Element_Index);
          Self_Name : constant String := To_String (K.Id);
-         Seen : UV.Vector;
+         Seen : IV.Vector;
       begin
          for Rel of D.Relations loop
             if Id_Of (D, Rel.From) = Self_Name
@@ -949,8 +955,8 @@ package body PlantUML2Code_Ada_Classes is
       Withs  : Unbounded_String;
       Insts  : Unbounded_String;
       Model  : constant String :=
-        (if Length (D.Diagram_Name) > 0
-         then To_String (D.Diagram_Name) else "Model");
+        (if Length (D.Id) > 0
+         then To_String (D.Id) else "Model");
       F : File_Type;
    begin
       if Ada.Directories.Exists (Output) then
@@ -1039,8 +1045,8 @@ package body PlantUML2Code_Ada_Classes is
          Tests_Dir : constant String :=
            Ada.Directories.Compose (Out_Dir, "tests");
          Machine_Name : constant String :=
-           (if Length (D.Diagram_Name) > 0
-            then To_String (D.Diagram_Name) else "Model");
+           (if Length (D.Id) > 0
+            then To_String (D.Id) else "Model");
       begin
          Ada.Directories.Create_Path (Src_Dir);
          Ada.Directories.Create_Path (Tests_Dir);

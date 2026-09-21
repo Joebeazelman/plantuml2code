@@ -18,6 +18,17 @@ if [ ! -x "$GEN" ]; then
   exit 1
 fi
 
+# Refuse to run if any source is newer than the binary. A failed build
+# leaves the previous binary in place; without this check, goldens would
+# silently test stale output.
+newest_src=$(find "$ROOT/plantuml2code/src" "$ROOT/plantuml_parser/src" \
+             -name '*.ad[bs]' -newer "$GEN" -print -quit)
+if [ -n "$newest_src" ]; then
+  echo "error: $GEN is older than $newest_src"
+  echo "       rebuild before running goldens (the build may have failed)."
+  exit 1
+fi
+
 FAIL=0
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
