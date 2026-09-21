@@ -307,6 +307,51 @@ package body PlantUML.States is
                A.Action := Consume.Text;
 
             else
+               --  "State : text" is an internal transition only when
+               --  the rest of the line contains '/'. Otherwise it is
+               --  a note attached to the state.
+               declare
+                  Has_Slash : Boolean := False;
+                  Lookahead : Natural := 0;
+               begin
+                  loop
+                     declare
+                        Ix : constant Natural :=
+                          PlantUML.Tokens.Position (C) + Lookahead;
+                        Tk : constant Token :=
+                          (if Ix <= Natural (Toks.Length)
+                           then Toks (Ix)
+                           else (Eof, Null_Unbounded_String, 1));
+                     begin
+                        exit when Tk.Kind in Newline | Eof;
+                        if Tk.Kind = Symbol
+                          and then To_String (Tk.Text) = "/"
+                        then
+                           Has_Slash := True;
+                           exit;
+                        end if;
+                        Lookahead := Lookahead + 1;
+                     end;
+                  end loop;
+
+                  if not Has_Slash then
+                     A.Kind := Note;
+                     declare
+                        Txt : Unbounded_String := Null_Unbounded_String;
+                     begin
+                        while C.Peek.Kind not in Newline | Eof loop
+                           if Length (Txt) > 0 then
+                              Append (Txt, " ");
+                           end if;
+                           Append (Txt, C.Peek.Text);
+                           C.Next;
+                        end loop;
+                        A.Action := Txt;
+                     end;
+                     return A;
+                  end if;
+               end;
+
                A.Kind := Internal_Transition;
 
                if C.Peek.Kind = Word then

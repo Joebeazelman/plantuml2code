@@ -2,11 +2,15 @@ with Ada.Text_IO;              use Ada.Text_IO;
 with Ada.Strings.Unbounded;    use Ada.Strings.Unbounded;
 
 with Plantuml2code_Config;
+with UML.Model;
 with PlantUML;
 with PlantUML.States;
 with PlantUML.Classes;
+with PlantUML2Code_Model_Dump;
 
 package body PlantUML2Code_Commands is
+
+   use type UML.Model.Diagram_Kind;
 
    Program_Name : constant String := Plantuml2code_Config.Crate_Name;
 
@@ -42,31 +46,26 @@ package body PlantUML2Code_Commands is
      (Path : String;
       Fmt  : PlantUML2Code_Formats.Format) return Boolean
    is
-      Src  : constant String := Read_All (Path);
-      Kind : constant PlantUML.Diagram_Kind := PlantUML.Detect_Kind (Src);
+      Src    : constant String := Read_All (Path);
+      Model  : constant UML.Model.Diagram := PlantUML.Parse (Src);
    begin
-      case Kind is
-         when PlantUML.State_Diagram =>
-            declare
-               D : constant PlantUML.States.State_Diagram :=
-                 PlantUML.States.Parse (Src);
-            begin
-               PlantUML2Code_Formats.Emit_States (Fmt, D, Path);
-            end;
-         when PlantUML.Class_Diagram =>
-            declare
-               D : constant PlantUML.Classes.Class_Diagram :=
-                 PlantUML.Classes.Parse (Src);
-            begin
-               PlantUML2Code_Formats.Emit_Classes (Fmt, D, Path);
-            end;
-         when PlantUML.Unknown =>
+      if Model.Kind = UML.Model.Unknown then
+         Put_Line (Standard_Error,
+                   Program_Name & ": error: no recognised "
+                   & "PlantUML diagram in '" & Path & "'");
+         Put_Line (Standard_Error,
+                   "       the file must contain @startuml/@enduml");
+         return False;
+      end if;
+
+      case Fmt is
+         when PlantUML2Code_Formats.Text =>
+            PlantUML2Code_Model_Dump.Dump (Model);
+         when others =>
             Put_Line (Standard_Error,
-                      Program_Name & ": error: no recognised "
-                      & "PlantUML diagram in '" & Path & "'");
-            Put_Line (Standard_Error,
-                      "       the file must contain "
-                      & "@startuml/@enduml");
+                      Program_Name & ": error: format "
+                      & Fmt'Image & " not yet supported on the "
+                      & "model path");
             return False;
       end case;
       return True;

@@ -2,6 +2,8 @@ with Ada.Strings.Unbounded;    use Ada.Strings.Unbounded;
 
 package body PlantUML.To_Model is
 
+   use type PlantUML.States.Annotation_Kind;
+
    --  ---------------------------------------------------------------
    --  Enumeration mappings
    --  ---------------------------------------------------------------
@@ -165,12 +167,20 @@ package body PlantUML.To_Model is
             E.Kind    := State_Kind_To_Element (S.Kind);
 
             for A of S.Annotations loop
-               E.Annotations.Append
-                 (UML.Model.Annotation'
-                    (Kind    => Annotation_Kind_To_Model (A.Kind),
-                     Text    => A.Action,
-                     Trigger => A.Trigger,
-                     Guard   => A.Guard));
+               if A.Kind = PlantUML.States.Note then
+                  --  Notes are separate from action annotations.
+                  E.Notes.Append
+                    (UML.Model.Note'(Text     => A.Action,
+                                     Subject  => 0,
+                                     Position => UML.Model.Attached));
+               else
+                  E.Annotations.Append
+                    (UML.Model.Annotation'
+                       (Kind    => Annotation_Kind_To_Model (A.Kind),
+                        Text    => A.Action,
+                        Trigger => A.Trigger,
+                        Guard   => A.Guard));
+               end if;
             end loop;
 
             for C of S.Children loop

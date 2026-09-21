@@ -40,6 +40,27 @@ package body PlantUML.Tokens is
          return Source (Start .. J - 1);
       end Span_Ident;
 
+      --  True when everything between the previous line terminator
+      --  and position At is whitespace. Used to decide whether an
+      --  apostrophe starts a comment.
+      function Line_Starts_Comment
+        (Src : String; Pos : Natural) return Boolean
+      is
+         J : Natural := Pos;
+      begin
+         while J > Src'First loop
+            J := J - 1;
+            exit when Src (J) = ASCII.LF;
+            if Src (J) /= ' '
+              and then Src (J) /= ASCII.HT
+              and then Src (J) /= ASCII.CR
+            then
+               return False;
+            end if;
+         end loop;
+         return True;
+      end Line_Starts_Comment;
+
       function Span_Arrow return String is
          Start : constant Natural := I;
          J     : Natural := I;
@@ -85,11 +106,7 @@ package body PlantUML.Tokens is
                I := I + 1;
 
             elsif C = '''
-              and then (I = Source'First
-                        or else Source (I - 1) = ASCII.LF
-                        or else (I > Source'First
-                                 and then (Source (I - 1) = ' '
-                                           or else Source (I - 1) = ASCII.HT)))
+              and then Line_Starts_Comment (Source, I)
             then
                --  Apostrophe starts a line comment only at the start
                --  of a line (possibly after spaces/tabs). Mid-line it
