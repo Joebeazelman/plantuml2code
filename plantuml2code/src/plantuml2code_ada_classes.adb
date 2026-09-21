@@ -3,22 +3,15 @@ with Ada.Directories;
 with Ada.Calendar;
 with Ada.Strings.Unbounded;    use Ada.Strings.Unbounded;
 with Ada.Strings.Fixed;
-with Ada.Characters.Handling;  use Ada.Characters.Handling;
 with Ada.Containers.Vectors;
 
 with UML.Model;                use UML.Model;
-with UML.Model.Queries;        use UML.Model.Queries;
 with PlantUML2Code_Utils;
 with PlantUML2Code_Template_Path;
 with PlantUML2Code_Ada;      use PlantUML2Code_Utils;
 with Templates_Parser;         use Templates_Parser;
 
 package body PlantUML2Code_Ada_Classes is
-
-   --  Local alias: Templates_Parser.Tag. UML.Model.Annotation_Kind
-   --  has a literal named Tag; without this, `use UML.Model` hides
-   --  the type. Nothing here references the literal.
-   subtype Tag is Templates_Parser.Tag;
 
    --  Local alias: UML.Model.Element. Ada.Strings.Unbounded.Element is
    --  a function with the same name; this shadows it locally so type
@@ -330,12 +323,6 @@ package body PlantUML2Code_Ada_Classes is
             end if;
       end case;
    end Type_Decl;
-
-   function Has_Parents (D : UML.Model.Diagram; Idx : Element_Index)
-                         return Boolean
-   is
-     (Length (Parents_Of
-                (D, To_String (D.Elements (Positive (Idx)).Id))) > 0);
 
    function Has_Parent_Method (D : UML.Model.Diagram; Name, Method_Name : String)
                                return Boolean
@@ -736,8 +723,6 @@ package body PlantUML2Code_Ada_Classes is
    is
       R : Unbounded_String;
       K : constant Element := D.Elements (Positive (Idx));
-      Parents : constant String :=
-        To_String (Parents_Of (D, To_String (K.Id)));
    begin
       --  Only root classes actually reference Class_Runtime in their
       --  spec. Derived classes inherit it indirectly.
