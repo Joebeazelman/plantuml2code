@@ -4,7 +4,6 @@ with Ada.Strings.Unbounded;    use Ada.Strings.Unbounded;
 with Plantuml2code_Config;
 with UML.Model;
 with PlantUML;
-with PlantUML.Classes;
 with PlantUML2Code_Model_Dump;
 with PlantUML2Code_Formats;
 
@@ -63,15 +62,11 @@ package body PlantUML2Code_Commands is
             PlantUML2Code_Model_Dump.Dump (Model);
          when PlantUML2Code_Formats.Json
             | PlantUML2Code_Formats.Ada_HSM =>
-            --  Class diagrams still go through the legacy parser
-            --  bridge (roadmap item 1, phase 1c). State diagrams use
-            --  the model directly.
             case Model.Kind is
                when UML.Model.State_Diagram =>
                   PlantUML2Code_Formats.Emit_States (Fmt, Model, Path);
                when UML.Model.Class_Diagram =>
-                  PlantUML2Code_Formats.Emit_Classes
-                    (Fmt, PlantUML.Classes.Parse (Src), Path);
+                  PlantUML2Code_Formats.Emit_Classes (Fmt, Model, Path);
                when others =>
                   null;  --  Unknown was rejected above
             end case;

@@ -6,13 +6,23 @@ with Ada.Strings.Fixed;
 with Ada.Characters.Handling;  use Ada.Characters.Handling;
 with Ada.Containers.Vectors;
 
-with PlantUML.Classes;         use PlantUML.Classes;
+with UML.Model;                use UML.Model;
+with UML.Model.Queries;        use UML.Model.Queries;
 with PlantUML2Code_Utils;
 with PlantUML2Code_Template_Path;
 with PlantUML2Code_Ada;      use PlantUML2Code_Utils;
 with Templates_Parser;         use Templates_Parser;
 
 package body PlantUML2Code_Ada_Classes is
+
+   --  Local alias: Templates_Parser.Tag. UML.Model.Annotation_Kind
+   --  has a literal named Tag; without this, `use UML.Model` hides
+   --  the type. Nothing here references the literal.
+   subtype Tag is Templates_Parser.Tag;
+
+   function Id_Of (D : UML.Model.Diagram; Idx : Element_Index)
+                   return String is
+     (To_String (D.Elements (Positive (Idx)).Id));
 
    function Sanitize (S : String) return String is
       R : Unbounded_String;
@@ -94,39 +104,39 @@ package body PlantUML2Code_Ada_Classes is
    function Returns_Nothing (M : Member) return Boolean is
      (Length (M.Type_Name) = 0 or else To_String (M.Type_Name) = "void");
 
-   function Parents_Of (D : Class_Diagram; Name : String)
+   function Parents_Of (D : UML.Model.Diagram; Name : String)
                         return Unbounded_String
    is
       Result : Unbounded_String;
    begin
       for R of D.Relations loop
-         if To_String (R.To) = Name
+         if Id_Of (D, R.To) = Name
            and then (R.Kind = Inheritance or else R.Kind = Realization)
          then
             if Length (Result) > 0 then
                Append (Result, " and ");
             end if;
-            Append (Result, Sanitize (To_String (R.From)) & ".T");
+            Append (Result, Sanitize (Id_Of (D, R.From)) & ".T");
          end if;
       end loop;
       return Result;
    end Parents_Of;
 
-   function Has_Attributes (D : Class_Diagram; Idx : Class_Index)
+   function Has_Attributes (D : UML.Model.Diagram; Idx : Element_Index)
                             return Boolean
    is
       Self_Name : constant String :=
-        To_String (D.Pool (Positive (Idx)).Id);
+        To_String (D.Elements (Positive (Idx)).Id);
    begin
-      for M of D.Pool (Positive (Idx)).Members loop
+      for M of D.Elements (Positive (Idx)).Members loop
          if M.Kind = Attribute then
             return True;
          end if;
       end loop;
 
       for R of D.Relations loop
-         if To_String (R.From) = Self_Name
-           and then R.Kind in Composition | Aggregation | PlantUML.Classes.Association
+         if Id_Of (D, R.From) = Self_Name
+           and then R.Kind in Composition | Aggregation | UML.Model.Association
          then
             return True;
          end if;
@@ -135,14 +145,14 @@ package body PlantUML2Code_Ada_Classes is
       return False;
    end Has_Attributes;
 
-   function Uses_Unbounded (D : Class_Diagram; Idx : Class_Index)
+   function Uses_Unbounded (D : UML.Model.Diagram; Idx : Element_Index)
                             return Boolean
    is
       This_Name : constant String :=
-        To_String (D.Pool (Positive (Idx)).Id);
+        To_String (D.Elements (Positive (Idx)).Id);
    begin
       --  Own members
-      for M of D.Pool (Positive (Idx)).Members loop
+      for M of D.Elements (Positive (Idx)).Members loop
          if M.Kind in Attribute | Method
            and then Map_Type (To_String (M.Type_Name)) = "Unbounded_String"
          then
@@ -152,11 +162,11 @@ package body PlantUML2Code_Ada_Classes is
 
       --  Inherited methods
       for R of D.Relations loop
-         if To_String (R.To) = This_Name
+         if Id_Of (D, R.To) = This_Name
            and then (R.Kind = Inheritance or else R.Kind = Realization)
          then
-            for P of D.Pool loop
-               if To_String (P.Id) = To_String (R.From) then
+            for P of D.Elements loop
+               if To_String (P.Id) = Id_Of (D, R.From) then
                   for M of P.Members loop
                      if M.Kind = Method
                        and then Map_Type (To_String (M.Type_Name))
@@ -174,11 +184,11 @@ package body PlantUML2Code_Ada_Classes is
    end Uses_Unbounded;
 
    function Relation_Field_Type
-     (D : Class_Diagram; Target_Name : String) return String
+     (D : UML.Model.Diagram; Target_Name : String) return String
    is
-      Target_Kind : Classifier_Kind := Class;
+      Target_Kind : Element_Kind := Class;
    begin
-      for K of D.Pool loop
+      for K of D.Elements loop
          if To_String (K.Id) = Target_Name then
             Target_Kind := K.Kind;
             exit;
@@ -192,15 +202,15 @@ package body PlantUML2Code_Ada_Classes is
       end if;
    end Relation_Field_Type;
 
-   function Record_Fields (D : Class_Diagram; Idx : Class_Index)
+   function Record_Fields (D : UML.Model.Diagram; Idx : Element_Index)
                             return String
    is
       R : Unbounded_String;
       First : Boolean := True;
       Self_Name : constant String :=
-        To_String (D.Pool (Positive (Idx)).Id);
+        To_String (D.Elements (Positive (Idx)).Id);
    begin
-      for M of D.Pool (Positive (Idx)).Members loop
+      for M of D.Elements (Positive (Idx)).Members loop
          if M.Kind = Attribute then
             if not First then
                Append (R, ASCII.LF & "      ");
@@ -213,12 +223,12 @@ package body PlantUML2Code_Ada_Classes is
       end loop;
 
       for Rel of D.Relations loop
-         if To_String (Rel.From) = Self_Name
-           and then Rel.Kind in Composition | Aggregation | PlantUML.Classes.Association
-           and then To_String (Rel.To) /= Self_Name
+         if Id_Of (D, Rel.From) = Self_Name
+           and then Rel.Kind in Composition | Aggregation | UML.Model.Association
+           and then Id_Of (D, Rel.To) /= Self_Name
          then
             declare
-               Target : constant String := To_String (Rel.To);
+               Target : constant String := Id_Of (D, Rel.To);
             begin
                if not First then
                   Append (R, ASCII.LF & "      ");
@@ -233,10 +243,10 @@ package body PlantUML2Code_Ada_Classes is
       return To_String (R);
    end Record_Fields;
 
-   function Type_Decl (D : Class_Diagram; Idx : Class_Index)
+   function Type_Decl (D : UML.Model.Diagram; Idx : Element_Index)
                        return String
    is
-      K : constant Classifier := D.Pool (Positive (Idx));
+      K : constant Element := D.Elements (Positive (Idx));
       Parents : constant String :=
         To_String (Parents_Of (D, To_String (K.Id)));
       Has_Attrs : constant Boolean := Has_Attributes (D, Idx);
@@ -315,22 +325,22 @@ package body PlantUML2Code_Ada_Classes is
       end case;
    end Type_Decl;
 
-   function Has_Parents (D : Class_Diagram; Idx : Class_Index)
+   function Has_Parents (D : UML.Model.Diagram; Idx : Element_Index)
                          return Boolean
    is
      (Length (Parents_Of
-                (D, To_String (D.Pool (Positive (Idx)).Id))) > 0);
+                (D, To_String (D.Elements (Positive (Idx)).Id))) > 0);
 
-   function Has_Parent_Method (D : Class_Diagram; Name, Method_Name : String)
+   function Has_Parent_Method (D : UML.Model.Diagram; Name, Method_Name : String)
                                return Boolean
    is
    begin
       for R of D.Relations loop
-         if To_String (R.To) = Name
+         if Id_Of (D, R.To) = Name
            and then (R.Kind = Inheritance or else R.Kind = Realization)
          then
-            for K of D.Pool loop
-               if To_String (K.Id) = To_String (R.From) then
+            for K of D.Elements loop
+               if To_String (K.Id) = Id_Of (D, R.From) then
                   for M of K.Members loop
                      if M.Kind = Method
                        and then Sanitize (To_String (M.Id))
@@ -358,16 +368,16 @@ package body PlantUML2Code_Ada_Classes is
    package Inherited_Vectors is new
      Ada.Containers.Vectors (Positive, Inherited_Method);
 
-   function Inherited_Abstracts (D : Class_Diagram; Idx : Class_Index)
+   function Inherited_Abstracts (D : UML.Model.Diagram; Idx : Element_Index)
                                  return Inherited_Vectors.Vector
    is
       Result : Inherited_Vectors.Vector;
       This_Name : constant String :=
-        To_String (D.Pool (Positive (Idx)).Id);
+        To_String (D.Elements (Positive (Idx)).Id);
 
       function Has_Override (Method_Name : String) return Boolean is
       begin
-         for M of D.Pool (Positive (Idx)).Members loop
+         for M of D.Elements (Positive (Idx)).Members loop
             if M.Kind = Method
               and then Sanitize (To_String (M.Id)) = Sanitize (Method_Name)
             then
@@ -391,15 +401,15 @@ package body PlantUML2Code_Ada_Classes is
 
    begin
       for R of D.Relations loop
-         if To_String (R.To) = This_Name
+         if Id_Of (D, R.To) = This_Name
            and then (R.Kind = Inheritance or else R.Kind = Realization)
          then
             declare
                Parent_Pkg : constant String :=
-                 Sanitize (To_String (R.From));
+                 Sanitize (Id_Of (D, R.From));
             begin
-               for P of D.Pool loop
-                  if To_String (P.Id) = To_String (R.From) then
+               for P of D.Elements loop
+                  if To_String (P.Id) = Id_Of (D, R.From) then
                      for M of P.Members loop
                         if M.Kind = Method
                           and then (M.Is_Abstract
@@ -427,18 +437,18 @@ package body PlantUML2Code_Ada_Classes is
       return Result;
    end Inherited_Abstracts;
 
-   function Method_Decls (D : Class_Diagram; Idx : Class_Index)
+   function Method_Decls (D : UML.Model.Diagram; Idx : Element_Index)
                           return String
    is
       R : Unbounded_String;
       Class_Name : constant String :=
-        To_String (D.Pool (Positive (Idx)).Id);
+        To_String (D.Elements (Positive (Idx)).Id);
       Is_Interface : constant Boolean :=
-        D.Pool (Positive (Idx)).Kind = Interface_Kind;
+        D.Elements (Positive (Idx)).Kind = Interface_Kind;
       Is_Abstract_Type : constant Boolean :=
-        D.Pool (Positive (Idx)).Kind = Abstract_Class;
+        D.Elements (Positive (Idx)).Kind = Abstract_Class;
    begin
-      for M of D.Pool (Positive (Idx)).Members loop
+      for M of D.Elements (Positive (Idx)).Members loop
          if M.Kind = Method then
             declare
                Name : constant String := Sanitize (To_String (M.Id));
@@ -502,14 +512,14 @@ package body PlantUML2Code_Ada_Classes is
       return To_String (R);
    end Method_Decls;
 
-   function Method_Bodies (D : Class_Diagram; Idx : Class_Index)
+   function Method_Bodies (D : UML.Model.Diagram; Idx : Element_Index)
                            return String
    is
       R : Unbounded_String;
       Class_Name : constant String :=
-        Sanitize (To_String (D.Pool (Positive (Idx)).Id));
+        Sanitize (To_String (D.Elements (Positive (Idx)).Id));
    begin
-      for M of D.Pool (Positive (Idx)).Members loop
+      for M of D.Elements (Positive (Idx)).Members loop
          if M.Kind = Method and then not M.Is_Abstract then
             declare
                Name : constant String := Sanitize (To_String (M.Id));
@@ -567,19 +577,19 @@ package body PlantUML2Code_Ada_Classes is
       return To_String (R);
    end Method_Bodies;
 
-   function Actions_Inherited_Decls (D : Class_Diagram; Idx : Class_Index)
+   function Actions_Inherited_Decls (D : UML.Model.Diagram; Idx : Element_Index)
                                      return String;
-   function Actions_Inherited_Bodies (D : Class_Diagram; Idx : Class_Index)
+   function Actions_Inherited_Bodies (D : UML.Model.Diagram; Idx : Element_Index)
                                       return String;
 
-   function Actions_Decls (D : Class_Diagram; Idx : Class_Index)
+   function Actions_Decls (D : UML.Model.Diagram; Idx : Element_Index)
                            return String
    is
       R : Unbounded_String;
       Class_Name : constant String :=
-        Sanitize (To_String (D.Pool (Positive (Idx)).Id));
+        Sanitize (To_String (D.Elements (Positive (Idx)).Id));
    begin
-      for M of D.Pool (Positive (Idx)).Members loop
+      for M of D.Elements (Positive (Idx)).Members loop
          if M.Kind = Method and then not M.Is_Abstract then
             declare
                Name : constant String := Sanitize (To_String (M.Id));
@@ -604,12 +614,12 @@ package body PlantUML2Code_Ada_Classes is
 
    --  Also expose the inherited-abstract overrides through Actions so
    --  the user can implement them per concrete class.
-   function Actions_Inherited_Decls (D : Class_Diagram; Idx : Class_Index)
+   function Actions_Inherited_Decls (D : UML.Model.Diagram; Idx : Element_Index)
                                      return String
    is
       R : Unbounded_String;
       Class_Name : constant String :=
-        Sanitize (To_String (D.Pool (Positive (Idx)).Id));
+        Sanitize (To_String (D.Elements (Positive (Idx)).Id));
       Inherited : constant Inherited_Vectors.Vector :=
         Inherited_Abstracts (D, Idx);
    begin
@@ -631,12 +641,12 @@ package body PlantUML2Code_Ada_Classes is
       return To_String (R);
    end Actions_Inherited_Decls;
 
-   function Actions_Inherited_Bodies (D : Class_Diagram; Idx : Class_Index)
+   function Actions_Inherited_Bodies (D : UML.Model.Diagram; Idx : Element_Index)
                                       return String
    is
       R : Unbounded_String;
       Class_Name : constant String :=
-        Sanitize (To_String (D.Pool (Positive (Idx)).Id));
+        Sanitize (To_String (D.Elements (Positive (Idx)).Id));
       Inherited : constant Inherited_Vectors.Vector :=
         Inherited_Abstracts (D, Idx);
    begin
@@ -673,14 +683,14 @@ package body PlantUML2Code_Ada_Classes is
       return To_String (R);
    end Actions_Inherited_Bodies;
 
-   function Actions_Bodies (D : Class_Diagram; Idx : Class_Index)
+   function Actions_Bodies (D : UML.Model.Diagram; Idx : Element_Index)
                             return String
    is
       R : Unbounded_String;
       Class_Name : constant String :=
-        Sanitize (To_String (D.Pool (Positive (Idx)).Id));
+        Sanitize (To_String (D.Elements (Positive (Idx)).Id));
    begin
-      for M of D.Pool (Positive (Idx)).Members loop
+      for M of D.Elements (Positive (Idx)).Members loop
          if M.Kind = Method and then not M.Is_Abstract then
             declare
                Name : constant String := Sanitize (To_String (M.Id));
@@ -715,11 +725,11 @@ package body PlantUML2Code_Ada_Classes is
       return To_String (R);
    end Actions_Bodies;
 
-   function With_Clauses (D : Class_Diagram; Idx : Class_Index)
+   function With_Clauses (D : UML.Model.Diagram; Idx : Element_Index)
                           return String
    is
       R : Unbounded_String;
-      K : constant Classifier := D.Pool (Positive (Idx));
+      K : constant Element := D.Elements (Positive (Idx));
       Parents : constant String :=
         To_String (Parents_Of (D, To_String (K.Id)));
    begin
@@ -740,10 +750,10 @@ package body PlantUML2Code_Ada_Classes is
       --  Parents: parse comma/and-separated list; simplest to iterate
       --  relations again to get each parent's package name.
       for Rel of D.Relations loop
-         if To_String (Rel.To) = To_String (K.Id)
+         if Id_Of (D, Rel.To) = To_String (K.Id)
            and then (Rel.Kind = Inheritance or else Rel.Kind = Realization)
          then
-            Append (R, "with " & Sanitize (To_String (Rel.From))
+            Append (R, "with " & Sanitize (Id_Of (D, Rel.From))
                     & ";" & ASCII.LF);
          end if;
       end loop;
@@ -754,9 +764,9 @@ package body PlantUML2Code_Ada_Classes is
          Seen : UV.Vector;
       begin
          for Rel of D.Relations loop
-            if To_String (Rel.From) = Self_Name
-              and then Rel.Kind in Composition | Aggregation | PlantUML.Classes.Association
-              and then To_String (Rel.To) /= Self_Name
+            if Id_Of (D, Rel.From) = Self_Name
+              and then Rel.Kind in Composition | Aggregation | UML.Model.Association
+              and then Id_Of (D, Rel.To) /= Self_Name
             then
                declare
                   Already : Boolean := False;
@@ -769,7 +779,7 @@ package body PlantUML2Code_Ada_Classes is
                   end loop;
                   if not Already then
                      Seen.Append (Rel.To);
-                     Append (R, "with " & Sanitize (To_String (Rel.To))
+                     Append (R, "with " & Sanitize (Id_Of (D, Rel.To))
                              & ";" & ASCII.LF);
                   end if;
                end;
@@ -810,10 +820,10 @@ package body PlantUML2Code_Ada_Classes is
       end if;
    end Render_If_Missing;
 
-   procedure Emit_One (D : Class_Diagram; Idx : Class_Index;
+   procedure Emit_One (D : UML.Model.Diagram; Idx : Element_Index;
                        Source_Diagram, Date_Str, Out_Dir : String)
    is
-      K : constant Classifier := D.Pool (Positive (Idx));
+      K : constant Element := D.Elements (Positive (Idx));
       Class_Name : constant String := Sanitize (To_String (K.Id));
       T : Translate_Set;
 
@@ -926,7 +936,7 @@ package body PlantUML2Code_Ada_Classes is
    end Emit_Class_Runtime;
 
    procedure Emit_Class_Driver
-     (Tests_Dir, Out_Dir : String; D : Class_Diagram)
+     (Tests_Dir, Out_Dir : String; D : UML.Model.Diagram)
    is
       pragma Unreferenced (Out_Dir);
       Output : constant String :=
@@ -948,7 +958,7 @@ package body PlantUML2Code_Ada_Classes is
          return;
       end if;
 
-      for K of D.Pool loop
+      for K of D.Elements loop
          if K.Kind in Class | Record_Type then
             --  Construct only concrete class and record types.
             declare
@@ -994,7 +1004,7 @@ package body PlantUML2Code_Ada_Classes is
    end Emit_Class_Driver;
 
    procedure Generate
-     (D              : Class_Diagram;
+     (D              : UML.Model.Diagram;
       Source_Diagram : String;
       Out_Dir        : String)
    is
@@ -1040,9 +1050,9 @@ package body PlantUML2Code_Ada_Classes is
          Emit_Class_Driver (Tests_Dir, Out_Dir, D);
          PlantUML2Code_Ada.Emit_Setup_Only (Out_Dir, Machine_Name);
 
-         for I in D.Pool.First_Index .. D.Pool.Last_Index loop
-            if D.Pool (I).Kind /= Package_Kind then
-               Emit_One (D, Class_Index (I), Source_Diagram,
+         for I in D.Elements.First_Index .. D.Elements.Last_Index loop
+            if D.Elements (I).Kind /= Package_Kind then
+               Emit_One (D, Element_Index (I), Source_Diagram,
                          To_String (Date_Str), Src_Dir);
             end if;
          end loop;

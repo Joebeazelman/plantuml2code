@@ -85,15 +85,15 @@ package body PlantUML2Code_Formats is
 
    procedure Emit_Classes
      (Fmt  : Format;
-      D    : PlantUML.Classes.Class_Diagram;
+      D    : UML.Model.Diagram;
       Path : String := "")
    is
       pragma Unreferenced (Path);
    begin
       case Fmt is
          when Text | Json =>
-            Emit_To_Stdout
-              (Subdir_For (Fmt), "class.tmplt", For_Classes (D));
+            raise Constraint_Error with
+              "text/json class output not yet on the model path";
          when Ada_HSM =>
             PlantUML2Code_Ada_Classes.Generate
               (D              => D,

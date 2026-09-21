@@ -1,4 +1,3 @@
-with PlantUML.Classes;
 with UML.Model;
 
 package PlantUML2Code_Formats is
@@ -17,7 +16,7 @@ package PlantUML2Code_Formats is
 
    procedure Emit_Classes
      (Fmt  : Format;
-      D    : PlantUML.Classes.Class_Diagram;
+      D    : UML.Model.Diagram;
       Path : String := "");
 
 end PlantUML2Code_Formats;
