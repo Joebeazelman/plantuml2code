@@ -62,10 +62,8 @@ package body PlantUML2Code_Formats is
    begin
       case Fmt is
          when Text | Json =>
-            --  Template path not yet migrated to the model. Placeholder
-            --  until For_States gets a UML.Model.Diagram overload.
-            raise Constraint_Error with
-              "text/json state output not yet on the model path";
+            Emit_To_Stdout
+              (Subdir_For (Fmt), "state.tmplt", For_States (D));
          when Ada_HSM =>
             declare
                Name : constant String :=
@@ -92,8 +90,8 @@ package body PlantUML2Code_Formats is
    begin
       case Fmt is
          when Text | Json =>
-            raise Constraint_Error with
-              "text/json class output not yet on the model path";
+            Emit_To_Stdout
+              (Subdir_For (Fmt), "class.tmplt", For_Classes (D));
          when Ada_HSM =>
             PlantUML2Code_Ada_Classes.Generate
               (D              => D,

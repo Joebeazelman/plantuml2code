@@ -1,9 +1,19 @@
 with Ada.Strings.Unbounded;    use Ada.Strings.Unbounded;
 with Templates_Parser;         use Templates_Parser;
 
+with UML.Model;                use UML.Model;
+
 with PlantUML2Code_Utils;      use PlantUML2Code_Utils;
 
 package body PlantUML2Code_Template_Bindings is
+
+   --  Templates_Parser.Tag shadows UML.Model.Annotation_Kind's Tag
+   --  literal. Nothing here uses the literal.
+   subtype Tag is Templates_Parser.Tag;
+
+   function Id_Of (D : UML.Model.Diagram; Idx : Element_Index)
+                   return String is
+     (To_String (D.Elements (Positive (Idx)).Id));
 
    --  ---------------------------------------------------------------
    --  JSON escape filter, as a Templates Parser user filter
@@ -37,11 +47,16 @@ package body PlantUML2Code_Template_Bindings is
    function Has_Text (S : Unbounded_String) return Boolean is
      (Length (S) > 0);
 
+   function Is_Transition (R : Relation) return Boolean is
+     (R.Kind in UML.Model.Transition
+              | UML.Model.Internal_Transition_Kind
+              | UML.Model.Completion);
+
    --  ---------------------------------------------------------------
    --  States
    --  ---------------------------------------------------------------
    function For_States
-     (D : PlantUML.States.State_Diagram) return Translate_Set
+     (D : UML.Model.Diagram) return Translate_Set
    is
       T : Translate_Set;
 
@@ -50,17 +65,16 @@ package body PlantUML2Code_Template_Bindings is
       Trans_Lines      : Tag;
       Trans_Lines_Json : Tag;
 
-      Last_State : constant Natural := Natural (D.Pool.Length);
-      Last_Trans : constant Natural := Natural (D.Transitions.Length);
+      Last_State : constant Natural := Natural (D.Elements.Length);
+      Last_Trans : constant Natural := Natural (D.Relations.Length);
 
       State_Index : Natural := 0;
       Trans_Index : Natural := 0;
-
    begin
-      Insert (T, Assoc ("DIAGRAM_NAME", To_String (D.Diagram_Name)));
+      Insert (T, Assoc ("DIAGRAM_NAME", To_String (D.Id)));
 
       --  Text lines for states
-      for S of D.Pool loop
+      for S of D.Elements loop
          State_Index := State_Index + 1;
          declare
             Line : Unbounded_String :=
@@ -77,7 +91,7 @@ package body PlantUML2Code_Template_Bindings is
 
       --  JSON lines for states
       State_Index := 0;
-      for S of D.Pool loop
+      for S of D.Elements loop
          State_Index := State_Index + 1;
          declare
             Line : Unbounded_String :=
@@ -96,56 +110,60 @@ package body PlantUML2Code_Template_Bindings is
       end loop;
 
       --  Text lines for transitions
-      for R of D.Transitions loop
-         Trans_Index := Trans_Index + 1;
-         declare
-            Line : Unbounded_String :=
-              To_Unbounded_String (To_String (R.From)
-                                   & " -> "
-                                   & To_String (R.To)
-                                   & "  kind="
-                                   & R.Kind'Image);
-         begin
-            if Has_Text (R.Trigger) then
-               Append (Line, "  trigger=");
-               Append (Line, R.Trigger);
-            end if;
-            if Has_Text (R.Guard) then
-               Append (Line, "  guard=");
-               Append (Line, R.Guard);
-            end if;
-            if Has_Text (R.Effect) then
-               Append (Line, "  effect=");
-               Append (Line, R.Effect);
-            end if;
-            Trans_Lines := Trans_Lines & To_String (Line);
-         end;
+      for R of D.Relations loop
+         if Is_Transition (R) then
+            Trans_Index := Trans_Index + 1;
+            declare
+               Line : Unbounded_String :=
+                 To_Unbounded_String (Id_Of (D, R.From)
+                                      & " -> "
+                                      & Id_Of (D, R.To)
+                                      & "  kind="
+                                      & R.Kind'Image);
+            begin
+               if Has_Text (R.Trigger) then
+                  Append (Line, "  trigger=");
+                  Append (Line, R.Trigger);
+               end if;
+               if Has_Text (R.Guard) then
+                  Append (Line, "  guard=");
+                  Append (Line, R.Guard);
+               end if;
+               if Has_Text (R.Effect) then
+                  Append (Line, "  effect=");
+                  Append (Line, R.Effect);
+               end if;
+               Trans_Lines := Trans_Lines & To_String (Line);
+            end;
+         end if;
       end loop;
 
       --  JSON lines for transitions
       Trans_Index := 0;
-      for R of D.Transitions loop
-         Trans_Index := Trans_Index + 1;
-         declare
-            Line : Unbounded_String := To_Unbounded_String ("{");
-            Comma : constant String :=
-              (if Trans_Index < Last_Trans then "," else "");
-         begin
-            Append (Line, """from"": """);
-            Append (Line, Escape_Json (To_String (R.From)));
-            Append (Line, """, ""to"": """);
-            Append (Line, Escape_Json (To_String (R.To)));
-            Append (Line, """, ""kind"": """);
-            Append (Line, Escape_Json (R.Kind'Image));
-            Append (Line, """, ""trigger"": """);
-            Append (Line, Escape_Json (To_String (R.Trigger)));
-            Append (Line, """, ""guard"": """);
-            Append (Line, Escape_Json (To_String (R.Guard)));
-            Append (Line, """, ""effect"": """);
-            Append (Line, Escape_Json (To_String (R.Effect)));
-            Append (Line, """}" & Comma);
-            Trans_Lines_Json := Trans_Lines_Json & To_String (Line);
-         end;
+      for R of D.Relations loop
+         if Is_Transition (R) then
+            Trans_Index := Trans_Index + 1;
+            declare
+               Line : Unbounded_String := To_Unbounded_String ("{");
+               Comma : constant String :=
+                 (if Trans_Index < Last_Trans then "," else "");
+            begin
+               Append (Line, """from"": """);
+               Append (Line, Escape_Json (Id_Of (D, R.From)));
+               Append (Line, """, ""to"": """);
+               Append (Line, Escape_Json (Id_Of (D, R.To)));
+               Append (Line, """, ""kind"": """);
+               Append (Line, Escape_Json (R.Kind'Image));
+               Append (Line, """, ""trigger"": """);
+               Append (Line, Escape_Json (To_String (R.Trigger)));
+               Append (Line, """, ""guard"": """);
+               Append (Line, Escape_Json (To_String (R.Guard)));
+               Append (Line, """, ""effect"": """);
+               Append (Line, Escape_Json (To_String (R.Effect)));
+               Append (Line, """}" & Comma);
+               Trans_Lines_Json := Trans_Lines_Json & To_String (Line);
+            end;
+         end if;
       end loop;
 
       Insert (T, Assoc ("STATE_LINES",       State_Lines));
@@ -160,7 +178,7 @@ package body PlantUML2Code_Template_Bindings is
    --  Classes
    --  ---------------------------------------------------------------
    function For_Classes
-     (D : PlantUML.Classes.Class_Diagram) return Translate_Set
+     (D : UML.Model.Diagram) return Translate_Set
    is
       T : Translate_Set;
 
@@ -169,15 +187,15 @@ package body PlantUML2Code_Template_Bindings is
       Rel_Lines        : Tag;
       Rel_Lines_Json   : Tag;
 
-      Last_Class : constant Natural := Natural (D.Pool.Length);
+      Last_Class : constant Natural := Natural (D.Elements.Length);
       Last_Rel   : constant Natural := Natural (D.Relations.Length);
 
       Class_Index : Natural := 0;
       Rel_Index   : Natural := 0;
    begin
-      Insert (T, Assoc ("DIAGRAM_NAME", To_String (D.Diagram_Name)));
+      Insert (T, Assoc ("DIAGRAM_NAME", To_String (D.Id)));
 
-      for K of D.Pool loop
+      for K of D.Elements loop
          Class_Index := Class_Index + 1;
          declare
             Line : Unbounded_String :=
@@ -193,7 +211,7 @@ package body PlantUML2Code_Template_Bindings is
       end loop;
 
       Class_Index := 0;
-      for K of D.Pool loop
+      for K of D.Elements loop
          Class_Index := Class_Index + 1;
          declare
             Line : Unbounded_String := To_Unbounded_String ("{");
@@ -215,11 +233,11 @@ package body PlantUML2Code_Template_Bindings is
          Rel_Index := Rel_Index + 1;
          declare
             Line : Unbounded_String :=
-              To_Unbounded_String (To_String (R.From)
+              To_Unbounded_String (Id_Of (D, R.From)
                                    & " "
                                    & R.Kind'Image
                                    & " "
-                                   & To_String (R.To));
+                                   & Id_Of (D, R.To));
          begin
             if Has_Text (R.Mult_To) then
                Append (Line, "  [");
@@ -243,9 +261,9 @@ package body PlantUML2Code_Template_Bindings is
               (if Rel_Index < Last_Rel then "," else "");
          begin
             Append (Line, """from"": """);
-            Append (Line, Escape_Json (To_String (R.From)));
+            Append (Line, Escape_Json (Id_Of (D, R.From)));
             Append (Line, """, ""to"": """);
-            Append (Line, Escape_Json (To_String (R.To)));
+            Append (Line, Escape_Json (Id_Of (D, R.To)));
             Append (Line, """, ""kind"": """);
             Append (Line, Escape_Json (R.Kind'Image));
             Append (Line, """, ""label"": """);
