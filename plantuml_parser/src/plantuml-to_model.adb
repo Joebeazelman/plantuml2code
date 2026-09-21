@@ -138,10 +138,10 @@ package body PlantUML.To_Model is
    begin
       for I in D.Elements.First_Index .. D.Elements.Last_Index loop
          if To_String (D.Elements (I).Id) = Name then
-            return I;
+            return UML.Model.Element_Index (I);
          end if;
       end loop;
-      return 0;
+      return UML.Model.Element_Index (0);
    end Index_Of;
 
    --  ---------------------------------------------------------------
@@ -166,10 +166,11 @@ package body PlantUML.To_Model is
 
             for A of S.Annotations loop
                E.Annotations.Append
-                 ((Kind    => Annotation_Kind_To_Model (A.Kind),
-                   Text    => A.Action,
-                   Trigger => A.Trigger,
-                   Guard   => A.Guard));
+                 (UML.Model.Annotation'
+                    (Kind    => Annotation_Kind_To_Model (A.Kind),
+                     Text    => A.Action,
+                     Trigger => A.Trigger,
+                     Guard   => A.Guard));
             end loop;
 
             for C of S.Children loop
@@ -224,7 +225,8 @@ package body PlantUML.To_Model is
 
             for M of K.Members loop
                E.Members.Append
-                 ((Kind        =>
+                 (UML.Model.Member'
+                    (Kind        =>
                      (case M.Kind is
                          when PlantUML.Classes.Attribute =>
                             UML.Model.Attribute,
@@ -247,8 +249,9 @@ package body PlantUML.To_Model is
                             UML.Model.Protected_Vis,
                          when PlantUML.Classes.Package_Level =>
                             UML.Model.Package_Vis),
-                   Is_Static   => M.Is_Static,
-                   Is_Abstract => M.Is_Abstract));
+                     Is_Static   => M.Is_Static,
+                     Is_Abstract => M.Is_Abstract,
+                     Annotations => <>));
             end loop;
 
             for C of K.Children loop
