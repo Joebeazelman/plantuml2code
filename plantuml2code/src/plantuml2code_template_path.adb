@@ -1,6 +1,8 @@
 with Ada.Directories;              use Ada.Directories;
 with Ada.Environment_Variables;
+with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;        use Ada.Strings.Unbounded;
+with Ada.Text_IO;
 with Ada.Command_Line;
 
 package body PlantUML2Code_Template_Path is
@@ -68,6 +70,132 @@ package body PlantUML2Code_Template_Path is
       when others =>
          return Current_Directory;
    end Exe_Dir;
+
+   --  ---------------------------------------------------------------
+   --  Config parsing
+   --  ---------------------------------------------------------------
+   --
+   --  Flat `key = value` format. '#' begins a comment. Blank lines
+   --  are skipped. Values are taken verbatim after the first '=' and
+   --  trimmed of surrounding whitespace. Only `templates_dir` is
+   --  recognised; unknown keys are ignored.
+
+   function Trim (S : String) return String is
+     (Ada.Strings.Fixed.Trim (S, Ada.Strings.Both));
+
+   function Parse_Config (Content     : String;
+                          Source_Name : String) return String
+   is
+      Result : Unbounded_String := Null_Unbounded_String;
+      Line_No : Natural := 0;
+      Start   : Natural := Content'First;
+      Stop    : Natural;
+
+      procedure Handle_Line (Raw : String) is
+         Line : constant String := Trim (Raw);
+         Eq   : constant Natural := Ada.Strings.Fixed.Index (Line, "=");
+      begin
+         if Line'Length = 0 or else Line (Line'First) = '#' then
+            return;
+         end if;
+         if Eq = 0 then
+            raise Config_Error with
+              Source_Name & ":" & Line_No'Image
+              & ": missing '=' in config line";
+         end if;
+         declare
+            Key : constant String := Trim (Line (Line'First .. Eq - 1));
+            Val : constant String := Trim (Line (Eq + 1 .. Line'Last));
+         begin
+            if Key = "templates_dir" then
+               Result := To_Unbounded_String (Val);
+            end if;
+         end;
+      end Handle_Line;
+
+   begin
+      if Content'Length = 0 then
+         return "";
+      end if;
+
+      for I in Content'Range loop
+         if Content (I) = ASCII.LF then
+            Line_No := Line_No + 1;
+            Stop := I - 1;
+            if Stop >= Start then
+               Handle_Line (Content (Start .. Stop));
+            end if;
+            Start := I + 1;
+         end if;
+      end loop;
+
+      --  Trailing line without a newline.
+      if Start <= Content'Last then
+         Line_No := Line_No + 1;
+         Handle_Line (Content (Start .. Content'Last));
+      end if;
+
+      return To_String (Result);
+   end Parse_Config;
+
+   function Read_File (Path : String) return String is
+      F : Ada.Text_IO.File_Type;
+      R : Unbounded_String;
+   begin
+      Ada.Text_IO.Open (F, Ada.Text_IO.In_File, Path);
+      while not Ada.Text_IO.End_Of_File (F) loop
+         Append (R, Ada.Text_IO.Get_Line (F));
+         Append (R, ASCII.LF);
+      end loop;
+      Ada.Text_IO.Close (F);
+      return To_String (R);
+   exception
+      when Ada.Text_IO.Name_Error =>
+         return "";
+   end Read_File;
+
+   procedure Load_Config is
+      function Home_Config return String is
+      begin
+         if Ada.Environment_Variables.Exists ("HOME") then
+            return Slash
+              (Slash (Slash (Ada.Environment_Variables.Value ("HOME"),
+                             ".config"),
+                      "uml2code"),
+               "config");
+         end if;
+         return "";
+      exception
+         when others =>
+            return "";
+      end Home_Config;
+
+      procedure Try (Path : String) is
+      begin
+         if Path'Length = 0 then
+            return;
+         end if;
+         declare
+            Content : constant String := Read_File (Path);
+            Val     : constant String :=
+              (if Content'Length > 0
+               then Parse_Config (Content, Path) else "");
+         begin
+            if Val'Length > 0 then
+               Set_Override (Val);
+            end if;
+         end;
+      end Try;
+   begin
+      --  CLI already won; don't override it.
+      if Length (Override) > 0 then
+         return;
+      end if;
+      Try (Current_Directory & "/uml2code.conf");
+      if Length (Override) = 0 then
+         Try (Home_Config);
+      end if;
+   end Load_Config;
 
    function Locate (Subdir : String; File : String) return String is
       CWD      : constant String := Current_Directory;

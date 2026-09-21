@@ -109,6 +109,18 @@ begin
       end;
    end if;
 
+   --  No -t on the command line: read config files. CLI wins if both.
+   if Length (Args.Templates_Dir) = 0 then
+      begin
+         PlantUML2Code_Template_Path.Load_Config;
+      exception
+         when PlantUML2Code_Template_Path.Config_Error =>
+            Fail ("malformed config file");
+            Set_Exit_Status (Failure);
+            return;
+      end;
+   end if;
+
    if Args.Out_Set then
       declare
          D : constant String := To_String (Args.Out_Dir);
