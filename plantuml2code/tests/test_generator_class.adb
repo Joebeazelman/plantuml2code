@@ -6,7 +6,8 @@ with Ada.Strings.Fixed;        use Ada.Strings.Fixed;
 with Ada.Directories;
 with Ada.Text_IO;              use Ada.Text_IO;
 
-with PlantUML.Classes;         use PlantUML.Classes;
+with PlantUML;
+with UML.Model;
 with PlantUML2Code_Ada_Classes;
 
 package body Test_Generator_Class is
@@ -16,7 +17,7 @@ package body Test_Generator_Class is
       File_Name : String) return String
    is
       Dir  : constant String := "/tmp/gen_test_class";
-      D    : constant Class_Diagram := Parse (Diagram);
+      D    : constant UML.Model.Diagram := PlantUML.Parse (Diagram);
       Path : constant String :=
         Ada.Directories.Compose
           (Ada.Directories.Compose (Dir, "src"), File_Name);

@@ -6,7 +6,8 @@ with Ada.Strings.Fixed;        use Ada.Strings.Fixed;
 with Ada.Directories;
 with Ada.Text_IO;              use Ada.Text_IO;
 
-with PlantUML.States;          use PlantUML.States;
+with PlantUML;
+with UML.Model;
 with PlantUML2Code_Ada;
 
 package body Test_Generator_States is
@@ -16,7 +17,7 @@ package body Test_Generator_States is
       File_Name : String) return String
    is
       Dir  : constant String := "/tmp/gen_test_states";
-      D    : constant State_Diagram := Parse (Diagram);
+      D    : constant UML.Model.Diagram := PlantUML.Parse (Diagram);
       Path : constant String :=
         Ada.Directories.Compose
           (Ada.Directories.Compose (Dir, "src"), File_Name);

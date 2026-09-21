@@ -18,6 +18,19 @@ package body Test_Classes is
               = PlantUML.Class_Diagram, "class detected");
    end Test_Detect_Class;
 
+   procedure Test_Detect_Enum (T : in out Test_Case'Class) is
+      pragma Unreferenced (T);
+   begin
+      Assert (PlantUML.Detect_Kind
+                ("@startuml" & ASCII.LF
+                 & "enum Color {" & ASCII.LF
+                 & "  Red" & ASCII.LF
+                 & "}" & ASCII.LF
+                 & "@enduml")
+              = PlantUML.Class_Diagram,
+              "enum-only source detects as class diagram");
+   end Test_Detect_Enum;
+
    procedure Test_Simple_Class (T : in out Test_Case'Class) is
       pragma Unreferenced (T);
       D : constant Class_Diagram :=
@@ -92,6 +105,7 @@ package body Test_Classes is
       use AUnit.Test_Cases.Registration;
    begin
       Register_Routine (T, Test_Detect_Class'Access, "detect class");
+      Register_Routine (T, Test_Detect_Enum'Access, "detect enum");
       Register_Routine (T, Test_Simple_Class'Access, "simple class");
       Register_Routine (T, Test_Member_Parsing'Access, "member");
       Register_Routine (T, Test_Inheritance'Access, "inheritance");
