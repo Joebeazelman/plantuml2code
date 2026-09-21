@@ -26,9 +26,10 @@ package body PlantUML.Classes is
          if I <= Natural (Toks.Length) then
             return Toks (I);
          else
-            return (Kind => Eof,
-                    Text => Null_Unbounded_String,
-                    Line => 1);
+            return (Kind         => Eof,
+                    Text         => Null_Unbounded_String,
+                    Line         => 1,
+                    Space_Before => False);
          end if;
       end Peek_At;
 

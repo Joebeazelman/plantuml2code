@@ -30,9 +30,10 @@ package body PlantUML.States is
          if I <= Natural (Toks.Length) then
             return Toks (I);
          else
-            return (Kind => Eof,
-                    Text => Null_Unbounded_String,
-                    Line => 1);
+            return (Kind         => Eof,
+                    Text         => Null_Unbounded_String,
+                    Line         => 1,
+                    Space_Before => False);
          end if;
       end Peek_At;
 
@@ -321,7 +322,7 @@ package body PlantUML.States is
                         Tk : constant Token :=
                           (if Ix <= Natural (Toks.Length)
                            then Toks (Ix)
-                           else (Eof, Null_Unbounded_String, 1));
+                           else (Eof, Null_Unbounded_String, 1, False));
                      begin
                         exit when Tk.Kind in Newline | Eof;
                         if Tk.Kind = Symbol
@@ -338,14 +339,40 @@ package body PlantUML.States is
                      A.Kind := Note;
                      declare
                         Txt : Unbounded_String := Null_Unbounded_String;
+                        Raw : Unbounded_String := Null_Unbounded_String;
                      begin
                         while C.Peek.Kind not in Newline | Eof loop
-                           if Length (Txt) > 0 then
-                              Append (Txt, " ");
-                           end if;
-                           Append (Txt, C.Peek.Text);
+                           declare
+                              Tk : constant Token := C.Peek;
+                           begin
+                              if Tk.Space_Before
+                                and then Length (Raw) > 0
+                              then
+                                 Append (Raw, " ");
+                              end if;
+                              Append (Raw, Tk.Text);
+                           end;
                            C.Next;
                         end loop;
+
+                        declare
+                           R : constant String := To_String (Raw);
+                           J : Natural := R'First;
+                        begin
+                           while J <= R'Last loop
+                              if R (J) = '\'
+                                and then J < R'Last
+                                and then R (J + 1) = 'n'
+                              then
+                                 Append (Txt, ASCII.LF);
+                                 J := J + 2;
+                              else
+                                 Append (Txt, R (J));
+                                 J := J + 1;
+                              end if;
+                           end loop;
+                        end;
+
                         A.Action := Txt;
                      end;
                      return A;

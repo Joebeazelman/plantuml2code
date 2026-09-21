@@ -7,9 +7,10 @@ package PlantUML.Tokens is
    type Token_Kind is (Word, Str, Symbol, Arrow, Newline, Eof);
 
    type Token is record
-      Kind : Token_Kind := Eof;
-      Text : Unbounded_String;
-      Line : Positive := 1;
+      Kind         : Token_Kind := Eof;
+      Text         : Unbounded_String;
+      Line         : Positive := 1;
+      Space_Before : Boolean := False;
    end record;
 
    package Vectors is new Ada.Containers.Vectors (Positive, Token);

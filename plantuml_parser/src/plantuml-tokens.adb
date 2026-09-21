@@ -6,12 +6,16 @@ package body PlantUML.Tokens is
       I    : Natural := Source'First;
       Line : Positive := 1;
 
+      Last_Was_Space : Boolean := False;
+
       procedure Emit (K : Token_Kind; S : String) is
-         T : constant Token := (Kind => K,
-                       Text => To_Unbounded_String (S),
-                       Line => Line);
+         T : constant Token := (Kind         => K,
+                                Text         => To_Unbounded_String (S),
+                                Line         => Line,
+                                Space_Before => Last_Was_Space);
       begin
          R.Append (T);
+         Last_Was_Space := False;
       end Emit;
 
       function Is_Ident_Char (C : Character) return Boolean is
@@ -102,6 +106,8 @@ package body PlantUML.Tokens is
                if C = ASCII.LF then
                   Emit (Newline, "");
                   Line := Line + 1;
+               else
+                  Last_Was_Space := True;
                end if;
                I := I + 1;
 
@@ -156,9 +162,10 @@ package body PlantUML.Tokens is
 
    function Peek (C : Cursor) return Token is
      (if C.I <= Natural (C.Src.Length) then C.Src (C.I)
-      else (Kind => Eof,
-            Text => Null_Unbounded_String,
-            Line => 1));
+      else (Kind         => Eof,
+            Text         => Null_Unbounded_String,
+            Line         => 1,
+            Space_Before => False));
 
    procedure Next (C : in out Cursor) is
    begin
