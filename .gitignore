@@ -31,6 +31,7 @@ alire/
 
 # Scratch scripts used during development
 fix.sh
+dryrun.sh
 
 # Generated output accidentally written into the crate's tests dir
 /uml2code/tests/driver.adb
@@ -38,3 +39,6 @@ fix.sh
 
 # Local agent notes; not tracked
 AGENTS.md
+
+# Local scratch scripts
+gen_adb_protocol.sh
