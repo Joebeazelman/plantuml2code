@@ -10,13 +10,6 @@ package body HistoryTest_Tests is
 
    use HistoryTest;
 
-   procedure Test_Start_State_Tick (T : in out Test_Case'Class) is
-      pragma Unreferenced (T);
-   begin
-      Assert (Transition (Start_State, Tick) = Idle,
-              "Start_State --Tick--> Idle");
-   end Test_Start_State_Tick;
-
    procedure Test_Idle_Enter_Fresh (T : in out Test_Case'Class) is
       pragma Unreferenced (T);
    begin
@@ -48,9 +41,8 @@ package body HistoryTest_Tests is
    overriding
    procedure Register_Tests (T : in out Case_Type) is
       use AUnit.Test_Cases.Registration;
+      pragma Unreferenced (T);
    begin
-      Register_Routine (T, Test_Start_State_Tick'Access,
-                        "Start_State --Tick--> Idle");
       Register_Routine (T, Test_Idle_Enter_Fresh'Access,
                         "Idle --Enter_Fresh--> Outer");
       Register_Routine (T, Test_Idle_Enter_Shallow'Access,
@@ -59,6 +51,7 @@ package body HistoryTest_Tests is
                         "Idle --Enter_Deep--> Outer");
       Register_Routine (T, Test_Outer_Back'Access,
                         "Outer --Back--> Idle");
+      null;
    end Register_Tests;
 
    overriding

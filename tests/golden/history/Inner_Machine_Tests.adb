@@ -4,30 +4,26 @@
 with AUnit.Assertions;   use AUnit.Assertions;
 with AUnit.Test_Cases;   use AUnit.Test_Cases;
 
-with @_PACKAGE_NAME_@;
+with Inner_Machine;
 
-package body @_TEST_PACKAGE_@ is
+package body Inner_Machine_Tests is
 
-   use @_PACKAGE_NAME_@;
+   use Inner_Machine;
 
-@@TABLE@@
-   procedure @_TEST_PROC_@ (T : in out Test_Case'Class) is
+   procedure Test_A_Advance (T : in out Test_Case'Class) is
       pragma Unreferenced (T);
    begin
-      Assert (Transition (@_FROM_@, @_EVENT_@) = @_TARGET_@,
-              "@_FROM_@ --@_EVENT_@--> @_TARGET_@");
-   end @_TEST_PROC_@;
+      Assert (Transition (A, Advance) = B,
+              "A --Advance--> B");
+   end Test_A_Advance;
 
-@@END_TABLE@@
    overriding
    procedure Register_Tests (T : in out Case_Type) is
       use AUnit.Test_Cases.Registration;
       pragma Unreferenced (T);
    begin
-@@TABLE@@
-      Register_Routine (T, @_TEST_PROC_@'Access,
-                        "@_FROM_@ --@_EVENT_@--> @_TARGET_@");
-@@END_TABLE@@
+      Register_Routine (T, Test_A_Advance'Access,
+                        "A --Advance--> B");
       null;
    end Register_Tests;
 
@@ -35,7 +31,7 @@ package body @_TEST_PACKAGE_@ is
    function Name (T : Case_Type) return AUnit.Message_String is
       pragma Unreferenced (T);
    begin
-      return AUnit.Format ("@_PACKAGE_NAME_@");
+      return AUnit.Format ("Inner_Machine");
    end Name;
 
-end @_TEST_PACKAGE_@;
+end Inner_Machine_Tests;

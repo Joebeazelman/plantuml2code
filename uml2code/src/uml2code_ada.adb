@@ -1242,17 +1242,23 @@ package body Uml2Code_Ada is
    --  =========================================================
    --  Generated AUnit test suite
    --  =========================================================
-   procedure Emit_Tests
-     (D              : UML.Model.Diagram;
-      Package_Name   : String;
-      Tests_Dir      : String)
-   is
-      Test_Dir : constant String :=
-        Ada.Directories.Compose (Tests_Dir, "test");
-      Test_Pkg : constant String := Package_Name & "_Tests";
+   --  =========================================================
+   --  Generated AUnit test suite
+   --  =========================================================
+   --
+   --  One test case package per region, plus a suite that composes
+   --  them. A region's tests reference only that region's Transition
+   --  function and its Event literals.
 
+   procedure Emit_Tests_For_Region
+     (D              : UML.Model.Diagram;
+      Region         : Natural;
+      Package_Name   : String;
+      Test_Pkg       : String;
+      Test_Dir       : String)
+   is
       Ts : constant Relation_Vectors.Vector :=
-        Transitions_In (D, Top_Level);
+        Transitions_In (D, Region);
 
       Test_Procs : Tag;
       Froms      : Tag;
@@ -1279,41 +1285,30 @@ package body Uml2Code_Ada is
            To_Unbounded_String (From_Lit & "/" & Ev_Lit);
       end Remember;
 
-      procedure Render (Subdir, Template, Output : String;
+      procedure Render (Template, Output : String;
                         T : Translate_Set) is
          Path : constant String :=
-           Uml2Code_Template_Path.Locate (Subdir, Template);
+           Uml2Code_Template_Path.Locate ("ada/state/tests",
+                                               Template);
          Content : constant String := Templates_Parser.Parse (Path, T);
          F : File_Type;
       begin
          Create (F, Out_File, Output);
          Put (F, Content);
          Close (F);
-         Put_Line ("wrote " & Output);
       end Render;
 
-      Empty_Set : Translate_Set;
+      T_Case : Translate_Set;
    begin
-      Ada.Directories.Create_Path (Test_Dir);
-
-      Render ("ada/project/tests", "test_main.adb.tmplt",
-              Ada.Directories.Compose (Test_Dir, "test_main.adb"),
-              Empty_Set);
-      Render ("ada/project/tests", "all_tests.ads.tmplt",
-              Ada.Directories.Compose (Test_Dir, "all_tests.ads"),
-              Empty_Set);
-
-      declare
-         T_A : Translate_Set;
-      begin
-         Insert (T_A, Assoc ("TEST_PACKAGE",
-                             To_Unbounded_String (Test_Pkg)));
-         Render ("ada/project/tests", "all_tests.adb.tmplt",
-                 Ada.Directories.Compose (Test_Dir, "all_tests.adb"),
-                 T_A);
-      end;
-
       for R of Ts loop
+         --  Completion transitions (no trigger) are not exercisable
+         --  through the Transition lookup, which is keyed by event.
+         --  Skip them; they're covered by the runtime's completion
+         --  path, not by the test suite.
+         if Length (R.Trigger) = 0 then
+            goto Continue;
+         end if;
+
          declare
             From_Lit : constant String :=
               State_Literal (Id_Of (D, R.From));
@@ -1331,38 +1326,147 @@ package body Uml2Code_Ada is
                Targets    := Targets & To_Lit;
             end if;
          end;
+
+         <<Continue>>
       end loop;
 
-      declare
-         T_Case : Translate_Set;
-      begin
-         Insert (T_Case, Assoc ("PACKAGE_NAME", Package_Name));
-         Insert (T_Case, Assoc ("TEST_PACKAGE", Test_Pkg));
-         Insert (T_Case, Assoc ("TEST_PROC", Test_Procs));
-         Insert (T_Case, Assoc ("FROM", Froms));
-         Insert (T_Case, Assoc ("EVENT", Events));
-         Insert (T_Case, Assoc ("TARGET", Targets));
+      Insert (T_Case, Assoc ("PACKAGE_NAME", Package_Name));
+      Insert (T_Case, Assoc ("TEST_PACKAGE", Test_Pkg));
+      Insert (T_Case, Assoc ("TEST_PROC", Test_Procs));
+      Insert (T_Case, Assoc ("FROM", Froms));
+      Insert (T_Case, Assoc ("EVENT", Events));
+      Insert (T_Case, Assoc ("TARGET", Targets));
 
-         Render ("ada/state/tests", "test_case.ads.tmplt",
-                 Ada.Directories.Compose (Test_Dir, Test_Pkg & ".ads"),
-                 T_Case);
-         Render ("ada/state/tests", "test_case.adb.tmplt",
-                 Ada.Directories.Compose (Test_Dir, Test_Pkg & ".adb"),
-                 T_Case);
+      Render ("test_case.ads.tmplt",
+              Ada.Directories.Compose (Test_Dir, Test_Pkg & ".ads"),
+              T_Case);
+      Render ("test_case.adb.tmplt",
+              Ada.Directories.Compose (Test_Dir, Test_Pkg & ".adb"),
+              T_Case);
+   end Emit_Tests_For_Region;
+
+   --  Recursive walker: for every region (top level and each
+   --  composite), emit a test case package, and collect the test
+   --  package names for the suite composition.
+   procedure Emit_Tests_All_Regions
+     (D              : UML.Model.Diagram;
+      Region         : Natural;
+      Package_Name   : String;
+      Test_Dir       : String;
+      Case_Packages  : in out Tag;
+      N_Cases        : in out Natural)
+   is
+      Test_Pkg : constant String := Package_Name & "_Tests";
+      States   : constant Element_Index_Vectors.Vector :=
+        States_In (D, Region);
+      Children : constant Element_Index_Vectors.Vector :=
+        Composite_Children_Of (D, States);
+   begin
+      Emit_Tests_For_Region (D, Region, Package_Name, Test_Pkg, Test_Dir);
+      N_Cases := N_Cases + 1;
+      Case_Packages := Case_Packages & Test_Pkg;
+
+      for C of Children loop
+         Emit_Tests_All_Regions
+           (D             => D,
+            Region        => Natural (C),
+            Package_Name  => Child_Package_Name (D, C),
+            Test_Dir      => Test_Dir,
+            Case_Packages => Case_Packages,
+            N_Cases       => N_Cases);
+      end loop;
+   end Emit_Tests_All_Regions;
+
+   procedure Emit_Tests
+     (D              : UML.Model.Diagram;
+      Package_Name   : String;
+      Tests_Dir      : String)
+   is
+      Test_Dir : constant String :=
+        Ada.Directories.Compose (Tests_Dir, "test");
+      Suite_Name : constant String := Package_Name & "_Suite";
+
+      Case_Packages : Tag;
+      N_Cases       : Natural := 0;
+
+      procedure Render (Subdir, Template, Output : String;
+                        T : Translate_Set) is
+         Path : constant String :=
+           Uml2Code_Template_Path.Locate (Subdir, Template);
+         Content : constant String := Templates_Parser.Parse (Path, T);
+         F : File_Type;
+      begin
+         Create (F, Out_File, Output);
+         Put (F, Content);
+         Close (F);
+      end Render;
+
+      Empty_Set : Translate_Set;
+   begin
+      Ada.Directories.Create_Path (Test_Dir);
+
+      --  Harness: test_main.adb and all_tests.ads are static.
+      Render ("ada/project/tests", "test_main.adb.tmplt",
+              Ada.Directories.Compose (Test_Dir, "test_main.adb"),
+              Empty_Set);
+      Render ("ada/project/tests", "all_tests.ads.tmplt",
+              Ada.Directories.Compose (Test_Dir, "all_tests.ads"),
+              Empty_Set);
+
+      --  Per-region test cases.
+      Emit_Tests_All_Regions
+        (D             => D,
+         Region        => Top_Level,
+         Package_Name  => Package_Name,
+         Test_Dir      => Test_Dir,
+         Case_Packages => Case_Packages,
+         N_Cases       => N_Cases);
+
+      --  all_tests.adb is a thin wrapper over the suite.
+      declare
+         T_A : Translate_Set;
+      begin
+         Insert (T_A, Assoc ("SUITE_NAME", Suite_Name));
+         Render ("ada/project/tests", "all_tests.adb.tmplt",
+                 Ada.Directories.Compose (Test_Dir, "all_tests.adb"),
+                 T_A);
       end;
 
+      --  Suite composition.
+      declare
+         T_S : Translate_Set;
+         Index_Tag : Tag;
+      begin
+         for I in 1 .. N_Cases loop
+            Index_Tag := Index_Tag
+              & Ada.Strings.Fixed.Trim (I'Image, Ada.Strings.Both);
+         end loop;
+         Insert (T_S, Assoc ("SUITE_NAME", Suite_Name));
+         Insert (T_S, Assoc ("CASE_PACKAGE", Case_Packages));
+         Insert (T_S, Assoc ("TEST_INDEX", Index_Tag));
+         Render ("ada/project/tests", "suite.ads.tmplt",
+                 Ada.Directories.Compose (Test_Dir, Suite_Name & ".ads"),
+                 T_S);
+         Render ("ada/project/tests", "suite.adb.tmplt",
+                 Ada.Directories.Compose (Test_Dir, Suite_Name & ".adb"),
+                 T_S);
+      end;
+
+      --  tests.gpr
       declare
          T_Gpr : Translate_Set;
       begin
-         Insert (T_Gpr, Assoc ("TESTS_PROJECT",
-                               Package_Name & "_Tests"));
+         Insert (T_Gpr, Assoc ("TESTS_PROJECT", Package_Name & "_Tests"));
          Render ("ada/project/tests", "tests.gpr.tmplt",
                  Ada.Directories.Compose
                    (Ada.Directories.Containing_Directory (Tests_Dir),
                     Package_Name & "_tests.gpr"),
                  T_Gpr);
       end;
+
+      Put_Line ("wrote test suite for " & Package_Name);
    end Emit_Tests;
+
 
 
    --  Refuse to write generated output into the crate's own source

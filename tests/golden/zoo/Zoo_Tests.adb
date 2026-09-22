@@ -29,11 +29,13 @@ package body Zoo_Tests is
    overriding
    procedure Register_Tests (T : in out Case_Type) is
       use AUnit.Test_Cases.Registration;
+      pragma Unreferenced (T);
    begin
       Register_Routine (T, Test_Instantiate_Dog'Access,
                         "instantiate Animals.Dog");
       Register_Routine (T, Test_Instantiate_Toy'Access,
                         "instantiate Zoo.Toy");
+      null;
    end Register_Tests;
 
    overriding

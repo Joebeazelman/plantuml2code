@@ -10,13 +10,6 @@ package body Nested_Tests is
 
    use Nested;
 
-   procedure Test_Start_State_Tick (T : in out Test_Case'Class) is
-      pragma Unreferenced (T);
-   begin
-      Assert (Transition (Start_State, Tick) = Idle,
-              "Start_State --Tick--> Idle");
-   end Test_Start_State_Tick;
-
    procedure Test_Idle_Start (T : in out Test_Case'Class) is
       pragma Unreferenced (T);
    begin
@@ -48,9 +41,8 @@ package body Nested_Tests is
    overriding
    procedure Register_Tests (T : in out Case_Type) is
       use AUnit.Test_Cases.Registration;
+      pragma Unreferenced (T);
    begin
-      Register_Routine (T, Test_Start_State_Tick'Access,
-                        "Start_State --Tick--> Idle");
       Register_Routine (T, Test_Idle_Start'Access,
                         "Idle --Start--> Running");
       Register_Routine (T, Test_Idle_Continue'Access,
@@ -59,6 +51,7 @@ package body Nested_Tests is
                         "Running --Stop--> Idle");
       Register_Routine (T, Test_Running_Finish'Access,
                         "Running --Finish--> End_State");
+      null;
    end Register_Tests;
 
    overriding

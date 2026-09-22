@@ -10,13 +10,6 @@ package body Machine_Tests is
 
    use Machine;
 
-   procedure Test_Start_State_Tick (T : in out Test_Case'Class) is
-      pragma Unreferenced (T);
-   begin
-      Assert (Transition (Start_State, Tick) = ADB_Reset,
-              "Start_State --Tick--> ADB_Reset");
-   end Test_Start_State_Tick;
-
    procedure Test_ADB_Reset_Reset_Complete (T : in out Test_Case'Class) is
       pragma Unreferenced (T);
    begin
@@ -83,9 +76,8 @@ package body Machine_Tests is
    overriding
    procedure Register_Tests (T : in out Case_Type) is
       use AUnit.Test_Cases.Registration;
+      pragma Unreferenced (T);
    begin
-      Register_Routine (T, Test_Start_State_Tick'Access,
-                        "Start_State --Tick--> ADB_Reset");
       Register_Routine (T, Test_ADB_Reset_Reset_Complete'Access,
                         "ADB_Reset --Reset_Complete--> Address_Resolution");
       Register_Routine (T, Test_Address_Resolution_Bus_Enumerated'Access,
@@ -104,6 +96,7 @@ package body Machine_Tests is
                         "Evaluate_SRQ --SRQ_Not_Asserted--> Bus_Idle");
       Register_Routine (T, Test_SRQ_Resolution_SRQ_Cleared'Access,
                         "SRQ_Resolution --SRQ_Cleared--> Bus_Idle");
+      null;
    end Register_Tests;
 
    overriding

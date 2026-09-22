@@ -1,0 +1,13 @@
+with AUnit.Test_Suites;  use AUnit.Test_Suites;
+@@TABLE@@
+with @_CASE_PACKAGE_@;
+@@END_TABLE@@
+
+function @_SUITE_NAME_@ return Access_Test_Suite is
+   Result : constant Access_Test_Suite := new Test_Suite;
+begin
+@@TABLE@@
+   Add_Test (Result, new @_CASE_PACKAGE_@.Case_Type);
+@@END_TABLE@@
+   return Result;
+end @_SUITE_NAME_@;

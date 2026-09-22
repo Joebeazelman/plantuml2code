@@ -1,0 +1,2 @@
+with AUnit.Test_Suites;
+function @_SUITE_NAME_@ return AUnit.Test_Suites.Access_Test_Suite;
