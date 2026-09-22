@@ -1,10 +1,10 @@
 -----------------------------------------------------------------------
---  Running_Machine_Actions (body)
+--  Running_Machine.Operations (body)
 --
 --  Hand-written action bodies. Emitted once and never overwritten.
 -----------------------------------------------------------------------
 
-package body Running_Machine_Actions is
+package body Running_Machine.Operations is
 
    procedure Poll is
    begin
@@ -17,4 +17,4 @@ package body Running_Machine_Actions is
    end Halt;
 
 
-end Running_Machine_Actions;
+end Running_Machine.Operations;

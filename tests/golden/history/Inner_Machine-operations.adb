@@ -1,10 +1,10 @@
 -----------------------------------------------------------------------
---  Inner_Machine_Actions (body)
+--  Inner_Machine.Operations (body)
 --
 --  Hand-written action bodies. Emitted once and never overwritten.
 -----------------------------------------------------------------------
 
-package body Inner_Machine_Actions is
+package body Inner_Machine.Operations is
 
    procedure Entered_A is
    begin
@@ -17,4 +17,4 @@ package body Inner_Machine_Actions is
    end Entered_B;
 
 
-end Inner_Machine_Actions;
+end Inner_Machine.Operations;

@@ -1,13 +1,13 @@
 ---------------------------------------------------------------------
 --  Running_Machine
 ---------------------------------------------------------------------
-with Running_Machine_Actions;
+with Running_Machine.Operations;
 
 
 
 package body Running_Machine is
    use Base;
-   use Running_Machine_Actions;
+   use Running_Machine.Operations;
 
 
    Table : constant array (State, Event) of State :=

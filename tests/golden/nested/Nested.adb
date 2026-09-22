@@ -1,13 +1,13 @@
 ---------------------------------------------------------------------
 --  Nested
 ---------------------------------------------------------------------
-with Nested_Actions;
+with Nested.Operations;
 
 
 
 package body Nested is
    use Base;
-   use Nested_Actions;
+   use Nested.Operations;
 
 
    Table : constant array (State, Event) of State :=

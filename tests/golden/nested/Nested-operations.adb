@@ -1,10 +1,10 @@
 -----------------------------------------------------------------------
---  Nested_Actions (body)
+--  Nested.Operations (body)
 --
 --  Hand-written action bodies. Emitted once and never overwritten.
 -----------------------------------------------------------------------
 
-package body Nested_Actions is
+package body Nested.Operations is
 
    procedure Log_Idle is
    begin
@@ -22,4 +22,4 @@ package body Nested_Actions is
    end Bump;
 
 
-end Nested_Actions;
+end Nested.Operations;

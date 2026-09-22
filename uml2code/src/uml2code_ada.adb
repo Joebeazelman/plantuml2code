@@ -790,9 +790,11 @@ package body Uml2Code_Ada is
       Adb_File : constant String :=
         Ada.Directories.Compose (Out_Dir, Package_Name & ".adb");
       Act_Ads : constant String :=
-        Ada.Directories.Compose (Out_Dir, Package_Name & "_Actions.ads");
+        Ada.Directories.Compose (Out_Dir,
+                                 Package_Name & "-operations.ads");
       Act_Adb : constant String :=
-        Ada.Directories.Compose (Out_Dir, Package_Name & "_Actions.adb");
+        Ada.Directories.Compose (Out_Dir,
+                                 Package_Name & "-operations.adb");
    begin
       for C of Child_States loop
          declare
@@ -1209,9 +1211,10 @@ package body Uml2Code_Ada is
       begin
          if Has_Actions then
             With_Txt := To_Unbounded_String
-              ("with " & Package_Name & "_Actions;" & ASCII.LF & ASCII.LF);
+              ("with " & Package_Name & ".Operations;"
+               & ASCII.LF & ASCII.LF);
             Use_Txt := To_Unbounded_String
-              ("   use " & Package_Name & "_Actions;" & ASCII.LF);
+              ("   use " & Package_Name & ".Operations;" & ASCII.LF);
          end if;
          Insert (T, Assoc ("ACTIONS_WITH", With_Txt));
          Insert (T, Assoc ("ACTIONS_USE", Use_Txt));
@@ -1221,8 +1224,8 @@ package body Uml2Code_Ada is
       Render_To ("state.adb.tmplt", Adb_File, T);
 
       if Action_Decls_Text'Length > 0 then
-         Render_If_Missing ("actions.ads.tmplt", Act_Ads, T);
-         Render_If_Missing ("actions.adb.tmplt", Act_Adb, T);
+         Render_If_Missing ("operations.ads.tmplt", Act_Ads, T);
+         Render_If_Missing ("operations.adb.tmplt", Act_Adb, T);
       end if;
 
       for C of Child_States loop

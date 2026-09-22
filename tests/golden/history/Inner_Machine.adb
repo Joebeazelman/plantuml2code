@@ -1,13 +1,13 @@
 ---------------------------------------------------------------------
 --  Inner_Machine
 ---------------------------------------------------------------------
-with Inner_Machine_Actions;
+with Inner_Machine.Operations;
 
 
 
 package body Inner_Machine is
    use Base;
-   use Inner_Machine_Actions;
+   use Inner_Machine.Operations;
 
 
    Table : constant array (State, Event) of State :=

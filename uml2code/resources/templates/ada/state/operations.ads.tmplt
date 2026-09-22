@@ -1,12 +1,12 @@
 -----------------------------------------------------------------------
---  @_PACKAGE_NAME_@_Actions
+--  @_PACKAGE_NAME_@.Operations
 --
 --  Hand-written action bodies for @_PACKAGE_NAME_@.
 --  This file is emitted once and never overwritten. Fill in the
 --  procedure bodies with your application logic.
 -----------------------------------------------------------------------
 
-package @_PACKAGE_NAME_@_Actions is
+package @_PACKAGE_NAME_@.Operations is
 
 @_ACTION_DECLS_@
-end @_PACKAGE_NAME_@_Actions;
+end @_PACKAGE_NAME_@.Operations;
