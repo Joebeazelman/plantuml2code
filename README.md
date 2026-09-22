@@ -1,4 +1,4 @@
-# plantuml2code
+# uml2code
 
 Parse PlantUML state and class diagrams into a normalized model, then
 generate Ada 2022 code from that model. Two-crate workspace, built
@@ -8,18 +8,18 @@ with Alire.
 
 - **`plantuml_parser`** — library. Tokenizer, PlantUML state and class
   parsers, and the normalized `UML.Model` they both target.
-- **`plantuml2code`** — application. CLI that reads a `.puml` file and
+- **`uml2code`** — application. CLI that reads a `.puml` file and
   emits text, JSON, or Ada.
 
 ## Quick start
 
     cd plantuml_parser && alr build
-    cd ../plantuml2code && alr build
+    cd ../uml2code && alr build
 
-    cd plantuml2code
-    ./bin/plantuml2code dump ../samples/nested.puml
-    ./bin/plantuml2code dump -f json ../samples/nested.puml
-    ./bin/plantuml2code dump -f ada -o /tmp/gen ../samples/nested.puml
+    cd uml2code
+    ./bin/uml2code dump ../samples/nested.puml
+    ./bin/uml2code dump -f json ../samples/nested.puml
+    ./bin/uml2code dump -f ada -o /tmp/gen ../samples/nested.puml
     bash /tmp/gen/setup.sh
 
 The last command builds and runs the generated project.
@@ -31,7 +31,7 @@ Template location is resolved in this order:
 1. `-t <dir>` on the command line
 2. `./uml2code.conf` (project config)
 3. `~/.config/uml2code/config` (home config)
-4. `$PLANTUML2CODE_TEMPLATES`
+4. `$UML2CODE_TEMPLATES`
 5. Built-in `resources/templates` lookups relative to the crate
 
 Config files use a flat `key = value` format; only `templates_dir` is
@@ -61,7 +61,7 @@ shared across kinds:
 ## Tests
 
     cd plantuml_parser && ./run_tests.sh    # AUnit
-    cd ../plantuml2code && ./run_tests.sh   # AUnit
+    cd ../uml2code && ./run_tests.sh   # AUnit
     cd .. && ./tests/run_tests.sh           # golden files
 
 Golden files compare every generated `.ads`/`.adb`/`driver.adb`

@@ -7,10 +7,10 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 ROOT="$(pwd)"
 NORM="$ROOT/tests/normalize.sed"
-GEN="$ROOT/plantuml2code/bin/plantuml2code"
+GEN="$ROOT/uml2code/bin/uml2code"
 
 if [ ! -x "$GEN" ]; then
-  echo "error: $GEN not built. Run 'cd plantuml2code && alr build' first."
+  echo "error: $GEN not built. Run 'cd uml2code && alr build' first."
   exit 1
 fi
 
@@ -24,8 +24,8 @@ update_case () {
 
   local out
   out=$(mktemp -d)
-  ( cd "$ROOT/plantuml2code" \
-      && ./bin/plantuml2code dump -f ada -o "$out" \
+  ( cd "$ROOT/uml2code" \
+      && ./bin/uml2code dump -f ada -o "$out" \
          "../$source" >/dev/null )
 
   rm -f "$golden_dir"/*.ads "$golden_dir"/*.adb "$golden_dir"/driver.adb

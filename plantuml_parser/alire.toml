@@ -5,7 +5,7 @@ authors = ["Joe Beazelman"]
 maintainers = ["Joe Beazelman <joebeazelman@gmail.com>"]
 maintainers-logins = ["Joebeazelman"]
 licenses = "MIT OR Apache-2.0 WITH LLVM-exception"
-website = "https://github.com/Joebeazelman/plantuml2code"
+website = "https://github.com/Joebeazelman/uml2code"
 tags = ["plantuml", "parser", "uml", "state-machine", "class-diagram"]
 
 [build-switches]

@@ -1,4 +1,4 @@
-# plantuml2code — agent notes
+# uml2code — agent notes
 
 Parse PlantUML state and class diagrams into a normalized model, then
 generate Ada 2022 code from that model. This document is the map;
@@ -7,7 +7,7 @@ read it before making changes.
 ## Layout
 
     plantuml_parser/    library — tokenizer, PlantUML parsers, UML.Model
-    plantuml2code/      application — CLI and generators
+    uml2code/      application — CLI and generators
     samples/            .puml sources (nested, zoo, history, adb_protocol)
     tests/              golden-file tests (repo root)
     README.md           user-facing overview
@@ -26,14 +26,14 @@ or use the full path.
 ## Build and test
 
     cd plantuml_parser && alr build
-    cd ../plantuml2code && alr build
+    cd ../uml2code && alr build
 
     cd plantuml_parser && ./run_tests.sh    # AUnit, 24 tests
-    cd ../plantuml2code && ./run_tests.sh   # AUnit, 46 tests
+    cd ../uml2code && ./run_tests.sh   # AUnit, 46 tests
     cd .. && ./tests/run_tests.sh           # golden files
 
 `tests/run_tests.sh` refuses to run if any source file is newer than
-`plantuml2code/bin/plantuml2code`. If it complains, rebuild. This
+`uml2code/bin/uml2code`. If it complains, rebuild. This
 prevents a failed build from silently passing goldens against a stale
 binary.
 
@@ -105,7 +105,7 @@ Both consume `UML.Model.Diagram` and are template-driven. Ada code
 in the generators prepares data (tags, vectors); templates decide
 the shape of the output.
 
-### State generator (`plantuml2code_ada.adb`)
+### State generator (`uml2code_ada.adb`)
 
 Recursive over composite regions. Each composite state spawns a
 child region and a corresponding `<Child>_Machine` package. The
@@ -122,7 +122,7 @@ Emits per machine:
 Plus shared runtime (`state_machine.*`) and project scaffolding
 (`setup.sh`, `tests/driver.adb`) once per output directory.
 
-### Class generator (`plantuml2code_ada_classes.adb`)
+### Class generator (`uml2code_ada_classes.adb`)
 
 One Ada package per PlantUML package. Top-level classifiers go in a
 root package named after the diagram, or `Model` if unnamed.
@@ -158,7 +158,7 @@ associations.
 
 ### Validation
 
-`plantuml2code_ada_classes.Validate` runs before any output is
+`uml2code_ada_classes.Validate` runs before any output is
 emitted. Errors print to stderr; the exception `Validation_Error`
 is raised if any occurred, and no files are written. Checks:
 
@@ -251,7 +251,7 @@ per row), `METHOD_BODY` (per-row method body blocks), `OP_DECL`,
 
 Drop a directory under `resources/templates/<format>/` with `state/`
 and `class/` subdirectories. Add a binding function in
-`plantuml2code_template_bindings.adb` that populates the tags. No
+`uml2code_template_bindings.adb` that populates the tags. No
 changes to the Ada formatting logic are needed if the format is
 generated via templates.
 
@@ -262,7 +262,7 @@ Resolution order:
 1. `-t <dir>` CLI flag
 2. `./uml2code.conf` — flat `key = value`, key `templates_dir`
 3. `~/.config/uml2code/config`
-4. `$PLANTUML2CODE_TEMPLATES`
+4. `$UML2CODE_TEMPLATES`
 5. `resources/templates` relative to cwd, exe dir, or parent
 
 `Load_Config` reads project then home; a malformed config raises
@@ -270,14 +270,14 @@ Resolution order:
 
 ## CLI
 
-    plantuml2code dump <file>                   text
-    plantuml2code dump -f json <file>           JSON
-    plantuml2code dump -f ada -o <dir> <file>   generate Ada
-    plantuml2code kind <file>                   detect diagram kind
-    plantuml2code help [topic]
-    plantuml2code --version
+    uml2code dump <file>                   text
+    uml2code dump -f json <file>           JSON
+    uml2code dump -f ada -o <dir> <file>   generate Ada
+    uml2code kind <file>                   detect diagram kind
+    uml2code help [topic]
+    uml2code --version
 
-`-f text` routes to `PlantUML2Code_Model_Dump`, not the templates —
+`-f text` routes to `Uml2Code_Model_Dump`, not the templates —
 it's a developer diagnostic, not a generated format. `-f json` routes
 through the `json/` templates via `For_States`/`For_Classes`.
 
@@ -288,7 +288,7 @@ through the `json/` templates via `For_States`/`For_Classes`.
 `plantuml_parser/tests/` — 24 tests: Test_Tokens, Test_States,
 Test_Classes (including `Detect_Kind` for enum-only diagrams).
 
-`plantuml2code/tests/` — 46 tests: Test_Ansi, Test_CLI (18),
+`uml2code/tests/` — 46 tests: Test_Ansi, Test_CLI (18),
 Test_Config (6), Test_Formats (5), Test_Generator_Class (5),
 Test_Generator_States (10).
 
@@ -366,7 +366,7 @@ are done.
   ignored by the class generator. `1..*` should become a container
   field.
 - **ansiada.** Replace hand-rolled SGR wrappers in
-  `PlantUML2Code_Ansi` with the `ansiada` crate. Also fix `Auto`
+  `Uml2Code_Ansi` with the `ansiada` crate. Also fix `Auto`
   color mode to use `isatty (stdout)` instead of the `NO_COLOR` +
   `TERM` heuristic.
 

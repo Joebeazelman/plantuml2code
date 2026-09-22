@@ -11,17 +11,17 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 ROOT="$(pwd)"
 NORM="$ROOT/tests/normalize.sed"
-GEN="$ROOT/plantuml2code/bin/plantuml2code"
+GEN="$ROOT/uml2code/bin/uml2code"
 
 if [ ! -x "$GEN" ]; then
-  echo "error: $GEN not built. Run 'cd plantuml2code && alr build' first."
+  echo "error: $GEN not built. Run 'cd uml2code && alr build' first."
   exit 1
 fi
 
 # Refuse to run if any source is newer than the binary. A failed build
 # leaves the previous binary in place; without this check, goldens would
 # silently test stale output.
-newest_src=$(find "$ROOT/plantuml2code/src" "$ROOT/plantuml_parser/src" \
+newest_src=$(find "$ROOT/uml2code/src" "$ROOT/plantuml_parser/src" \
              -name '*.ad[bs]' -newer "$GEN" -print -quit)
 if [ -n "$newest_src" ]; then
   echo "error: $GEN is older than $newest_src"
@@ -43,9 +43,9 @@ check_case () {
   local out="$TMP/$name"
   mkdir -p "$out"
 
-  # Run the generator from plantuml2code/ so template lookup works
-  ( cd "$ROOT/plantuml2code" \
-      && ./bin/plantuml2code dump -f ada -o "$out" \
+  # Run the generator from uml2code/ so template lookup works
+  ( cd "$ROOT/uml2code" \
+      && ./bin/uml2code dump -f ada -o "$out" \
          "../$source" >/dev/null )
 
   # Normalize every generated file, then compare
