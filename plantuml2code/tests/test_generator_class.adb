@@ -12,6 +12,9 @@ with PlantUML2Code_Ada_Classes;
 
 package body Test_Generator_Class is
 
+   --  The generator emits one Ada package per PlantUML package. An
+   --  unnamed @startuml yields a root package called Model, so the
+   --  generated spec is model.ads.
    function Generate_And_Read
      (Diagram : String;
       File_Name : String) return String
@@ -46,59 +49,33 @@ package body Test_Generator_Class is
    function Has (Text, Sub : String) return Boolean is
      (Index (Text, Sub) > 0);
 
-   procedure Test_Concrete_Class_Derives_From_Object
-     (T : in out Test_Case'Class)
-   is
+   procedure Test_Concrete_Class (T : in out Test_Case'Class) is
       pragma Unreferenced (T);
       Src : constant String :=
         "@startuml" & ASCII.LF
         & "class Dog" & ASCII.LF
         & "@enduml";
-      Ads : constant String := Generate_And_Read (Src, "Dog.ads");
+      Ads : constant String := Generate_And_Read (Src, "model.ads");
    begin
-      Assert (Has (Ads, "with Class_Runtime;"),
-              "spec withs Class_Runtime");
-      Assert (Has (Ads, "type T is new Class_Runtime.Object"),
-              "type derives from Class_Runtime.Object");
-      Assert (Has (Ads, "function Class_Name"),
-              "spec declares Class_Name");
-   end Test_Concrete_Class_Derives_From_Object;
+      Assert (Has (Ads, "type Dog is tagged null record;"),
+              "concrete class declared as tagged null record");
+      Assert (Has (Ads, "package Model is"),
+              "root package named Model");
+   end Test_Concrete_Class;
 
-   procedure Test_Class_Name_Body_Emitted
-     (T : in out Test_Case'Class)
-   is
-      pragma Unreferenced (T);
-      Src : constant String :=
-        "@startuml" & ASCII.LF
-        & "class Dog" & ASCII.LF
-        & "@enduml";
-      Adb : constant String := Generate_And_Read (Src, "Dog.adb");
-   begin
-      Assert (Has (Adb, "function Class_Name"),
-              "body defines Class_Name");
-      Assert (Has (Adb, "return ""Dog"";"),
-              "returns the class name");
-   end Test_Class_Name_Body_Emitted;
-
-   procedure Test_Interface_Is_Limited
-     (T : in out Test_Case'Class)
-   is
+   procedure Test_Interface_Is_Limited (T : in out Test_Case'Class) is
       pragma Unreferenced (T);
       Src : constant String :=
         "@startuml" & ASCII.LF
         & "interface Speaker" & ASCII.LF
         & "@enduml";
-      Ads : constant String := Generate_And_Read (Src, "Speaker.ads");
+      Ads : constant String := Generate_And_Read (Src, "model.ads");
    begin
-      Assert (Has (Ads, "limited interface"),
-              "interface is limited");
-      Assert (Has (Ads, "and Class_Runtime.Object"),
-              "interface derives from Object");
+      Assert (Has (Ads, "type Speaker is limited interface;"),
+              "interface declared as limited interface");
    end Test_Interface_Is_Limited;
 
-   procedure Test_Enumeration_Body_Emitted
-     (T : in out Test_Case'Class)
-   is
+   procedure Test_Enumeration (T : in out Test_Case'Class) is
       pragma Unreferenced (T);
       Src : constant String :=
         "@startuml" & ASCII.LF
@@ -107,13 +84,11 @@ package body Test_Generator_Class is
         & "  Green" & ASCII.LF
         & "}" & ASCII.LF
         & "@enduml";
-      Adb : constant String := Generate_And_Read (Src, "Color.adb");
+      Ads : constant String := Generate_And_Read (Src, "model.ads");
    begin
-      Assert (Has (Adb, "function Class_Name"),
-              "enum has Class_Name body");
-      Assert (Has (Adb, "return ""Color"";"),
-              "returns the enum name");
-   end Test_Enumeration_Body_Emitted;
+      Assert (Has (Ads, "type Color is (Red, Green);"),
+              "enum declared with literals");
+   end Test_Enumeration;
 
    procedure Test_Subclass_Derives_From_Parent
      (T : in out Test_Case'Class)
@@ -125,33 +100,42 @@ package body Test_Generator_Class is
         & "class Dog" & ASCII.LF
         & "Animal <|-- Dog" & ASCII.LF
         & "@enduml";
-      Ads : constant String := Generate_And_Read (Src, "Dog.ads");
+      Ads : constant String := Generate_And_Read (Src, "model.ads");
    begin
-      Assert (Has (Ads, "with Animal;"),
-              "subclass withs its parent");
-      Assert (Has (Ads, "type T is new Animal.T"),
+      Assert (Has (Ads, "type Dog is new Animal with null record;"),
               "subclass derives from parent");
    end Test_Subclass_Derives_From_Parent;
+
+   procedure Test_Package_Membership (T : in out Test_Case'Class) is
+      pragma Unreferenced (T);
+      Src : constant String :=
+        "@startuml" & ASCII.LF
+        & "package Animals {" & ASCII.LF
+        & "  class Dog" & ASCII.LF
+        & "}" & ASCII.LF
+        & "@enduml";
+      Ads : constant String := Generate_And_Read (Src, "animals.ads");
+   begin
+      Assert (Has (Ads, "package Animals is"),
+              "PlantUML package becomes Ada package");
+      Assert (Has (Ads, "type Dog is tagged null record;"),
+              "class inside package");
+   end Test_Package_Membership;
 
    overriding
    procedure Register_Tests (T : in out Case_Type) is
       use AUnit.Test_Cases.Registration;
    begin
-      Register_Routine
-        (T, Test_Concrete_Class_Derives_From_Object'Access,
-         "concrete class derives from Object");
-      Register_Routine
-        (T, Test_Class_Name_Body_Emitted'Access,
-         "Class_Name body emitted");
-      Register_Routine
-        (T, Test_Interface_Is_Limited'Access,
-         "interface is limited");
-      Register_Routine
-        (T, Test_Enumeration_Body_Emitted'Access,
-         "enumeration body emitted");
-      Register_Routine
-        (T, Test_Subclass_Derives_From_Parent'Access,
-         "subclass derives from parent");
+      Register_Routine (T, Test_Concrete_Class'Access,
+                        "concrete class");
+      Register_Routine (T, Test_Interface_Is_Limited'Access,
+                        "interface is limited");
+      Register_Routine (T, Test_Enumeration'Access,
+                        "enumeration");
+      Register_Routine (T, Test_Subclass_Derives_From_Parent'Access,
+                        "subclass derives from parent");
+      Register_Routine (T, Test_Package_Membership'Access,
+                        "package membership");
    end Register_Tests;
 
    overriding
