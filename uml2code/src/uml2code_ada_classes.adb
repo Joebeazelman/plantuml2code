@@ -1042,7 +1042,6 @@ package body Uml2Code_Ada_Classes is
         Members_Of (D, Pkg);
 
       Seen_Names : array (1 .. 64) of Unbounded_String;
-      Seen_Types : array (1 .. 64) of Unbounded_String;
       N_Seen     : Natural := 0;
 
       function Seen (Name : String) return Boolean is
@@ -1091,8 +1090,6 @@ package body Uml2Code_Ada_Classes is
                   if not Seen (V_Name) then
                      N_Seen := N_Seen + 1;
                      Seen_Names (N_Seen) := To_Unbounded_String (V_Name);
-                     Seen_Types (N_Seen) :=
-                       To_Unbounded_String (Elem_Type);
                      Vector_Pkgs   := Vector_Pkgs & V_Name;
                      Element_Names := Element_Names & Elem_Name;
                      Element_Types := Element_Types & Elem_Type;
