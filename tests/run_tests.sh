@@ -45,7 +45,7 @@ check_case () {
 
   # Run the generator from uml2code/ so template lookup works
   ( cd "$ROOT/uml2code" \
-      && ./bin/uml2code dump -f ada -o "$out" \
+      && ./bin/uml2code gen -f ada -o "$out" \
          "../$source" >/dev/null )
 
   # Normalize every generated file, then compare

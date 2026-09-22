@@ -5,7 +5,7 @@ with Uml2Code_Formats;
 
 package Uml2Code_Commands is
 
-   function Run_Dump
+   function Run_Gen
      (Path : String;
       Fmt  : Uml2Code_Formats.Format) return Boolean;
 

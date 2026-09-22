@@ -17,9 +17,9 @@ with Alire.
     cd ../uml2code && alr build
 
     cd uml2code
-    ./bin/uml2code dump ../samples/nested.puml
-    ./bin/uml2code dump -f json ../samples/nested.puml
-    ./bin/uml2code dump -f ada -o /tmp/gen ../samples/nested.puml
+    ./bin/uml2code gen ../samples/nested.puml
+    ./bin/uml2code gen -f json ../samples/nested.puml
+    ./bin/uml2code gen -f ada -o /tmp/gen ../samples/nested.puml
     bash /tmp/gen/setup.sh
 
 The last command builds and runs the generated project.

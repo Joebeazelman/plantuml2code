@@ -23,8 +23,8 @@ package body Uml2Code_CLI is
 
    function Parse_Command (S : String) return Command_Kind is
    begin
-      if S = "dump" then
-         return Cmd_Dump;
+      if S = "gen" then
+         return Cmd_Gen;
       elsif S = "kind" then
          return Cmd_Kind;
       elsif S = "help" then

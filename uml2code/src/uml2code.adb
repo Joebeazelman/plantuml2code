@@ -126,11 +126,41 @@ begin
       declare
          D : constant String := To_String (Args.Out_Dir);
       begin
-         if not Ada.Directories.Exists (D) then
-            Fail ("output directory not found: '" & D & "'");
-            Hint ("create it with: mkdir -p " & D);
-            Set_Exit_Status (Failure);
-            return;
+         --  Policy: the output directory must not exist, or must be
+         --  empty. We refuse to merge generated output into a tree
+         --  that already has content.
+         if Ada.Directories.Exists (D) then
+            declare
+               S : Ada.Directories.Search_Type;
+               Ent : Ada.Directories.Directory_Entry_Type;
+               Has_Anything : Boolean := False;
+            begin
+               Ada.Directories.Start_Search (S, D, "*");
+               while not Has_Anything
+                 and then Ada.Directories.More_Entries (S)
+               loop
+                  Ada.Directories.Get_Next_Entry (S, Ent);
+                  declare
+                     N : constant String :=
+                       Ada.Directories.Simple_Name (Ent);
+                  begin
+                     if N /= "." and then N /= ".." then
+                        Has_Anything := True;
+                     end if;
+                  end;
+               end loop;
+               Ada.Directories.End_Search (S);
+
+               if Has_Anything then
+                  Fail ("output directory '" & D & "' is not empty");
+                  Hint ("use an empty directory, or remove its "
+                        & "contents first");
+                  Set_Exit_Status (Failure);
+                  return;
+               end if;
+            end;
+         else
+            Ada.Directories.Create_Path (D);
          end if;
          Uml2Code_Formats.Set_Output_Dir (D);
       end;
@@ -164,8 +194,8 @@ begin
       begin
          begin
             case Args.Cmd is
-               when Cmd_Dump =>
-                  if not Uml2Code_Commands.Run_Dump
+               when Cmd_Gen =>
+                  if not Uml2Code_Commands.Run_Gen
                            (Path, Args.Format)
                   then
                      Ok := False;

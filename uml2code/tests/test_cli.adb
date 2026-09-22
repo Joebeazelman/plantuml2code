@@ -38,10 +38,10 @@ package body Test_CLI is
    procedure Test_Dump_One_File (T : in out Test_Case'Class) is
       pragma Unreferenced (T);
       R : constant Parse_Result :=
-        Parse_It ("dump", "a.puml");
+        Parse_It ("gen", "a.puml");
    begin
       Assert (R.Ok, "ok");
-      Assert (R.Cmd = Cmd_Dump, "cmd dump");
+      Assert (R.Cmd = Cmd_Gen, "cmd dump");
       Assert (Natural (R.Files.Length) = 1, "one file");
       Assert (To_String (R.Files (1)) = "a.puml", "file name");
       Assert (R.Format = Uml2Code_Formats.Text, "default format");
@@ -50,7 +50,7 @@ package body Test_CLI is
    procedure Test_F_Separated (T : in out Test_Case'Class) is
       pragma Unreferenced (T);
       R : constant Parse_Result :=
-        Parse_It ("dump", "-f", "json", "a.puml");
+        Parse_It ("gen", "-f", "json", "a.puml");
    begin
       Assert (R.Ok, "ok");
       Assert (R.Format = Uml2Code_Formats.Json, "json");
@@ -60,7 +60,7 @@ package body Test_CLI is
    procedure Test_F_Attached (T : in out Test_Case'Class) is
       pragma Unreferenced (T);
       R : constant Parse_Result :=
-        Parse_It ("dump", "-fjson", "a.puml");
+        Parse_It ("gen", "-fjson", "a.puml");
    begin
       Assert (R.Ok, "ok");
       Assert (R.Format = Uml2Code_Formats.Json, "json");
@@ -69,7 +69,7 @@ package body Test_CLI is
    procedure Test_Format_Equals (T : in out Test_Case'Class) is
       pragma Unreferenced (T);
       R : constant Parse_Result :=
-        Parse_It ("dump", "--format=ada", "a.puml");
+        Parse_It ("gen", "--format=ada", "a.puml");
    begin
       Assert (R.Ok, "ok");
       Assert (R.Format = Uml2Code_Formats.Ada_HSM, "ada");
@@ -77,7 +77,7 @@ package body Test_CLI is
 
    procedure Test_F_Missing_Value (T : in out Test_Case'Class) is
       pragma Unreferenced (T);
-      R : constant Parse_Result := Parse_It ("dump", "-f");
+      R : constant Parse_Result := Parse_It ("gen", "-f");
    begin
       Assert (not R.Ok, "missing value fails");
    end Test_F_Missing_Value;
@@ -85,7 +85,7 @@ package body Test_CLI is
    procedure Test_Unknown_Format (T : in out Test_Case'Class) is
       pragma Unreferenced (T);
       R : constant Parse_Result :=
-        Parse_It ("dump", "-f", "yaml", "a.puml");
+        Parse_It ("gen", "-f", "yaml", "a.puml");
    begin
       Assert (not R.Ok, "unknown format fails");
    end Test_Unknown_Format;
@@ -93,7 +93,7 @@ package body Test_CLI is
    procedure Test_Unknown_Option (T : in out Test_Case'Class) is
       pragma Unreferenced (T);
       R : constant Parse_Result :=
-        Parse_It ("dump", "--bogus", "a.puml");
+        Parse_It ("gen", "--bogus", "a.puml");
    begin
       Assert (not R.Ok, "unknown option fails");
    end Test_Unknown_Option;
@@ -101,7 +101,7 @@ package body Test_CLI is
    procedure Test_Multiple_Commands (T : in out Test_Case'Class) is
       pragma Unreferenced (T);
       R : constant Parse_Result :=
-        Parse_It ("dump", "kind", "a.puml");
+        Parse_It ("gen", "kind", "a.puml");
    begin
       Assert (not R.Ok, "multiple commands fails");
    end Test_Multiple_Commands;
@@ -109,7 +109,7 @@ package body Test_CLI is
    procedure Test_Output_Dir (T : in out Test_Case'Class) is
       pragma Unreferenced (T);
       R : constant Parse_Result :=
-        Parse_It ("dump", "-o", "/tmp", "a.puml");
+        Parse_It ("gen", "-o", "/tmp", "a.puml");
    begin
       Assert (R.Ok, "ok");
       Assert (R.Out_Set, "output set");
@@ -118,11 +118,11 @@ package body Test_CLI is
 
    procedure Test_Help_Topic (T : in out Test_Case'Class) is
       pragma Unreferenced (T);
-      R : constant Parse_Result := Parse_It ("help", "dump");
+      R : constant Parse_Result := Parse_It ("help", "gen");
    begin
       Assert (R.Ok, "ok");
       Assert (R.Cmd = Cmd_Help, "help");
-      Assert (To_String (R.Help_Topic) = "dump", "topic is dump");
+      Assert (To_String (R.Help_Topic) = "gen", "topic is dump");
    end Test_Help_Topic;
 
    procedure Test_Help_No_Topic (T : in out Test_Case'Class) is
@@ -153,7 +153,7 @@ package body Test_CLI is
    procedure Test_Color_Never (T : in out Test_Case'Class) is
       pragma Unreferenced (T);
       R : constant Parse_Result :=
-        Parse_It ("dump", "--color=never", "a.puml");
+        Parse_It ("gen", "--color=never", "a.puml");
    begin
       Assert (R.Ok, "ok");
       Assert (R.Color = Uml2Code_Ansi.Never, "never");
@@ -162,7 +162,7 @@ package body Test_CLI is
    procedure Test_Color_Separated (T : in out Test_Case'Class) is
       pragma Unreferenced (T);
       R : constant Parse_Result :=
-        Parse_It ("dump", "--color", "always", "a.puml");
+        Parse_It ("gen", "--color", "always", "a.puml");
    begin
       Assert (R.Ok, "ok");
       Assert (R.Color = Uml2Code_Ansi.Always, "always");
@@ -171,7 +171,7 @@ package body Test_CLI is
    procedure Test_Multiple_Files (T : in out Test_Case'Class) is
       pragma Unreferenced (T);
       R : constant Parse_Result :=
-        Parse_It ("dump", "a.puml", "b.puml", "c.puml");
+        Parse_It ("gen", "a.puml", "b.puml", "c.puml");
    begin
       Assert (R.Ok, "ok");
       Assert (Natural (R.Files.Length) = 3, "three files");
@@ -179,7 +179,7 @@ package body Test_CLI is
 
    procedure Test_Stdin_Dash (T : in out Test_Case'Class) is
       pragma Unreferenced (T);
-      R : constant Parse_Result := Parse_It ("dump", "-");
+      R : constant Parse_Result := Parse_It ("gen", "-");
    begin
       Assert (R.Ok, "ok");
       Assert (Natural (R.Files.Length) = 1, "one file");

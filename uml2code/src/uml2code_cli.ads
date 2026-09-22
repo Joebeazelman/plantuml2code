@@ -16,7 +16,7 @@ package Uml2Code_CLI is
    use Ada.Strings.Unbounded;
 
    type Command_Kind is
-     (Cmd_None, Cmd_Dump, Cmd_Kind, Cmd_Help, Cmd_Version);
+     (Cmd_None, Cmd_Gen, Cmd_Kind, Cmd_Help, Cmd_Version);
 
    package Argument_Vectors is new Ada.Containers.Vectors
      (Positive, Unbounded_String);

@@ -23,7 +23,7 @@ package body Uml2Code_Help is
                 & " <command> [options] <file>...");
       New_Line (F);
       Put_Line (F, Bold ("Commands:"));
-      Put_Line (F, "  " & Cyan ("dump")
+      Put_Line (F, "  " & Cyan ("gen")
                 & "     Parse each file and emit it.");
       Put_Line (F, "  " & Cyan ("kind")
                 & "     Print the detected diagram kind.");
@@ -50,22 +50,22 @@ package body Uml2Code_Help is
       New_Line (F);
       Put_Line (F, Bold ("Examples:"));
       Put_Line (F, "  " & Dim ("$") & " " & Program_Name
-                & " dump diagram.puml");
+                & " gen diagram.puml");
       Put_Line (F, "  " & Dim ("$") & " " & Program_Name
-                & " dump -f json diagram.puml");
+                & " gen -f json diagram.puml");
       Put_Line (F, "  " & Dim ("$") & " " & Program_Name
-                & " dump -f ada -o ./gen diagram.puml");
+                & " gen -f ada -o ./gen diagram.puml");
       Put_Line (F, "  " & Dim ("$") & " cat diagram.puml | "
-                & Program_Name & " dump -");
+                & Program_Name & " gen -");
    end Print_Usage;
 
    procedure Print_Topic (Topic : String) is
       T : constant String := To_Lower (Topic);
    begin
-      if T = "" or else T = "dump" then
-         Put_Line (Bold ("dump") & " — parse and emit a diagram");
+      if T = "" or else T = "gen" then
+         Put_Line (Bold ("gen") & " — parse and emit a diagram");
          Put_Line ("  Usage: " & Program_Name
-                   & " dump [options] <file>...");
+                   & " gen [options] <file>...");
          New_Line;
          Put_Line ("  Reads each file as PlantUML, decides whether it "
                    & "is a state");

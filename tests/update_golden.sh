@@ -25,7 +25,7 @@ update_case () {
   local out
   out=$(mktemp -d)
   ( cd "$ROOT/uml2code" \
-      && ./bin/uml2code dump -f ada -o "$out" \
+      && ./bin/uml2code gen -f ada -o "$out" \
          "../$source" >/dev/null )
 
   rm -f "$golden_dir"/*.ads "$golden_dir"/*.adb "$golden_dir"/driver.adb

@@ -1,3 +1,4 @@
+with Ada.Directories;
 with Ada.Text_IO;              use Ada.Text_IO;
 with Ada.Strings.Unbounded;    use Ada.Strings.Unbounded;
 
@@ -40,7 +41,7 @@ package body Uml2Code_Commands is
       return To_String (Result);
    end Read_All;
 
-   function Run_Dump
+   function Run_Gen
      (Path : String;
       Fmt  : Uml2Code_Formats.Format) return Boolean
    is
@@ -71,7 +72,7 @@ package body Uml2Code_Commands is
             end case;
       end case;
       return True;
-   end Run_Dump;
+   end Run_Gen;
 
    function Run_Kind (Path : String) return Boolean is
       Src : constant String := Read_All (Path);

@@ -270,9 +270,9 @@ Resolution order:
 
 ## CLI
 
-    uml2code dump <file>                   text
-    uml2code dump -f json <file>           JSON
-    uml2code dump -f ada -o <dir> <file>   generate Ada
+    uml2code gen <file>                   text
+    uml2code gen -f json <file>           JSON
+    uml2code gen -f ada -o <dir> <file>   generate Ada
     uml2code kind <file>                   detect diagram kind
     uml2code help [topic]
     uml2code --version
@@ -308,7 +308,7 @@ update them intentionally in the same commit.
 
 ### Generated project as build test
 
-`dump -f ada -o <dir>` writes a self-contained Alire project:
+`gen -f ada -o <dir>` writes a self-contained Alire project:
 
     <dir>/
       src/       generated .ads/.adb (+ runtime, if state diagram)
