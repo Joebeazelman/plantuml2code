@@ -13,6 +13,10 @@ package Middle_Machine is
    type Event is
      (Tick);
 
+   --  Transition lookup independent of any machine instance. The
+   --  generated test suite asserts against this.
+   function Transition (From : State; On : Event) return State;
+
    package Base is new State_Machine.Machines
      (State   => State,
       Event   => Event,
@@ -20,10 +24,38 @@ package Middle_Machine is
 
    type Machine is new Base.Machine with private;
 
+   overriding
+   function Next_State (Self : Machine; On : Event) return State;
+
+   overriding
+   function Name (Self : Machine) return String;
+
+   overriding
+   procedure On_Enter (Self : in out Machine);
+
+   overriding
+   procedure On_Exit (Self : in out Machine);
+
+   overriding
+   procedure On_Tick (Self : in out Machine);
+
+   overriding
+   function On_Internal (Self : in out Machine; On : Event)
+                          return Boolean;
+
+   overriding
+   function Is_History_Entry
+     (Self : Machine; From : State; On : Event)
+      return Base.History_Mode;
+
    procedure Step_Inner (Self : in out Machine;
                             On : Inner_Machine.Event);
 
    function Inner_State (Self : Machine) return Inner_Machine.State;
 
 
+private
+   type Machine is new Base.Machine with record
+      Inner_Child : Inner_Machine.Machine;
+   end record;
 end Middle_Machine;

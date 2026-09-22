@@ -4,6 +4,7 @@
 
 
 package body HistoryTest is
+   use Base;
 
 
    Table : constant array (State, Event) of State :=
@@ -30,9 +31,19 @@ package body HistoryTest is
          others => Outer]
      ];
 
+   function Transition (From : State; On : Event) return State
+   is (Table (From, On));
+
    overriding
    function Next_State (Self : Machine; On : Event) return State
    is (Table (Current_State (Self), On));
+
+   overriding
+   function Name (Self : Machine) return String is
+      pragma Unreferenced (Self);
+   begin
+      return "HistoryTest";
+   end Name;
 
    overriding
    procedure On_Enter (Self : in out Machine) is
@@ -83,12 +94,6 @@ package body HistoryTest is
    procedure On_Tick (Self : in out Machine) is
    begin
       case Current_State (Self) is
-         when Start_State =>
-
-         when Idle =>
-
-         when Outer =>
-
          when others =>
             null;
       end case;
@@ -99,21 +104,16 @@ package body HistoryTest is
    is
    begin
       case Current_State (Self) is
-         when Start_State =>
-
-         when Idle =>
-
-         when Outer =>
-
          when others =>
             return False;
       end case;
    end On_Internal;
 
    overriding
-   function Is_History_Entry (Self : Machine; On : Event)
-                              return History_Kind is
-      pragma Unreferenced (Self, On);
+   function Is_History_Entry
+     (Self : Machine; From : State; On : Event)
+      return Base.History_Mode is
+      pragma Unreferenced (Self, From, On);
    begin
       case Current_State (Self) is
          when Idle =>

@@ -4,6 +4,7 @@
 
 
 package body Machine is
+   use Base;
 
 
    Table : constant array (State, Event) of State :=
@@ -97,9 +98,19 @@ package body Machine is
          others => SRQ_Resolution]
      ];
 
+   function Transition (From : State; On : Event) return State
+   is (Table (From, On));
+
    overriding
    function Next_State (Self : Machine; On : Event) return State
    is (Table (Current_State (Self), On));
+
+   overriding
+   function Name (Self : Machine) return String is
+      pragma Unreferenced (Self);
+   begin
+      return "Machine";
+   end Name;
 
    overriding
    procedure On_Enter (Self : in out Machine) is
@@ -220,22 +231,6 @@ package body Machine is
    procedure On_Tick (Self : in out Machine) is
    begin
       case Current_State (Self) is
-         when Start_State =>
-
-         when ADB_Reset =>
-
-         when Address_Resolution =>
-
-         when Bus_Idle =>
-
-         when Execute_Explicit_Command =>
-
-         when Autopolling =>
-
-         when Evaluate_SRQ =>
-
-         when SRQ_Resolution =>
-
          when others =>
             null;
       end case;
@@ -246,31 +241,16 @@ package body Machine is
    is
    begin
       case Current_State (Self) is
-         when Start_State =>
-
-         when ADB_Reset =>
-
-         when Address_Resolution =>
-
-         when Bus_Idle =>
-
-         when Execute_Explicit_Command =>
-
-         when Autopolling =>
-
-         when Evaluate_SRQ =>
-
-         when SRQ_Resolution =>
-
          when others =>
             return False;
       end case;
    end On_Internal;
 
    overriding
-   function Is_History_Entry (Self : Machine; On : Event)
-                              return History_Kind is
-      pragma Unreferenced (Self, On);
+   function Is_History_Entry
+     (Self : Machine; From : State; On : Event)
+      return Base.History_Mode is
+      pragma Unreferenced (Self, From, On);
    begin
       case Current_State (Self) is
          when others =>

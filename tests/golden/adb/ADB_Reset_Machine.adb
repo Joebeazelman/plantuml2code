@@ -4,6 +4,7 @@
 
 
 package body ADB_Reset_Machine is
+   use Base;
 
 
    Table : constant array (State, Event) of State :=
@@ -13,9 +14,19 @@ package body ADB_Reset_Machine is
          others => Send_Reset_Cmd]
      ];
 
+   function Transition (From : State; On : Event) return State
+   is (Table (From, On));
+
    overriding
    function Next_State (Self : Machine; On : Event) return State
    is (Table (Current_State (Self), On));
+
+   overriding
+   function Name (Self : Machine) return String is
+      pragma Unreferenced (Self);
+   begin
+      return "ADB_Reset_Machine";
+   end Name;
 
    overriding
    procedure On_Enter (Self : in out Machine) is
@@ -46,8 +57,6 @@ package body ADB_Reset_Machine is
    procedure On_Tick (Self : in out Machine) is
    begin
       case Current_State (Self) is
-         when Send_Reset_Cmd =>
-
          when others =>
             null;
       end case;
@@ -58,17 +67,16 @@ package body ADB_Reset_Machine is
    is
    begin
       case Current_State (Self) is
-         when Send_Reset_Cmd =>
-
          when others =>
             return False;
       end case;
    end On_Internal;
 
    overriding
-   function Is_History_Entry (Self : Machine; On : Event)
-                              return History_Kind is
-      pragma Unreferenced (Self, On);
+   function Is_History_Entry
+     (Self : Machine; From : State; On : Event)
+      return Base.History_Mode is
+      pragma Unreferenced (Self, From, On);
    begin
       case Current_State (Self) is
          when others =>

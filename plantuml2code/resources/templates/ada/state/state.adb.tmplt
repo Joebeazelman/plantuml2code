@@ -4,6 +4,7 @@
 @_ACTIONS_WITH_@
 
 package body @_PACKAGE_NAME_@ is
+   use Base;
 @_ACTIONS_USE_@
 
    Table : constant array (State, Event) of State :=
@@ -18,9 +19,19 @@ package body @_PACKAGE_NAME_@ is
 @@END_TABLE@@
      ];
 
+   function Transition (From : State; On : Event) return State
+   is (Table (From, On));
+
    overriding
    function Next_State (Self : Machine; On : Event) return State
    is (Table (Current_State (Self), On));
+
+   overriding
+   function Name (Self : Machine) return String is
+      pragma Unreferenced (Self);
+   begin
+      return "@_PACKAGE_NAME_@";
+   end Name;
 
    overriding
    procedure On_Enter (Self : in out Machine) is
@@ -80,11 +91,11 @@ package body @_PACKAGE_NAME_@ is
    begin
       case Current_State (Self) is
 @@TABLE@@
-         when @_TICK_STATE_LIT_@ =>
 @@IF@@ @_TICK_HAS_ACTION_@
+         when @_TICK_STATE_LIT_@ =>
             @_TICK_ACTION_CALL_@;
-@@END_IF@@
 
+@@END_IF@@
 @@END_TABLE@@
          when others =>
             null;
@@ -97,8 +108,8 @@ package body @_PACKAGE_NAME_@ is
    begin
       case Current_State (Self) is
 @@TABLE@@
-         when @_INTERNAL_STATE_LIT_@ =>
 @@IF@@ @_INTERNAL_HAS_ANY_@
+         when @_INTERNAL_STATE_LIT_@ =>
 @@IF@@ @_INTERNAL_HAS_EVENT_@
             if On = @_INTERNAL_EVENT_LIT_@ then
                @_INTERNAL_ACTION_CALL_@;
@@ -106,8 +117,8 @@ package body @_PACKAGE_NAME_@ is
             end if;
 @@END_IF@@
             return False;
-@@END_IF@@
 
+@@END_IF@@
 @@END_TABLE@@
          when others =>
             return False;
@@ -115,9 +126,10 @@ package body @_PACKAGE_NAME_@ is
    end On_Internal;
 
    overriding
-   function Is_History_Entry (Self : Machine; On : Event)
-                              return History_Kind is
-      pragma Unreferenced (Self, On);
+   function Is_History_Entry
+     (Self : Machine; From : State; On : Event)
+      return Base.History_Mode is
+      pragma Unreferenced (Self, From, On);
    begin
       case Current_State (Self) is
 @_HISTORY_CASES_@

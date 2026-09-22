@@ -1,0 +1,38 @@
+--  One test per concrete class: declare an instance, prove it
+--  compiles and default-constructs. Behavioral tests wait until
+--  the user fills in <Package>.Operations.
+
+with AUnit.Assertions;   use AUnit.Assertions;
+with AUnit.Test_Cases;   use AUnit.Test_Cases;
+
+@_WITH_CLAUSES_@
+package body @_TEST_PACKAGE_@ is
+
+@@TABLE@@
+   procedure @_TEST_PROC_@ (T : in out Test_Case'Class) is
+      pragma Unreferenced (T);
+      X : @_PKG_NAME_@.@_TYPE_NAME_@;
+      pragma Unreferenced (X);
+   begin
+      null;
+   end @_TEST_PROC_@;
+
+@@END_TABLE@@
+   overriding
+   procedure Register_Tests (T : in out Case_Type) is
+      use AUnit.Test_Cases.Registration;
+   begin
+@@TABLE@@
+      Register_Routine (T, @_TEST_PROC_@'Access,
+                        "instantiate @_PKG_NAME_@.@_TYPE_NAME_@");
+@@END_TABLE@@
+   end Register_Tests;
+
+   overriding
+   function Name (T : Case_Type) return AUnit.Message_String is
+      pragma Unreferenced (T);
+   begin
+      return AUnit.Format ("@_MODEL_NAME_@");
+   end Name;
+
+end @_TEST_PACKAGE_@;

@@ -19,6 +19,11 @@ package State_Machine.Machines is
    function Next_State (Self : Machine; On : Event) return State
      is abstract;
 
+   --  Default machine name used by tracing. Concrete descendants
+   --  inherit this and may override it with a more specific name.
+   overriding
+   function Name (Self : Machine) return String is ("Machine");
+
    function Is_History_Entry
      (Self : Machine; From : State; On : Event) return History_Mode
      is (History_None);

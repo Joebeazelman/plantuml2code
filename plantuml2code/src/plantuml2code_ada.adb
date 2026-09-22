@@ -1236,6 +1236,131 @@ package body PlantUML2Code_Ada is
       end loop;
    end Generate_Region;
 
+   --  =========================================================
+   --  Generated AUnit test suite
+   --  =========================================================
+   procedure Emit_Tests
+     (D              : UML.Model.Diagram;
+      Package_Name   : String;
+      Tests_Dir      : String)
+   is
+      Test_Dir : constant String :=
+        Ada.Directories.Compose (Tests_Dir, "test");
+      Test_Pkg : constant String := Package_Name & "_Tests";
+
+      Ts : constant Relation_Vectors.Vector :=
+        Transitions_In (D, Top_Level);
+
+      Test_Procs : Tag;
+      Froms      : Tag;
+      Events     : Tag;
+      Targets    : Tag;
+
+      Seen_Pairs : array (1 .. 256) of Unbounded_String;
+      N_Seen     : Natural := 0;
+
+      function Pair_Seen (From_Lit, Ev_Lit : String) return Boolean is
+      begin
+         for I in 1 .. N_Seen loop
+            if To_String (Seen_Pairs (I)) = From_Lit & "/" & Ev_Lit then
+               return True;
+            end if;
+         end loop;
+         return False;
+      end Pair_Seen;
+
+      procedure Remember (From_Lit, Ev_Lit : String) is
+      begin
+         N_Seen := N_Seen + 1;
+         Seen_Pairs (N_Seen) :=
+           To_Unbounded_String (From_Lit & "/" & Ev_Lit);
+      end Remember;
+
+      procedure Render (Subdir, Template, Output : String;
+                        T : Translate_Set) is
+         Path : constant String :=
+           PlantUML2Code_Template_Path.Locate (Subdir, Template);
+         Content : constant String := Templates_Parser.Parse (Path, T);
+         F : File_Type;
+      begin
+         Create (F, Out_File, Output);
+         Put (F, Content);
+         Close (F);
+         Put_Line ("wrote " & Output);
+      end Render;
+
+      Empty_Set : Translate_Set;
+   begin
+      Ada.Directories.Create_Path (Test_Dir);
+
+      Render ("ada/project/tests", "test_main.adb.tmplt",
+              Ada.Directories.Compose (Test_Dir, "test_main.adb"),
+              Empty_Set);
+      Render ("ada/project/tests", "all_tests.ads.tmplt",
+              Ada.Directories.Compose (Test_Dir, "all_tests.ads"),
+              Empty_Set);
+
+      declare
+         T_A : Translate_Set;
+      begin
+         Insert (T_A, Assoc ("TEST_PACKAGE",
+                             To_Unbounded_String (Test_Pkg)));
+         Render ("ada/project/tests", "all_tests.adb.tmplt",
+                 Ada.Directories.Compose (Test_Dir, "all_tests.adb"),
+                 T_A);
+      end;
+
+      for R of Ts loop
+         declare
+            From_Lit : constant String :=
+              State_Literal (Id_Of (D, R.From));
+            To_Lit   : constant String :=
+              Effective_Target (Id_Of (D, R.To));
+            Ev_Lit   : constant String :=
+              Event_Literal (To_String (R.Trigger));
+         begin
+            if not Pair_Seen (From_Lit, Ev_Lit) then
+               Remember (From_Lit, Ev_Lit);
+               Test_Procs := Test_Procs
+                 & ("Test_" & From_Lit & "_" & Ev_Lit);
+               Froms      := Froms & From_Lit;
+               Events     := Events & Ev_Lit;
+               Targets    := Targets & To_Lit;
+            end if;
+         end;
+      end loop;
+
+      declare
+         T_Case : Translate_Set;
+      begin
+         Insert (T_Case, Assoc ("PACKAGE_NAME", Package_Name));
+         Insert (T_Case, Assoc ("TEST_PACKAGE", Test_Pkg));
+         Insert (T_Case, Assoc ("TEST_PROC", Test_Procs));
+         Insert (T_Case, Assoc ("FROM", Froms));
+         Insert (T_Case, Assoc ("EVENT", Events));
+         Insert (T_Case, Assoc ("TARGET", Targets));
+
+         Render ("ada/state/tests", "test_case.ads.tmplt",
+                 Ada.Directories.Compose (Test_Dir, Test_Pkg & ".ads"),
+                 T_Case);
+         Render ("ada/state/tests", "test_case.adb.tmplt",
+                 Ada.Directories.Compose (Test_Dir, Test_Pkg & ".adb"),
+                 T_Case);
+      end;
+
+      declare
+         T_Gpr : Translate_Set;
+      begin
+         Insert (T_Gpr, Assoc ("TESTS_PROJECT",
+                               Package_Name & "_Tests"));
+         Render ("ada/project/tests", "tests.gpr.tmplt",
+                 Ada.Directories.Compose
+                   (Ada.Directories.Containing_Directory (Tests_Dir),
+                    Package_Name & "_tests.gpr"),
+                 T_Gpr);
+      end;
+   end Emit_Tests;
+
    procedure Generate
      (D              : UML.Model.Diagram;
       Package_Name   : String;
@@ -1278,6 +1403,7 @@ package body PlantUML2Code_Ada is
 
          Emit_Runtime (Src_Dir);
          Emit_Test_Driver (Tests_Dir, Package_Name);
+         Emit_Tests (D, Package_Name, Tests_Dir);
          Emit_Setup (Out_Dir, Package_Name);
 
          Generate_Region

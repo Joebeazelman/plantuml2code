@@ -92,18 +92,50 @@ check_case () {
     fi
   fi
 
-  # Check for golden files that no longer get generated.
-  # driver.adb lives in tests/, not src/, and is handled above.
+  # Generated AUnit test files live in tests/test/.
+  for gen_file in "$out/tests/test"/*.ads "$out/tests/test"/*.adb; do
+    [ -e "$gen_file" ] || continue
+    local base
+    base=$(basename "$gen_file")
+    local golden_file="$golden_dir/$base"
+    if [ ! -f "$golden_file" ]; then
+      echo "  MISSING golden: $base"
+      diff_count=$((diff_count + 1))
+      continue
+    fi
+    local ng="$TMP/$base.gen"
+    local ngl="$TMP/$base.gl"
+    sed -f "$NORM" "$gen_file" > "$ng"
+    sed -f "$NORM" "$golden_file" > "$ngl"
+    if ! diff -q "$ngl" "$ng" >/dev/null; then
+      echo "  DIFF: $base"
+      diff -u "$ngl" "$ng" | head -30 || true
+      diff_count=$((diff_count + 1))
+    fi
+  done
+
+  # Check for golden files that no longer get generated. Build a
+  # set of every basename the generator produced — under src/ or
+  # under tests/ or tests/test/ — and flag goldens not in it.
+  local generated
+  generated=$(mktemp)
+  for d in "$out/src" "$out/tests" "$out/tests/test"; do
+    [ -d "$d" ] || continue
+    for f in "$d"/*.ads "$d"/*.adb; do
+      [ -e "$f" ] || continue
+      basename "$f" >> "$generated"
+    done
+  done
   for golden_file in "$golden_dir"/*.ads "$golden_dir"/*.adb; do
     [ -e "$golden_file" ] || continue
     local base
     base=$(basename "$golden_file")
-    [ "$base" = "driver.adb" ] && continue
-    if [ ! -f "$out/src/$base" ]; then
+    if ! grep -q -x -F "$base" "$generated"; then
       echo "  STALE golden (no longer generated): $base"
       diff_count=$((diff_count + 1))
     fi
   done
+  rm -f "$generated"
 
   if [ "$diff_count" -eq 0 ]; then
     echo "  PASS"

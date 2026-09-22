@@ -42,6 +42,16 @@ update_case () {
     sed -f "$NORM" "$out/tests/driver.adb" > "$golden_dir/driver.adb"
   fi
 
+  # Generated AUnit test files live in tests/test/.
+  if [ -d "$out/tests/test" ]; then
+    for f in "$out/tests/test"/*.ads "$out/tests/test"/*.adb; do
+      [ -e "$f" ] || continue
+      local base
+      base=$(basename "$f")
+      sed -f "$NORM" "$f" > "$golden_dir/$base"
+    done
+  fi
+
   rm -rf "$out"
   ls "$golden_dir" | wc -l | xargs echo "  files:"
 }
