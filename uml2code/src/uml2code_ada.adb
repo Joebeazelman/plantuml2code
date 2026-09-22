@@ -1361,10 +1361,27 @@ package body Uml2Code_Ada is
         States_In (D, Region);
       Children : constant Element_Index_Vectors.Vector :=
         Composite_Children_Of (D, States);
+      Ts       : constant Relation_Vectors.Vector :=
+        Transitions_In (D, Region);
+
+      --  A region is worth a test case only if at least one
+      --  transition has a non-empty trigger. Completion transitions
+      --  have no event key for the Transition lookup.
+      Has_Testable : Boolean := False;
    begin
-      Emit_Tests_For_Region (D, Region, Package_Name, Test_Pkg, Test_Dir);
-      N_Cases := N_Cases + 1;
-      Case_Packages := Case_Packages & Test_Pkg;
+      for R of Ts loop
+         if Length (R.Trigger) > 0 then
+            Has_Testable := True;
+            exit;
+         end if;
+      end loop;
+
+      if Has_Testable then
+         Emit_Tests_For_Region
+           (D, Region, Package_Name, Test_Pkg, Test_Dir);
+         N_Cases := N_Cases + 1;
+         Case_Packages := Case_Packages & Test_Pkg;
+      end if;
 
       for C of Children loop
          Emit_Tests_All_Regions

@@ -7,8 +7,9 @@ with @_CASE_PACKAGE_@;
 function @_SUITE_NAME_@ return Access_Test_Suite is
    Result : constant Access_Test_Suite := new Test_Suite;
 @@TABLE@@
-   type Ref_@_TEST_INDEX_@ is access Test_Case'Class;
-   T_@_TEST_INDEX_@ : Ref_@_TEST_INDEX_@ :=
+   type Ref_@_TEST_INDEX_@ is
+     access AUnit.Test_Cases.Test_Case'Class;
+   T_@_TEST_INDEX_@ : constant Ref_@_TEST_INDEX_@ :=
      new @_CASE_PACKAGE_@.Case_Type;
 @@END_TABLE@@
 begin
