@@ -7,6 +7,7 @@ package body @_PACKAGE_NAME_@ is
    use Base;
 @_ACTIONS_USE_@
 
+   pragma Warnings (Off);
    Table : constant array (State, Event) of State :=
      [
 @@TABLE@@
@@ -18,6 +19,7 @@ package body @_PACKAGE_NAME_@ is
 @@END_IF@@
 @@END_TABLE@@
      ];
+   pragma Warnings (On);
 
    function Transition (From : State; On : Event) return State
    is (Table (From, On));
@@ -28,7 +30,6 @@ package body @_PACKAGE_NAME_@ is
 
    overriding
    function Name (Self : Machine) return String is
-      pragma Unreferenced (Self);
    begin
       return "@_PACKAGE_NAME_@";
    end Name;
@@ -36,6 +37,7 @@ package body @_PACKAGE_NAME_@ is
    overriding
    procedure On_Enter (Self : in out Machine) is
    begin
+      pragma Warnings (Off);
       case Current_State (Self) is
 @@TABLE@@
 @_ENTER_NOTE_@         when @_ENTER_STATE_LIT_@ =>
@@ -70,6 +72,7 @@ package body @_PACKAGE_NAME_@ is
    overriding
    procedure On_Exit (Self : in out Machine) is
    begin
+      pragma Warnings (Off);
       case Current_State (Self) is
 @@TABLE@@
          when @_EXIT_STATE_LIT_@ =>
@@ -89,6 +92,7 @@ package body @_PACKAGE_NAME_@ is
    overriding
    procedure On_Tick (Self : in out Machine) is
    begin
+      pragma Warnings (Off);
       case Current_State (Self) is
 @@TABLE@@
 @@IF@@ @_TICK_HAS_ACTION_@
@@ -106,6 +110,7 @@ package body @_PACKAGE_NAME_@ is
    function On_Internal (Self : in out Machine; On : Event) return Boolean
    is
    begin
+      pragma Warnings (Off);
       case Current_State (Self) is
 @@TABLE@@
 @@IF@@ @_INTERNAL_HAS_ANY_@
@@ -129,8 +134,9 @@ package body @_PACKAGE_NAME_@ is
    function Is_History_Entry
      (Self : Machine; From : State; On : Event)
       return Base.History_Mode is
-      pragma Unreferenced (Self, From, On);
+      pragma Unreferenced (From, On);
    begin
+      pragma Warnings (Off);
       case Current_State (Self) is
 @_HISTORY_CASES_@
       end case;

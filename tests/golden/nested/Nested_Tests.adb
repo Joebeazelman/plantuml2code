@@ -41,7 +41,9 @@ package body Nested_Tests is
    overriding
    procedure Register_Tests (T : in out Case_Type) is
       use AUnit.Test_Cases.Registration;
-      pragma Unreferenced (T);
+      pragma Warnings (Off, "no entities of");
+      pragma Warnings (Off, "use clause for package");
+      pragma Warnings (Off, "aspect Unreferenced");
    begin
       Register_Routine (T, Test_Idle_Start'Access,
                         "Idle --Start--> Running");

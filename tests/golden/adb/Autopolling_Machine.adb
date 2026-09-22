@@ -7,6 +7,7 @@ package body Autopolling_Machine is
    use Base;
 
 
+   pragma Warnings (Off);
    Table : constant array (State, Event) of State :=
      [
       Select_Next_Target =>
@@ -51,6 +52,7 @@ package body Autopolling_Machine is
          Timeout_Normal_No_Data => End_State,
          others => End_State]
      ];
+   pragma Warnings (On);
 
    function Transition (From : State; On : Event) return State
    is (Table (From, On));
@@ -61,7 +63,6 @@ package body Autopolling_Machine is
 
    overriding
    function Name (Self : Machine) return String is
-      pragma Unreferenced (Self);
    begin
       return "Autopolling_Machine";
    end Name;
@@ -69,6 +70,7 @@ package body Autopolling_Machine is
    overriding
    procedure On_Enter (Self : in out Machine) is
    begin
+      pragma Warnings (Off);
       case Current_State (Self) is
          --  Retrieve the next active address from the internal Device Table
          when Select_Next_Target =>
@@ -100,6 +102,7 @@ package body Autopolling_Machine is
    overriding
    procedure On_Exit (Self : in out Machine) is
    begin
+      pragma Warnings (Off);
       case Current_State (Self) is
          when Select_Next_Target =>
             null;
@@ -127,6 +130,7 @@ package body Autopolling_Machine is
    overriding
    procedure On_Tick (Self : in out Machine) is
    begin
+      pragma Warnings (Off);
       case Current_State (Self) is
          when others =>
             null;
@@ -137,6 +141,7 @@ package body Autopolling_Machine is
    function On_Internal (Self : in out Machine; On : Event) return Boolean
    is
    begin
+      pragma Warnings (Off);
       case Current_State (Self) is
          when others =>
             return False;
@@ -147,8 +152,9 @@ package body Autopolling_Machine is
    function Is_History_Entry
      (Self : Machine; From : State; On : Event)
       return Base.History_Mode is
-      pragma Unreferenced (Self, From, On);
+      pragma Unreferenced (From, On);
    begin
+      pragma Warnings (Off);
       case Current_State (Self) is
          when others =>
             return History_None;

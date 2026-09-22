@@ -10,6 +10,7 @@ package body Running_Machine is
    use Running_Machine.Operations;
 
 
+   pragma Warnings (Off);
    Table : constant array (State, Event) of State :=
      [
       Start_State =>
@@ -30,6 +31,7 @@ package body Running_Machine is
          Pause => Waiting,
          others => Waiting]
      ];
+   pragma Warnings (On);
 
    function Transition (From : State; On : Event) return State
    is (Table (From, On));
@@ -40,7 +42,6 @@ package body Running_Machine is
 
    overriding
    function Name (Self : Machine) return String is
-      pragma Unreferenced (Self);
    begin
       return "Running_Machine";
    end Name;
@@ -48,6 +49,7 @@ package body Running_Machine is
    overriding
    procedure On_Enter (Self : in out Machine) is
    begin
+      pragma Warnings (Off);
       case Current_State (Self) is
          when Start_State =>
             null;
@@ -66,6 +68,7 @@ package body Running_Machine is
    overriding
    procedure On_Exit (Self : in out Machine) is
    begin
+      pragma Warnings (Off);
       case Current_State (Self) is
          when Start_State =>
             null;
@@ -84,6 +87,7 @@ package body Running_Machine is
    overriding
    procedure On_Tick (Self : in out Machine) is
    begin
+      pragma Warnings (Off);
       case Current_State (Self) is
          when Spinning =>
             Poll;
@@ -97,6 +101,7 @@ package body Running_Machine is
    function On_Internal (Self : in out Machine; On : Event) return Boolean
    is
    begin
+      pragma Warnings (Off);
       case Current_State (Self) is
          when Spinning =>
             if On = Pause then
@@ -114,8 +119,9 @@ package body Running_Machine is
    function Is_History_Entry
      (Self : Machine; From : State; On : Event)
       return Base.History_Mode is
-      pragma Unreferenced (Self, From, On);
+      pragma Unreferenced (From, On);
    begin
+      pragma Warnings (Off);
       case Current_State (Self) is
          when others =>
             return History_None;

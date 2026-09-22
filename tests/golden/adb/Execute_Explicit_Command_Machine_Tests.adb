@@ -41,7 +41,9 @@ package body Execute_Explicit_Command_Machine_Tests is
    overriding
    procedure Register_Tests (T : in out Case_Type) is
       use AUnit.Test_Cases.Registration;
-      pragma Unreferenced (T);
+      pragma Warnings (Off, "no entities of");
+      pragma Warnings (Off, "use clause for package");
+      pragma Warnings (Off, "aspect Unreferenced");
    begin
       Register_Routine (T, Test_Transmit_Explicit_Is_Talk_Command'Access,
                         "Transmit_Explicit --Is_Talk_Command--> Await_Explicit");

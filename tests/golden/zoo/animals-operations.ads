@@ -5,7 +5,7 @@
 --  Emitted once and never overwritten.
 ---------------------------------------------------------------------
 
-with Animals;  use Animals;
+use Animals;
 
 package Animals.Operations is
 

@@ -10,6 +10,7 @@ package body Nested is
    use Nested.Operations;
 
 
+   pragma Warnings (Off);
    Table : constant array (State, Event) of State :=
      [
       Start_State =>
@@ -44,6 +45,7 @@ package body Nested is
          Tick => End_State,
          others => End_State]
      ];
+   pragma Warnings (On);
 
    function Transition (From : State; On : Event) return State
    is (Table (From, On));
@@ -54,7 +56,6 @@ package body Nested is
 
    overriding
    function Name (Self : Machine) return String is
-      pragma Unreferenced (Self);
    begin
       return "Nested";
    end Name;
@@ -62,6 +63,7 @@ package body Nested is
    overriding
    procedure On_Enter (Self : in out Machine) is
    begin
+      pragma Warnings (Off);
       case Current_State (Self) is
          when Start_State =>
             null;
@@ -92,6 +94,7 @@ package body Nested is
    overriding
    procedure On_Exit (Self : in out Machine) is
    begin
+      pragma Warnings (Off);
       case Current_State (Self) is
          when Start_State =>
             null;
@@ -113,6 +116,7 @@ package body Nested is
    overriding
    procedure On_Tick (Self : in out Machine) is
    begin
+      pragma Warnings (Off);
       case Current_State (Self) is
          when others =>
             null;
@@ -123,6 +127,7 @@ package body Nested is
    function On_Internal (Self : in out Machine; On : Event) return Boolean
    is
    begin
+      pragma Warnings (Off);
       case Current_State (Self) is
          when Idle =>
             if On = Tick then
@@ -140,8 +145,9 @@ package body Nested is
    function Is_History_Entry
      (Self : Machine; From : State; On : Event)
       return Base.History_Mode is
-      pragma Unreferenced (Self, From, On);
+      pragma Unreferenced (From, On);
    begin
+      pragma Warnings (Off);
       case Current_State (Self) is
          when Idle =>
             if On = Continue then

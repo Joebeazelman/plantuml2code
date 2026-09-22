@@ -1236,13 +1236,11 @@ package body Uml2Code_Ada_Classes is
 
          --  Operations spec
          declare
-            --  with + use the parent so unqualified type names in
-            --  signatures resolve. GNAT flags the `with` as an
-            --  unnecessary-ancestor warning; suppress it and keep
-            --  the import for name resolution.
+            --  A child unit sees its parent's declarations without
+            --  an explicit `with`. The `use` makes unqualified type
+            --  names in signatures resolve.
             Op_With : constant String :=
-              "with " & Pkg_Name & ";  use " & Pkg_Name & ";"
-              & ASCII.LF & ASCII.LF;
+              "use " & Pkg_Name & ";" & ASCII.LF & ASCII.LF;
          begin
             Insert (T_Op_Ads, Assoc ("PACKAGE_NAME", Pkg_Name));
             Insert (T_Op_Ads, Assoc ("WITH_CLAUSES", Op_With));
