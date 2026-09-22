@@ -4,10 +4,19 @@
 
 with Zoo;  use Zoo;
 with Ada.Strings.Unbounded;  use Ada.Strings.Unbounded;
+with Ada.Containers.Vectors;
 
 package Animals is
 
    type Color is (Red, Green, Blue);
+
+
+   type Toy_Access is access all Toy'Class;
+
+   package Toy_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => Toy_Access);
+
 
    type Pet is limited interface;
 
@@ -21,7 +30,7 @@ package Animals is
    procedure Move (Self : in out Animal) is abstract;
 
    type Dog is new Animal and Pet with record
-      Attr_Toy : access Toy'Class;
+      Attr_Toy : Toy_Vectors.Vector;
       Attr_Color : Color;
    end record;
 

@@ -196,6 +196,48 @@ package body Uml2Code_Ada_Classes is
       end if;
    end Dummy_Value;
 
+   --  True when a relation's target multiplicity calls for a
+   --  collection rather than a single reference. Accepts "*", "0..*",
+   --  "1..*", and bounded ranges like "1..5" (treated as "*" since
+   --  Ada containers do not distinguish lower bounds).
+   function Is_Container (Mult : String) return Boolean is
+      M : constant String :=
+        Ada.Characters.Handling.To_Lower (Mult);
+   begin
+      if M'Length = 0 then
+         return False;
+      end if;
+      if M = "*" or else M = "0..*" or else M = "1..*"
+        or else M = "many" or else M = "n"
+      then
+         return True;
+      end if;
+      declare
+         Dot : constant Natural := Ada.Strings.Fixed.Index (M, "..");
+      begin
+         if Dot > 0 and then Dot < M'Last then
+            declare
+               Upper : constant String := M (Dot + 2 .. M'Last);
+               Val   : Natural := 0;
+            begin
+               for C of Upper loop
+                  if C in '0' .. '9' then
+                     Val := Val * 10
+                       + (Character'Pos (C) - Character'Pos ('0'));
+                  else
+                     return False;
+                  end if;
+               end loop;
+               return Val > 1;
+            end;
+         end if;
+      end;
+      return False;
+   end Is_Container;
+
+   function Vector_Pkg_Name (Type_Name : String) return String is
+     (Type_Name & "_Vectors");
+
    --  =========================================================
    --  Helpers
    --  =========================================================
@@ -392,6 +434,25 @@ package body Uml2Code_Ada_Classes is
                  & "  use Ada.Strings.Unbounded;" & ASCII.LF);
       end if;
 
+      --  Ada.Containers.Vectors when any relation is a collection.
+      for Idx of Members loop
+         for R of D.Relations loop
+            if R.From = Idx
+              and then R.Kind in UML.Model.Composition
+                                  | UML.Model.Aggregation
+                                  | UML.Model.Association
+              and then R.To /= Idx
+              and then Is_Container (To_String (R.Mult_To))
+              and then Ada.Strings.Fixed.Index
+                         (To_String (Result),
+                          "Ada.Containers.Vectors") = 0
+            then
+               Append (Result,
+                       "with Ada.Containers.Vectors;" & ASCII.LF);
+            end if;
+         end loop;
+      end loop;
+
       if Length (Result) > 0 then
          Append (Result, ASCII.LF);
       end if;
@@ -561,6 +622,9 @@ package body Uml2Code_Ada_Classes is
                Has_Fields := True;
                if Target_Kind = Enumeration then
                   Field_Types := Field_Types & Target_Name;
+               elsif Is_Container (To_String (Rel.Mult_To)) then
+                  Field_Types := Field_Types
+                    & (Vector_Pkg_Name (Target_Name) & ".Vector");
                else
                   Field_Types := Field_Types
                     & ("access " & Target_Name & "'Class");
@@ -967,6 +1031,97 @@ package body Uml2Code_Ada_Classes is
       end;
    end Emit_Tests;
 
+   --  Collect unique target types that need a Vector instantiation
+   --  within this package, render the block, and return it. Empty
+   --  when there are no container associations.
+   function Vector_Blocks_For (D : UML.Model.Diagram;
+                               Pkg : Element_Index)
+                               return String
+   is
+      Members : constant Element_Index_Vectors.Vector :=
+        Members_Of (D, Pkg);
+
+      Seen_Names : array (1 .. 64) of Unbounded_String;
+      Seen_Types : array (1 .. 64) of Unbounded_String;
+      N_Seen     : Natural := 0;
+
+      function Seen (Name : String) return Boolean is
+      begin
+         for I in 1 .. N_Seen loop
+            if To_String (Seen_Names (I)) = Name then
+               return True;
+            end if;
+         end loop;
+         return False;
+      end Seen;
+
+      Vector_Pkgs    : Tag;
+      Element_Names  : Tag;
+      Element_Types  : Tag;
+      Access_Names   : Tag;
+      Needs_Access   : Tag;
+      Has_Any        : Boolean := False;
+   begin
+      for Idx of Members loop
+         for R of D.Relations loop
+            if R.From = Idx
+              and then R.Kind in UML.Model.Composition
+                                  | UML.Model.Aggregation
+                                  | UML.Model.Association
+              and then R.To /= Idx
+              and then Is_Container (To_String (R.Mult_To))
+            then
+               declare
+                  Target_Name : constant String :=
+                    Ident (Id_Of (D, R.To));
+                  Target_Kind : constant Element_Kind :=
+                    D.Elements (Positive (R.To)).Kind;
+                  V_Name      : constant String :=
+                    Vector_Pkg_Name (Target_Name);
+                  Is_Class    : constant Boolean :=
+                    Target_Kind /= Enumeration;
+                  Elem_Type   : constant String := Target_Name;
+                  Elem_Name   : constant String :=
+                    (if Is_Class
+                     then Target_Name & "_Access"
+                     else Target_Name);
+                  Access_Name : constant String :=
+                    Target_Name & "_Access";
+               begin
+                  if not Seen (V_Name) then
+                     N_Seen := N_Seen + 1;
+                     Seen_Names (N_Seen) := To_Unbounded_String (V_Name);
+                     Seen_Types (N_Seen) :=
+                       To_Unbounded_String (Elem_Type);
+                     Vector_Pkgs   := Vector_Pkgs & V_Name;
+                     Element_Names := Element_Names & Elem_Name;
+                     Element_Types := Element_Types & Elem_Type;
+                     Access_Names  := Access_Names & Access_Name;
+                     Needs_Access  := Needs_Access & Is_Class;
+                     Has_Any := True;
+                  end if;
+               end;
+            end if;
+         end loop;
+      end loop;
+
+      if not Has_Any then
+         return "";
+      end if;
+
+      declare
+         T : Translate_Set;
+      begin
+         Insert (T, Assoc ("VECTOR_PKG", Vector_Pkgs));
+         Insert (T, Assoc ("ELEMENT_NAME", Element_Names));
+         Insert (T, Assoc ("ELEMENT_TYPE", Element_Types));
+         Insert (T, Assoc ("ACCESS_NAME", Access_Names));
+         Insert (T, Assoc ("NEEDS_ACCESS", Needs_Access));
+         return Render_Template
+                  ("ada/class", "vector_instantiations.tmplt", T);
+      end;
+   end Vector_Blocks_For;
+
    --  =========================================================
    --  Emit one package (spec + optional body + operations)
    --  =========================================================
@@ -985,7 +1140,8 @@ package body Uml2Code_Ada_Classes is
       T_Op_Ads : Translate_Set;
       T_Op_Adb : Translate_Set;
 
-      Decl_Blocks : Tag;
+      Enum_Blocks  : Tag;
+      Class_Blocks : Tag;
 
       Method_Bodies : Tag;
       Op_Decls      : Tag;
@@ -1019,15 +1175,17 @@ package body Uml2Code_Ada_Classes is
                case Layer is
                   when Enum_Layer =>
                      if E.Kind = Enumeration then
-                        Decl_Blocks := Decl_Blocks & Enum_Decl (D, Idx);
+                        Enum_Blocks := Enum_Blocks & Enum_Decl (D, Idx);
                      end if;
                   when Interface_Layer =>
                      if E.Kind = Interface_Kind then
-                        Decl_Blocks := Decl_Blocks & Interface_Decl (D, Idx);
+                        Class_Blocks := Class_Blocks
+                          & Interface_Decl (D, Idx);
                      end if;
                   when Class_Layer =>
                      if E.Kind in Class | Abstract_Class then
-                        Decl_Blocks := Decl_Blocks & Class_Decl (D, Idx);
+                        Class_Blocks := Class_Blocks
+                          & Class_Decl (D, Idx);
                         for M of E.Members loop
                            if M.Kind = UML.Model.Method
                              and then not Member_Is_Abstract (M)
@@ -1062,7 +1220,10 @@ package body Uml2Code_Ada_Classes is
       Insert (T_Spec, Assoc ("NOTES_HEADER",
                              (if Pkg = 0 then Notes_Header_Of (D) else "")));
       Insert (T_Spec, Assoc ("WITH_CLAUSES", With_Str));
-      Insert (T_Spec, Assoc ("DECL_BLOCK", Decl_Blocks));
+      Insert (T_Spec, Assoc ("ENUM_BLOCK", Enum_Blocks));
+      Insert (T_Spec, Assoc ("CLASS_BLOCK", Class_Blocks));
+      Insert (T_Spec, Assoc ("VECTOR_BLOCKS",
+                             Vector_Blocks_For (D, Pkg)));
       Render_To ("class.ads.tmplt", Ads_Path, T_Spec);
 
       if Has_Any_Method then

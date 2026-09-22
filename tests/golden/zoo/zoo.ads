@@ -8,6 +8,7 @@
 
 package Zoo is
 
+
    type Toy is tagged null record;
 
 end Zoo;

@@ -13,7 +13,12 @@
 @_WITH_CLAUSES_@package @_PACKAGE_NAME_@ is
 
 @@TABLE@@
-@_DECL_BLOCK_@
+@_ENUM_BLOCK_@
+
+@@END_TABLE@@
+@_VECTOR_BLOCKS_@
+@@TABLE@@
+@_CLASS_BLOCK_@
 
 @@END_TABLE@@
 end @_PACKAGE_NAME_@;

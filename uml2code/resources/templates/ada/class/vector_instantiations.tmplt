@@ -1,0 +1,11 @@
+
+@@TABLE@@
+@@IF@@ @_NEEDS_ACCESS_@
+   type @_ACCESS_NAME_@ is access all @_ELEMENT_TYPE_@'Class;
+
+@@END_IF@@
+   package @_VECTOR_PKG_@ is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => @_ELEMENT_NAME_@);
+
+@@END_TABLE@@
