@@ -1,20 +1,20 @@
 # uml2code
 
 Parse PlantUML state and class diagrams into a normalized model, then
-generate Ada 2022 code from that model. Two-crate workspace, built
-with Alire.
+generate Ada 2022 code from that model. Built with Alire.
 
 ## Crates
 
 - **`plantuml_parser`** — library. Tokenizer, PlantUML state and class
-  parsers, and the normalized `UML.Model` they both target.
+  parsers, and the normalized `UML.Model` they both target. Lives in
+  its own repository: github.com/Joebeazelman/plantuml_parser.
 - **`uml2code`** — application. CLI that reads a `.puml` file and
-  emits text, JSON, or Ada.
+  emits text, JSON, or Ada. Pins the library via a local path.
 
 ## Quick start
 
-    cd plantuml_parser && alr build
-    cd ../uml2code && alr build
+    cd ../plantuml_parser && alr build         # sibling repo
+    cd ~/Projects/ai-generated/uml2code && alr build
 
     cd uml2code
     ./bin/uml2code gen ../samples/nested.puml

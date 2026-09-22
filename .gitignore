@@ -35,3 +35,6 @@ fix.sh
 # Generated output accidentally written into the crate's tests dir
 /uml2code/tests/driver.adb
 /uml2code/tests/test/
+
+# Local agent notes; not tracked
+AGENTS.md
