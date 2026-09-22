@@ -435,7 +435,7 @@ package body PlantUML.Classes is
                if C.Peek.Kind = Str then
                   --  Floating: note "text" [as Name]
                   declare
-                     Txt : Name := C.Peek.Text;
+                     Txt : constant Name := C.Peek.Text;
                   begin
                      C.Next;
                      while C.Peek.Kind not in Newline | Eof loop

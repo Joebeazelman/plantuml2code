@@ -6,7 +6,6 @@ with Ada.Strings.Fixed;
 with Ada.Characters.Handling;
 
 with UML.Model;                use UML.Model;
-with UML.Model.Queries;        use UML.Model.Queries;
 
 with PlantUML2Code_Utils;      use PlantUML2Code_Utils;
 with PlantUML2Code_Ada;
@@ -196,24 +195,12 @@ package body PlantUML2Code_Ada_Classes is
       end if;
    end Dummy_Value;
 
-   function Uses_Unbounded (Ret : String) return Boolean is
-     (Ret = "Unbounded_String");
-
    --  =========================================================
    --  Helpers
    --  =========================================================
    function Id_Of (D : UML.Model.Diagram; Idx : Element_Index)
                    return String is
      (To_String (D.Elements (Positive (Idx)).Id));
-
-   function Package_Of (D : UML.Model.Diagram; Idx : Element_Index)
-                        return Element_Index is
-   begin
-      if Idx = 0 then
-         return 0;
-      end if;
-      return D.Elements (Positive (Idx)).Parent;
-   end Package_Of;
 
    function Root_Package_Name (D : UML.Model.Diagram) return String is
      (if Length (D.Id) > 0 then Sanitize (To_String (D.Id)) else "Model");
@@ -271,17 +258,6 @@ package body PlantUML2Code_Ada_Classes is
    end Enclosing_Package;
 
    --  Whether the class has any parent relations.
-   function Has_Class_Parent (D : UML.Model.Diagram; Idx : Element_Index)
-                              return Boolean is
-   begin
-      for R of D.Relations loop
-         if R.To = Idx and then R.Kind = UML.Model.Inheritance then
-            return True;
-         end if;
-      end loop;
-      return False;
-   end Has_Class_Parent;
-
    --  First inheritance parent of a class, or 0.
    function First_Parent (D : UML.Model.Diagram; Idx : Element_Index)
                           return Element_Index is
@@ -342,57 +318,8 @@ package body PlantUML2Code_Ada_Classes is
      (M.Is_Abstract);
 
    --  Concrete (non-abstract) methods on an element.
-   function Concrete_Methods_Of (D : UML.Model.Diagram; Idx : Element_Index)
-                                 return Natural is
-      N : Natural := 0;
-   begin
-      for M of D.Elements (Positive (Idx)).Members loop
-         if M.Kind = UML.Model.Method
-           and then not Member_Is_Abstract (M)
-         then
-            N := N + 1;
-         end if;
-      end loop;
-      return N;
-   end Concrete_Methods_Of;
-
    --  Does this type have any inherited abstract methods that a
    --  concrete class must override? (returns count)
-   function Missing_Abstract_Overrides (D : UML.Model.Diagram;
-                                        Idx : Element_Index) return Natural
-   is
-      Missing : Natural := 0;
-
-      function Declares (Name : String) return Boolean is
-      begin
-         for M of D.Elements (Positive (Idx)).Members loop
-            if M.Kind = UML.Model.Method
-              and then To_String (M.Id) = Name
-            then
-               return True;
-            end if;
-         end loop;
-         return False;
-      end Declares;
-   begin
-      --  Abstract methods on ancestors.
-      for R of D.Relations loop
-         if R.To = Idx
-           and then R.Kind in UML.Model.Inheritance | UML.Model.Realization
-         then
-            for M of D.Elements (Positive (R.From)).Members loop
-               if M.Kind = UML.Model.Method
-                 and then Member_Is_Abstract (M)
-                 and then not Declares (To_String (M.Id))
-               then
-                  Missing := Missing + 1;
-               end if;
-            end loop;
-         end if;
-      end loop;
-      return Missing;
-   end Missing_Abstract_Overrides;
-
    --  =========================================================
    --  WITH clause construction
    --  =========================================================

@@ -8,12 +8,8 @@
 --
 --  Types only in UML.Model; queries here. Generators use both.
 
-with UML.Model;
-
 package UML.Model.Queries is
    pragma Preelaborate;
-
-   use type UML.Model.Element_Index;
 
    --  ---------------------------------------------------------------
    --  Lookup

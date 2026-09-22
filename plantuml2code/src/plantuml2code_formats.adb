@@ -6,7 +6,6 @@ with Templates_Parser;                 use Templates_Parser;
 
 with PlantUML2Code_Utils;              use PlantUML2Code_Utils;
 with PlantUML2Code_Template_Bindings;  use PlantUML2Code_Template_Bindings;
-with UML.Model;
 with PlantUML2Code_Ada;
 with PlantUML2Code_Ada_Classes;
 
@@ -66,7 +65,6 @@ package body PlantUML2Code_Formats is
       D    : UML.Model.Diagram;
       Path : String := "")
    is
-      pragma Unreferenced (Path);
    begin
       case Fmt is
          when Text | Json =>
@@ -94,7 +92,6 @@ package body PlantUML2Code_Formats is
       D    : UML.Model.Diagram;
       Path : String := "")
    is
-      pragma Unreferenced (Path);
    begin
       case Fmt is
          when Text | Json =>

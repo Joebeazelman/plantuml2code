@@ -1,7 +1,6 @@
 with Ada.Strings.Unbounded;            use Ada.Strings.Unbounded;
 
 with PlantUML2Code_Template_Path;
-with Templates_Parser;
 
 package body PlantUML2Code_Utils is
 
