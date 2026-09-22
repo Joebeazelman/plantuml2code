@@ -26,3 +26,6 @@ templates_parser = "^26.0.0"
 
 [[depends-on]]
 aunit = "^23.0.0"
+
+[[depends-on]]
+ansiada = "^1.1.0"

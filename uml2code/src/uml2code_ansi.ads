@@ -1,11 +1,13 @@
---  Minimal ANSI SGR helpers.
+--  ANSI SGR helpers, backed by AnsiAda.
 --
 --  Coloring is active when:
 --    * --color=always was passed, OR
---    * --color=auto (the default) and the environment supports it
---      (NO_COLOR is unset and TERM is set to something other than
---      "dumb").
+--    * --color=auto (the default), NO_COLOR is unset, and stdout is
+--      a tty.
 --  It is never active under --color=never.
+--
+--  The tty check ensures piped or redirected output never receives
+--  escape sequences.
 
 package Uml2Code_Ansi is
 
