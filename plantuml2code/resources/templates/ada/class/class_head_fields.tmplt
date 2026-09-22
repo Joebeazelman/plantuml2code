@@ -1,0 +1,5 @@
+   type @_NAME_@ is@_ABSTRACT_@ @_DERIVATION_@ record
+@@TABLE@@
+      Attr_@_FIELD_NAME_@ : @_FIELD_TYPE_@;
+@@END_TABLE@@
+   end record;

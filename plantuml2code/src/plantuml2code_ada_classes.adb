@@ -426,188 +426,248 @@ package body PlantUML2Code_Ada_Classes is
    function Enum_Decl (D : UML.Model.Diagram; Idx : Element_Index)
                        return String
    is
-      R : Unbounded_String;
-      First : Boolean := True;
+      Name     : constant String := Ident (Id_Of (D, Idx));
+      Literals : Tag;
+      T        : Translate_Set;
    begin
-      Append (R, "   type " & Ident (Id_Of (D, Idx)) & " is (");
       for M of D.Elements (Positive (Idx)).Members loop
          if M.Kind = UML.Model.Enum_Literal then
-            if not First then
-               Append (R, ", ");
-            end if;
-            Append (R, Ident (To_String (M.Id)));
-            First := False;
+            Literals := Literals & Ident (To_String (M.Id));
          end if;
       end loop;
-      Append (R, ");");
-      return To_String (R);
+      Insert (T, Assoc ("NAME", Name));
+      Insert (T, Assoc ("LITERALS", Literals));
+      declare
+         S : constant String :=
+           Render_Template ("ada/class", "enum_decl.tmplt", T);
+      begin
+         if S'Length > 0 and then S (S'Last) = ASCII.LF then
+            return S (S'First .. S'Last - 1);
+         end if;
+         return S;
+      end;
    end Enum_Decl;
 
    function Interface_Decl (D : UML.Model.Diagram; Idx : Element_Index)
                             return String
    is
       Name : constant String := Ident (Id_Of (D, Idx));
-      R    : Unbounded_String;
+      E    : constant Element := D.Elements (Positive (Idx));
+
+      T_Head : Translate_Set;
+      T_Meth : Translate_Set;
+      Override_Flags : Tag;
+      Method_Decls   : Tag;
+      Has_Methods : Boolean := False;
    begin
-      Append (R, "   type " & Name & " is limited interface;");
-      for M of D.Elements (Positive (Idx)).Members loop
+      for M of E.Members loop
          if M.Kind = UML.Model.Method then
             declare
-               M_Name : constant String := Sanitize (To_String (M.Id));
-               Ret    : constant String := Map_Type (To_String (M.Type_Name));
+               M_Name : constant String := Ident (To_String (M.Id));
+               Ret    : constant String :=
+                 Map_Type (To_String (M.Type_Name));
+               Decl   : Unbounded_String := Null_Unbounded_String;
             begin
-               Append (R, ASCII.LF & ASCII.LF & "   ");
                if Ret'Length = 0 then
-                  Append (R, "procedure " & M_Name
-                          & " (Self : in out " & Name & ") is abstract;");
+                  Append (Decl, "procedure " & M_Name
+                          & " (Self : in out " & Name & ")");
                else
-                  Append (R, "function " & M_Name
-                          & " (Self : in out " & Name & ") return "
-                          & Ret & " is abstract;");
+                  Append (Decl, "function " & M_Name
+                          & " (Self : in out " & Name & ") return " & Ret);
                end if;
+               Append (Decl, " is abstract;");
+               Override_Flags := Override_Flags & False;
+               Method_Decls := Method_Decls & To_String (Decl);
+               Has_Methods := True;
             end;
          end if;
       end loop;
-      return To_String (R);
+
+      Insert (T_Head, Assoc ("NAME", Name));
+      declare
+         Head : Unbounded_String :=
+           To_Unbounded_String
+             (Render_Template ("ada/class", "interface_head.tmplt", T_Head));
+      begin
+         while Length (Head) > 0
+           and then Ada.Strings.Unbounded.Element
+                      (Head, Length (Head)) = ASCII.LF
+         loop
+            Delete (Head, Length (Head), Length (Head));
+         end loop;
+         if Has_Methods then
+            Append (Head, ASCII.LF & ASCII.LF);
+            Insert (T_Meth, Assoc ("METHOD_OVERRIDING", Override_Flags));
+            Insert (T_Meth, Assoc ("METHOD_DECL", Method_Decls));
+            Append (Head,
+                    Render_Template ("ada/class", "methods.tmplt", T_Meth));
+         end if;
+         declare
+            S : constant String := To_String (Head);
+         begin
+            if S'Length > 0 and then S (S'Last) = ASCII.LF then
+               return S (S'First .. S'Last - 1);
+            end if;
+            return S;
+         end;
+      end;
    end Interface_Decl;
 
    function Class_Decl (D : UML.Model.Diagram; Idx : Element_Index)
                         return String
    is
-      Name : constant String := Ident (Id_Of (D, Idx));
-      E    : constant Element := D.Elements (Positive (Idx));
-      R    : Unbounded_String;
-
+      Name        : constant String := Ident (Id_Of (D, Idx));
+      E           : constant Element := D.Elements (Positive (Idx));
       Is_Abstract : constant Boolean := E.Kind = Abstract_Class;
 
       Parent_Idx : constant Element_Index := First_Parent (D, Idx);
       Interfaces : constant Element_Index_Vectors.Vector :=
         Interfaces_Of (D, Idx);
-
       Has_Parent : constant Boolean := Parent_Idx /= 0;
-      Has_Deriv  : constant Boolean :=
-        Has_Parent or else not Interfaces.Is_Empty;
 
-      First_Deriv : Boolean := True;
+      T_Head : Translate_Set;
+      T_Meth : Translate_Set;
+      Field_Names : Tag;
+      Field_Types : Tag;
+      Override_Flags : Tag;
+      Method_Decls   : Tag;
+      Has_Methods : Boolean := False;
+      Has_Fields  : Boolean := False;
+
+      Derivation : Unbounded_String;
+      First      : Boolean := True;
    begin
-      --  Attached notes as leading comments.
-      for N of E.Notes loop
-         declare
-            Txt : constant String := To_String (N.Text);
-            Start : Natural := Txt'First;
-         begin
-            if Txt'Length > 0 then
-               for I in Txt'Range loop
-                  if Txt (I) = ASCII.LF then
-                     Append (R, "   --  " & Txt (Start .. I - 1) & ASCII.LF);
-                     Start := I + 1;
-                  end if;
-               end loop;
-               if Start <= Txt'Last then
-                  Append (R, "   --  " & Txt (Start .. Txt'Last) & ASCII.LF);
-               end if;
-            end if;
-         end;
-      end loop;
-
-      Append (R, "   type " & Name & " is");
-
-      if Is_Abstract then
-         Append (R, " abstract");
-      end if;
-
-      if not Has_Deriv then
-         Append (R, " tagged");
+      --  Build DERIVATION string.
+      if not Has_Parent and then Interfaces.Is_Empty then
+         Append (Derivation, "tagged");
       else
          if Has_Parent then
-            Append (R, " new " & Ident (Id_Of (D, Parent_Idx)));
-            First_Deriv := False;
+            Append (Derivation, "new " & Ident (Id_Of (D, Parent_Idx)));
+            First := False;
          end if;
          for I of Interfaces loop
-            if First_Deriv then
-               Append (R, " new " & Ident (Id_Of (D, I)));
-               First_Deriv := False;
+            if First then
+               Append (Derivation, "new " & Ident (Id_Of (D, I)));
+               First := False;
             else
-               Append (R, " and " & Ident (Id_Of (D, I)));
+               Append (Derivation, " and " & Ident (Id_Of (D, I)));
             end if;
          end loop;
+         Append (Derivation, " with");
       end if;
 
-      if Field_Count (D, Idx) = 0 then
-         if Has_Deriv then
-            Append (R, " with null record;");
-         else
-            Append (R, " null record;");
-         end if;
-      else
-         if Has_Deriv then
-            Append (R, " with record" & ASCII.LF);
-         else
-            Append (R, " record" & ASCII.LF);
-         end if;
-         for M of E.Members loop
-            if M.Kind = UML.Model.Attribute then
-               Append (R, "      Attr_" & Ident (To_String (M.Id))
-                       & " : " & Map_Type (To_String (M.Type_Name))
-                       & ";" & ASCII.LF);
-            end if;
-         end loop;
-         for Rel of D.Relations loop
-            if Rel.From = Idx
-              and then Rel.Kind in UML.Model.Composition
-                                  | UML.Model.Aggregation
-                                  | UML.Model.Association
-              and then Rel.To /= Idx
-            then
-               declare
-                  Target_Name : constant String :=
-                    Ident (Id_Of (D, Rel.To));
-                  Target_Kind : constant Element_Kind :=
-                    D.Elements (Positive (Rel.To)).Kind;
-               begin
-                  Append (R, "      Attr_" & Target_Name & " : ");
-                  if Target_Kind = Enumeration then
-                     Append (R, Target_Name & ";" & ASCII.LF);
-                  else
-                     Append (R, "access " & Target_Name
-                             & "'Class;" & ASCII.LF);
-                  end if;
-               end;
-            end if;
-         end loop;
-         Append (R, "   end record;");
-      end if;
-
+      --  Fields: attributes then association-derived.
       for M of E.Members loop
-         if M.Kind = UML.Model.Method then
+         if M.Kind = UML.Model.Attribute then
+            Field_Names := Field_Names & Ident (To_String (M.Id));
+            Field_Types := Field_Types
+              & Map_Type (To_String (M.Type_Name));
+            Has_Fields := True;
+         end if;
+      end loop;
+      for Rel of D.Relations loop
+         if Rel.From = Idx
+           and then Rel.Kind in UML.Model.Composition
+                               | UML.Model.Aggregation
+                               | UML.Model.Association
+           and then Rel.To /= Idx
+         then
             declare
-               M_Name  : constant String := Ident (To_String (M.Id));
-               Ret     : constant String :=
-                 Map_Type (To_String (M.Type_Name));
-               Is_Abs  : constant Boolean := Member_Is_Abstract (M);
+               Target_Name : constant String :=
+                 Ident (Id_Of (D, Rel.To));
+               Target_Kind : constant Element_Kind :=
+                 D.Elements (Positive (Rel.To)).Kind;
             begin
-               Append (R, ASCII.LF & ASCII.LF);
-               if Is_Override (D, Idx, To_String (M.Id)) then
-                  Append (R, "   overriding" & ASCII.LF);
-               end if;
-               if Ret'Length = 0 then
-                  Append (R, "   procedure " & M_Name
-                          & " (Self : in out " & Name & ")");
+               Field_Names := Field_Names & Target_Name;
+               Has_Fields := True;
+               if Target_Kind = Enumeration then
+                  Field_Types := Field_Types & Target_Name;
                else
-                  Append (R, "   function " & M_Name
-                          & " (Self : in out " & Name & ") return "
-                          & Ret);
-               end if;
-               if Is_Abs then
-                  Append (R, " is abstract;");
-               else
-                  Append (R, ";");
+                  Field_Types := Field_Types
+                    & ("access " & Target_Name & "'Class");
                end if;
             end;
          end if;
       end loop;
 
-      return To_String (R);
+      --  Methods.
+      for M of E.Members loop
+         if M.Kind = UML.Model.Method then
+            declare
+               M_Name : constant String := Ident (To_String (M.Id));
+               Ret    : constant String :=
+                 Map_Type (To_String (M.Type_Name));
+               Is_Abs : constant Boolean := Member_Is_Abstract (M);
+               Decl   : Unbounded_String := Null_Unbounded_String;
+            begin
+               if Ret'Length = 0 then
+                  Append (Decl, "procedure " & M_Name
+                          & " (Self : in out " & Name & ")");
+               else
+                  Append (Decl, "function " & M_Name
+                          & " (Self : in out " & Name & ") return " & Ret);
+               end if;
+               if Is_Abs then
+                  Append (Decl, " is abstract;");
+               else
+                  Append (Decl, ";");
+               end if;
+               Override_Flags := Override_Flags
+                 & Is_Override (D, Idx, To_String (M.Id));
+               Method_Decls := Method_Decls & To_String (Decl);
+               Has_Methods := True;
+            end;
+         end if;
+      end loop;
+
+      Insert (T_Head, Assoc ("NAME", Name));
+      Insert (T_Head, Assoc ("ABSTRACT",
+                             (if Is_Abstract then " abstract" else "")));
+      Insert (T_Head, Assoc ("DERIVATION", To_String (Derivation)));
+
+      declare
+         Head : Unbounded_String;
+      begin
+         if not Has_Fields then
+            Head := To_Unbounded_String
+              (Render_Template
+                 ("ada/class", "class_head_empty.tmplt", T_Head));
+         else
+            Insert (T_Head, Assoc ("FIELD_NAME", Field_Names));
+            Insert (T_Head, Assoc ("FIELD_TYPE", Field_Types));
+            Head := To_Unbounded_String
+              (Render_Template
+                 ("ada/class", "class_head_fields.tmplt", T_Head));
+         end if;
+
+         --  Normalize: strip any trailing newline that the head
+         --  template produced.
+         while Length (Head) > 0
+           and then Ada.Strings.Unbounded.Element
+                      (Head, Length (Head)) = ASCII.LF
+         loop
+            Delete (Head, Length (Head), Length (Head));
+         end loop;
+
+         if Has_Methods then
+            Append (Head, ASCII.LF & ASCII.LF);
+            Insert (T_Meth, Assoc ("METHOD_OVERRIDING", Override_Flags));
+            Insert (T_Meth, Assoc ("METHOD_DECL", Method_Decls));
+            Append (Head,
+                    Render_Template ("ada/class", "methods.tmplt", T_Meth));
+         end if;
+
+         --  Strip the trailing newline; the package-level template
+         --  supplies the blank line between declarations.
+         declare
+            S : constant String := To_String (Head);
+         begin
+            if S'Length > 0 and then S (S'Last) = ASCII.LF then
+               return S (S'First .. S'Last - 1);
+            end if;
+            return S;
+         end;
+      end;
    end Class_Decl;
 
    --  The "declares Method_Name on type Idx" query used inside

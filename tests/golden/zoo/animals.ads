@@ -18,20 +18,16 @@ package Animals is
    end record;
 
    procedure Speak (Self : in out Animal);
-
    procedure Move (Self : in out Animal) is abstract;
 
-   --  A loyal companion.
    type Dog is new Animal and Pet with record
       Attr_Toy : access Toy'Class;
       Attr_Color : Color;
    end record;
 
    procedure Fetch (Self : in out Dog);
-
    overriding
    procedure Move (Self : in out Dog);
-
    overriding
    function Name (Self : in out Dog) return Unbounded_String;
 

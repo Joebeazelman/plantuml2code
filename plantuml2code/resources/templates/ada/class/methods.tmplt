@@ -1,0 +1,6 @@
+@@TABLE@@
+@@IF@@ @_METHOD_OVERRIDING_@
+   overriding
+@@END_IF@@
+   @_METHOD_DECL_@
+@@END_TABLE@@
