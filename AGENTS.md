@@ -347,12 +347,13 @@ Needs: a test-suite GPR template, an `alire.toml` template that
 depends on `aunit`, and generated test-case templates per diagram
 kind.
 
-### 6. Rename to uml2code
+### 6. Rename to uml2code — done
 
-Rename crate names, project names, executable names, GPR projects,
-`with` clauses, install prefix, environment variable names,
-documentation, and directory names. Deferred until the items above
-are done.
+The application crate, GPR projects, Ada sources, templates, tests,
+docs, and the environment variable (`UML2CODE_TEMPLATES`) all use the
+new name. The parser library kept `plantuml_parser` since it parses
+PlantUML. The GitHub repository still carries the old name; renaming
+it there is a separate action (`gh repo rename uml2code`).
 
 ### Deferred / open
 
