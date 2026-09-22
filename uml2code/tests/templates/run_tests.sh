@@ -8,9 +8,9 @@
 
 set -euo pipefail
 
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../../.."
 ROOT="$(pwd)"
-NORM="$ROOT/tests/normalize.sed"
+NORM="$ROOT/uml2code/tests/templates/normalize.sed"
 GEN="$ROOT/uml2code/bin/uml2code"
 
 if [ ! -x "$GEN" ]; then
@@ -36,7 +36,7 @@ trap 'rm -rf "$TMP"' EXIT
 check_case () {
   local name="$1"
   local source="$2"
-  local golden_dir="$ROOT/tests/golden/$name"
+  local golden_dir="$ROOT/uml2code/tests/templates/golden/$name"
 
   echo "==> $name"
 
@@ -145,19 +145,19 @@ check_case () {
   fi
 }
 
-check_case nested  samples/nested.puml
+check_case nested  examples/nested.puml
 echo
-check_case zoo     samples/zoo.puml
+check_case zoo     examples/zoo.puml
 echo
-check_case history samples/history.puml
+check_case history examples/history.puml
 echo
-check_case adb     samples/adb_protocol.puml
+check_case adb     examples/adb_protocol.puml
 
 echo
 if [ "$FAIL" -eq 0 ]; then
   echo "All golden tests passed."
 else
   echo "Some golden tests failed. To accept current output, run:"
-  echo "    ./tests/update_golden.sh"
+  echo "    uml2code/tests/templates/update_golden.sh"
   exit 1
 fi

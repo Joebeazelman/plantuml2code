@@ -4,9 +4,9 @@
 
 set -euo pipefail
 
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../../.."
 ROOT="$(pwd)"
-NORM="$ROOT/tests/normalize.sed"
+NORM="$ROOT/uml2code/tests/templates/normalize.sed"
 GEN="$ROOT/uml2code/bin/uml2code"
 
 if [ ! -x "$GEN" ]; then
@@ -17,7 +17,7 @@ fi
 update_case () {
   local name="$1"
   local source="$2"
-  local golden_dir="$ROOT/tests/golden/$name"
+  local golden_dir="$ROOT/uml2code/tests/templates/golden/$name"
 
   echo "==> $name"
   mkdir -p "$golden_dir"
@@ -56,14 +56,14 @@ update_case () {
   ls "$golden_dir" | wc -l | xargs echo "  files:"
 }
 
-update_case nested  samples/nested.puml
+update_case nested  examples/nested.puml
 echo
-update_case zoo     samples/zoo.puml
+update_case zoo     examples/zoo.puml
 echo
-update_case history samples/history.puml
+update_case history examples/history.puml
 echo
-update_case adb     samples/adb_protocol.puml
+update_case adb     examples/adb_protocol.puml
 
 echo
 echo "Golden files updated. Review with:"
-echo "    git diff tests/golden/"
+echo "    git diff uml2code/tests/templates/golden/"

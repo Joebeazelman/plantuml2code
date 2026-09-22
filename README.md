@@ -17,7 +17,7 @@ generate Ada 2022 code from that model. Built with Alire.
     cd ~/Projects/ai-generated/uml2code && alr build
 
     cd uml2code
-    ./bin/uml2code gen ../samples/nested.puml
+    ./bin/uml2code gen ../examples/nested.puml
     ./bin/uml2code gen -f json ../samples/nested.puml
     ./bin/uml2code gen -f ada -o /tmp/gen ../samples/nested.puml
     bash /tmp/gen/setup.sh
@@ -60,7 +60,7 @@ kinds:
 
     cd plantuml_parser && ./run_tests.sh    # AUnit
     cd ../uml2code && ./run_tests.sh   # AUnit
-    cd .. && ./tests/run_tests.sh           # golden files
+    cd ~/Projects/ai-generated/uml2code && ./run_tests.sh
 
 Golden files compare every generated `.ads`/`.adb`/`driver.adb`
 against `tests/golden/<case>/`. Update with `./tests/update_golden.sh`
