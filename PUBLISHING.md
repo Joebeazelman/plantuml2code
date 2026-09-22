@@ -1,10 +1,9 @@
 # Publishing to the Alire community index
 
-Both `plantuml_parser` and `hsm_runtime` are ready to submit. The
-index manifests are committed under each crate's `alire/releases/`
-directory. Nothing needs to change in the source to publish — the
-setup below is one-time, and the actual submission is one command
-per crate.
+`plantuml_parser` is ready to submit. Its index manifest is committed
+under `plantuml_parser/alire/releases/`. Nothing needs to change in
+the source to publish — the setup below is one-time, and the actual
+submission is one command.
 
 ## Prerequisites
 
@@ -29,26 +28,22 @@ is `--skip-submit`, which runs every check (including a full build)
 but does not open a PR:
 
     cd plantuml_parser && alr publish --skip-submit
-    cd ../hsm_runtime  && alr publish --skip-submit
 
-Both should print a summary and generate a manifest under
-`<crate>/alire/releases/`. If they succeed, the crates are
+This prints a summary and regenerates a manifest under
+`plantuml_parser/alire/releases/`. If it succeeds, the crate is
 publishable as-is.
 
 ## Submitting
 
 When you decide to go live:
 
-    ./publish.sh
+    cd plantuml_parser && alr publish
 
-That script publishes both crates in sequence. Each one:
+This:
 
 1. Forks `alire-project/alire-index` (or uses your existing fork).
-2. Adds the manifest at `index/<two-letter-prefix>/<crate>/`.
+2. Adds the manifest at `index/pl/plantuml_parser/`.
 3. Opens a PR against the community index.
-
-Prefixes: `plantuml_parser` goes under `index/pl/`, `hsm_runtime`
-under `index/hs/`.
 
 ## What the moderators will check
 
@@ -64,12 +59,12 @@ Expect a review before merge. Common requests:
 
 Two things are worth doing immediately before the first submission:
 
-1. **Add a LICENSE file.** Alire checks for one at the crate root,
-   and both crates declare "MIT OR Apache-2.0 WITH LLVM-exception".
-   Create the file(s) once with the text of both licenses.
+1. **Confirm the LICENSE file is at the crate root.** Alire checks
+   for one, and `plantuml_parser` declares
+   "MIT OR Apache-2.0 WITH LLVM-exception".
 
-2. **Run `./publish.sh --check`** to see whether anything else in the
-   manifests has drifted since the last `--skip-submit` run.
+2. **Run `alr publish --skip-submit`** to see whether anything in
+   the manifest has drifted since the last check.
 
 ## Reverting a submission
 
