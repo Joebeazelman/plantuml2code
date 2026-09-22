@@ -1361,6 +1361,24 @@ package body Uml2Code_Ada is
       end;
    end Emit_Tests;
 
+
+   --  Refuse to write generated output into the crate's own source
+   --  or test tree. The CLI enforces the same policy at the -o flag,
+   --  but tests call Generate directly.
+   procedure Refuse_Crate_Internal_Output (Out_Dir : String) is
+      function Contains (Haystack, Needle : String) return Boolean is
+        (Ada.Strings.Fixed.Index (Haystack, Needle) > 0);
+   begin
+      if Contains (Out_Dir, "uml2code/tests")
+        or else Contains (Out_Dir, "uml2code/src")
+        or else Contains (Out_Dir, "plantuml_parser/tests")
+        or else Contains (Out_Dir, "plantuml_parser/src")
+      then
+         raise Constraint_Error with
+           "refusing to write into the crate tree: " & Out_Dir;
+      end if;
+   end Refuse_Crate_Internal_Output;
+
    procedure Generate
      (D              : UML.Model.Diagram;
       Package_Name   : String;
@@ -1369,6 +1387,7 @@ package body Uml2Code_Ada is
    is
       Date_Str : Unbounded_String;
    begin
+      Refuse_Crate_Internal_Output (Out_Dir);
       declare
          Now : constant Ada.Calendar.Time := Ada.Calendar.Clock;
          Yr  : Ada.Calendar.Year_Number;

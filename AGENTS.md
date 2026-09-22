@@ -273,6 +273,11 @@ Resolution order:
     uml2code gen <file>                   text
     uml2code gen -f json <file>           JSON
     uml2code gen -f ada -o <dir> <file>   generate Ada
+
+`-o <dir>` must be absent or empty. The generator refuses to write
+into a directory that already contains files, so generated output
+cannot be merged into an existing source tree by accident. The
+directory is created if it does not exist.
     uml2code kind <file>                   detect diagram kind
     uml2code help [topic]
     uml2code --version

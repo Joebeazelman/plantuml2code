@@ -292,28 +292,6 @@ package body Uml2Code_Ada_Classes is
    end Interfaces_Of;
 
    --  Fields for a class: attributes plus association-derived fields.
-   function Field_Count (D : UML.Model.Diagram; Idx : Element_Index)
-                         return Natural is
-      N : Natural := 0;
-   begin
-      for M of D.Elements (Positive (Idx)).Members loop
-         if M.Kind = UML.Model.Attribute then
-            N := N + 1;
-         end if;
-      end loop;
-      for Rel of D.Relations loop
-         if Rel.From = Idx
-           and then Rel.Kind in UML.Model.Composition
-                              | UML.Model.Aggregation
-                              | UML.Model.Association
-           and then Rel.To /= Idx
-         then
-            N := N + 1;
-         end if;
-      end loop;
-      return N;
-   end Field_Count;
-
    --  Whether a member is declared abstract in the diagram.
    function Member_Is_Abstract (M : Member) return Boolean is
      (M.Is_Abstract);
@@ -1421,6 +1399,24 @@ package body Uml2Code_Ada_Classes is
       end if;
    end Validate;
 
+
+   --  Refuse to write generated output into the crate's own source
+   --  or test tree. The CLI enforces the same policy at the -o flag,
+   --  but tests call Generate directly.
+   procedure Refuse_Crate_Internal_Output (Out_Dir : String) is
+      function Contains (Haystack, Needle : String) return Boolean is
+        (Ada.Strings.Fixed.Index (Haystack, Needle) > 0);
+   begin
+      if Contains (Out_Dir, "uml2code/tests")
+        or else Contains (Out_Dir, "uml2code/src")
+        or else Contains (Out_Dir, "plantuml_parser/tests")
+        or else Contains (Out_Dir, "plantuml_parser/src")
+      then
+         raise Constraint_Error with
+           "refusing to write into the crate tree: " & Out_Dir;
+      end if;
+   end Refuse_Crate_Internal_Output;
+
    procedure Generate
      (D              : UML.Model.Diagram;
       Source_Diagram : String;
@@ -1428,6 +1424,7 @@ package body Uml2Code_Ada_Classes is
    is
       Date_Str : Unbounded_String;
    begin
+      Refuse_Crate_Internal_Output (Out_Dir);
       Validate (D);
 
       declare
