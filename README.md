@@ -1,61 +1,78 @@
 # plantuml2code
 
-A workspace of three Ada crates that parse PlantUML state and class
-diagrams and generate Ada code from them.
+Parse PlantUML state and class diagrams into a normalized model, then
+generate Ada 2022 code from that model. Two-crate workspace, built
+with Alire.
 
 ## Crates
 
-- **`plantuml_parser`** — library. Parses PlantUML diagrams into a
-  structured model with regions, states, transitions, annotations,
-  guards, and effects.
-- **`hsm_runtime`** — library. Generic hierarchical state machine
-  engine used by the generated code.
+- **`plantuml_parser`** — library. Tokenizer, PlantUML state and class
+  parsers, and the normalized `UML.Model` they both target.
 - **`plantuml2code`** — application. CLI that reads a `.puml` file and
-  emits text, JSON, or Ada HSM source.
-
-`gen_test` is a sample project that consumes generated Ada and compiles
-against `hsm_runtime`.
+  emits text, JSON, or Ada.
 
 ## Quick start
 
-    cd plantuml_parser   && alr build
-    cd ../hsm_runtime    && alr build
-    cd ../plantuml2code  && alr build
+    cd plantuml_parser && alr build
+    cd ../plantuml2code && alr build
 
+    cd plantuml2code
     ./bin/plantuml2code dump ../samples/nested.puml
     ./bin/plantuml2code dump -f json ../samples/nested.puml
     ./bin/plantuml2code dump -f ada -o /tmp/gen ../samples/nested.puml
+    bash /tmp/gen/setup.sh
 
-See `AGENTS.md` for architecture notes and known gotchas.
+The last command builds and runs the generated project.
+
+## Configuration
+
+Template location is resolved in this order:
+
+1. `-t <dir>` on the command line
+2. `./uml2code.conf` (project config)
+3. `~/.config/uml2code/config` (home config)
+4. `$PLANTUML2CODE_TEMPLATES`
+5. Built-in `resources/templates` lookups relative to the crate
+
+Config files use a flat `key = value` format; only `templates_dir` is
+recognised. Comment lines start with `#`.
+
+    # uml2code.conf
+    templates_dir = /path/to/my/templates
+
+## Templates
+
+Templates live under `resources/templates/<format>/<diagram-kind>/`.
+Formats: `ada`, `json`, `default`. Kinds: `state`, `class`. Runtime
+and project scaffolding templates live at the format level and are
+shared across kinds:
+
+    resources/templates/
+      ada/
+        state/     state.ads.tmplt, state.adb.tmplt, actions.*
+        class/     class.ads.tmplt, class.adb.tmplt, class_operations.*
+        runtime/   state_machine.*
+        project/   driver.adb.tmplt, setup.sh.tmplt
+      json/
+        state/, class/
+      default/
+        state/, class/
+
+## Tests
+
+    cd plantuml_parser && ./run_tests.sh    # AUnit
+    cd ../plantuml2code && ./run_tests.sh   # AUnit
+    cd .. && ./tests/run_tests.sh           # golden files
+
+Golden files compare every generated `.ads`/`.adb`/`driver.adb`
+against `tests/golden/<case>/`. Update with `./tests/update_golden.sh`
+after an intentional output change.
 
 ## Publishing
 
-`plantuml_parser` and `hsm_runtime` are both ready to publish to the
-Alire community index. Their index manifests are committed under each
-crate's `alire/releases/` directory:
+`plantuml_parser` is ready to publish. See `PUBLISHING.md`.
 
-- `plantuml_parser/alire/releases/plantuml_parser-0.1.0.toml`
-- `hsm_runtime/alire/releases/hsm_runtime-0.1.0.toml`
+## Further reading
 
-To submit a new version:
-
-    cd plantuml_parser && alr publish
-    cd ../hsm_runtime && alr publish
-
-Each opens a PR against `alire-project/alire-index`. Requires a GitHub
-Personal Access Token configured for `alr`; see
-https://github.com/alire-project/alire/blob/master/doc/publishing.md
-
-Publishing is deferred until there is a reason to (first outside user,
-or a feature-complete milestone).
-
-## Bootstrapping the sample projects
-
-`gen_test` and `class_test` consume *generated* Ada, which is not
-checked into the repository. After a fresh clone, run:
-
-    ./bootstrap.sh
-
-This builds `plantuml2code`, regenerates the sample source from
-`samples/nested.puml` and `samples/zoo.puml`, and builds and runs
-both sample projects.
+`AGENTS.md` documents architecture, the template tag protocol, and the
+roadmap.

@@ -1,540 +1,438 @@
 # plantuml2code — agent notes
 
-A workspace of Ada crates that parse PlantUML diagrams and generate
-Ada code from them. This document is the map; read it before making
-changes.
+Parse PlantUML state and class diagrams into a normalized model, then
+generate Ada 2022 code from that model. This document is the map;
+read it before making changes.
 
 ## Layout
 
-    plantuml_parser/    library — syntactic model of PlantUML state/class diagrams
-    hsm_runtime/        library — generic hierarchical state machine engine
-    plantuml2code/      application — CLI: text, json, ada output
-    gen_test/           sample — consumes state-machine Ada
-    class_test/         sample — consumes class-model Ada
-    samples/            .puml sources (nested.puml, zoo.puml)
-    bootstrap.sh        regenerate sample projects after a fresh clone
+    plantuml_parser/    library — tokenizer, PlantUML parsers, UML.Model
+    plantuml2code/      application — CLI and generators
+    samples/            .puml sources (nested, zoo, history, adb_protocol)
+    tests/              golden-file tests (repo root)
+    README.md           user-facing overview
+    PUBLISHING.md       Alire submission process
 
 ## Toolchain
 
 - Alire 2.x, `alr` on PATH
-- GNAT 12+ with `-gnat2022 -gnatX`
+- GNAT 16, `-gnat2022 -gnatX`
 - macOS (BSD userland). Shell is zsh.
 
-## Build and run
+`gprbuild` and `gnatmake` are not on PATH — they live under
+`~/.local/share/alire/toolchains/`. Invoke via `alr exec -- gprbuild`
+or use the full path.
 
-Core crates:
+## Build and test
 
     cd plantuml_parser && alr build
-    cd ../hsm_runtime  && alr build
     cd ../plantuml2code && alr build
 
-Sample projects need generated Ada, which is gitignored. From the
-repo root, one command does everything:
+    cd plantuml_parser && ./run_tests.sh    # AUnit, 24 tests
+    cd ../plantuml2code && ./run_tests.sh   # AUnit, 46 tests
+    cd .. && ./tests/run_tests.sh           # golden files
 
-    ./bootstrap.sh
+`tests/run_tests.sh` refuses to run if any source file is newer than
+`plantuml2code/bin/plantuml2code`. If it complains, rebuild. This
+prevents a failed build from silently passing goldens against a stale
+binary.
 
-CLI examples:
+## Architecture
 
-    cd plantuml2code
-    ./bin/plantuml2code dump ../samples/nested.puml
-    ./bin/plantuml2code dump -f json ../samples/nested.puml
-    ./bin/plantuml2code dump -f ada -o /tmp/gen ../samples/nested.puml
+### Normalized model
 
-Notes:
+`UML.Model` is the single internal representation. Types only:
 
-- `alr run` uses `--args="..."`, not `-- ...`.
-- For debugging, invoke `./bin/<exe>` directly.
+- `Diagram` — `Id`, `Kind`, `Metadata`, `Elements`, `Roots`,
+  `Relations`, `Notes`
+- `Element` — `Id`, `Display`, `Kind`, `Annotations`, `Notes`,
+  `Members`, `Children`, `Parent`
+- `Relation` — `From`/`To` (element indices), `Kind`, `Trigger`,
+  `Guard`, `Effect`, `Label`, `Mult_From`, `Mult_To`, `Stereotypes`,
+  `Notes`
+- `Note` — `Text`, `Subject`, `Position`
+- `Member` — `Kind`, `Id`, `Type_Name`, `Params`, `Vis`, flags
 
-## Parser model
+`UML.Model.Queries` provides structural helpers over the flat model:
+`Find_By_Id`, `Require_By_Id`, `Region_Of`, `States_In`,
+`Transitions_In`, `Is_Composite`, `Is_History`, `Parents_Of`,
+`Associations_From`.
 
-`PlantUML.States.State_Diagram` and `PlantUML.Classes.Class_Diagram`
-use the same pool-and-index design:
+### Public parser entry point
 
-- `Pool : *_Vectors.Vector` — flat list of all entities
-- `Roots : Index_Vectors.Vector` — indices of top-level entities
-- Each entity carries `Children : Index_Vectors.Vector` with indices
-  into the pool
+`PlantUML.Parse (Source : String) return UML.Model.Diagram` is the
+only parser API external code uses. `PlantUML.Detect_Kind` routes by
+keyword: `state` for state diagrams; `class`, `abstract`, `interface`,
+`enum`, `record`, `annotation`, `package`, `object` for class
+diagrams.
 
-This shape exists because Ada containers can't hold self-referential
-records directly. It's the standard workaround: flat storage,
-index-based links.
+`PlantUML.States` and `PlantUML.Classes` remain as internal parsers.
+`PlantUML.To_Model` translates their types into `UML.Model`. The
+parser types are not part of the library's public interface.
 
-### Pseudostates
+### Tokenizer
 
-Canonical names are region-scoped. The top-level `[*]` is named
-`[*]_start` / `[*]_end`. An inner `[*]` inside `Running` is named
-`Running.[*]_start` / `Running.[*]_end`. History is `[H]` or
-`<region>.[H]`.
+`PlantUML.Tokens`. `Token` has `Kind`, `Text`, `Line`, `Space_Before`.
+`Space_Before` records whether whitespace preceded the token — needed
+to reconstruct notes with original spacing. `Decode_Escapes` turns
+`\n` sequences into real newlines; used by both parsers when
+assembling note text.
 
-The parser writes these names during a single pass. Consumers
-disambiguate regions by looking at children, not by re-parsing
-the name.
+### Notes
 
-### Transitions
+Two forms:
 
-Flat list. Each `Transition` has `From`, `To`, `Trigger`, `Guard`,
-`Effect`, `Label`, `Kind`. `From` and `To` are names, not indices —
-name lookup is done by the consumer.
+- **State diagrams:** `State : text` is a note, unless the line
+  contains `/`, in which case it's an action annotation.
+- **Class diagrams:** `note right|left|top|bottom of X : text`
+  attaches to classifier `X`; `note "text"` is diagram-level.
 
-### Annotations
+Multi-line note text uses `\n` escapes, decoded at parse time.
+Element-attached notes end up in `Element.Notes`; diagram-level notes
+end up in `Diagram.Notes`.
 
-A state's `Annotations` vector holds records with `Kind`, `Action`,
-`Trigger`, `Guard`. `Kind` values: `Entry_Action`, `Exit_Action`,
-`Do_Activity`, `Internal_Transition`, `Note`, `Stereotype`, `Unknown`.
+### Package membership
 
-### Classes
+For class diagrams, `Element.Parent` and `Element.Children` record
+the PlantUML package hierarchy. `From_Classes` reverse-populates
+`Parent` from `Children` after translation so consumers can walk
+either direction. The class generator uses this to emit one Ada
+package per PlantUML package.
 
-`Classifier` carries `Id`, `Display`, `Kind`, `Members`,
-`Annotations`, `Children`. `Member` has `Kind`, `Vis`, `Id`,
-`Type_Name`, `Params`, and static/abstract flags. `Relation` has
-`From`, `To`, `Kind`, `Mult_From`, `Mult_To`, `Label`, `Stereotype`.
+## Generators
 
-## Runtime
+Both consume `UML.Model.Diagram` and are template-driven. Ada code
+in the generators prepares data (tags, vectors); templates decide
+the shape of the output.
 
-`HSM.Machines` is a generic package parameterised by
-`(State, Event, Initial)`. It provides:
+### State generator (`plantuml2code_ada.adb`)
 
-- `Machine`, an abstract tagged type with `Current`
-- `Current_State`, `Next_State` (abstract), `On_Enter`, `On_Exit`,
-  `On_Internal` (overridable), `Name` (abstract)
-- `Start` — fires `On_Enter` for the initial state. Call once after
-  construction.
-- `Step` — the UML transition algorithm
-- `Reset` — fires `On_Exit`, sets to `Initial`, fires `On_Enter`
+Recursive over composite regions. Each composite state spawns a
+child region and a corresponding `<Child>_Machine` package. The
+parent holds the child machine by value and exposes a
+`Step_<Child>` procedure.
 
-Dispatch works because `Step`/`Start`/`Reset` take `Machine'Class`.
-The generated bodies override the primitives, and the runtime calls
-them through class-wide views.
+Emits per machine:
 
-`On_Internal` returns `True` if the event was consumed as an internal
-transition. `Step` calls it before computing the next state.
+    <Package>.ads              spec
+    <Package>.adb              body
+    <Package>_Actions.ads      stub declarations
+    <Package>_Actions.adb      stub bodies (emitted once)
 
-`Utilities.Tracing` is a global tracer hook. The sample driver installs
-one that writes to stdout. Tracing only fires on actual state changes.
+Plus shared runtime (`state_machine.*`) and project scaffolding
+(`setup.sh`, `tests/driver.adb`) once per output directory.
 
-## Generator
+### Class generator (`plantuml2code_ada_classes.adb`)
 
-Two independent code paths, both under `plantuml2code/src/`:
+One Ada package per PlantUML package. Top-level classifiers go in a
+root package named after the diagram, or `Model` if unnamed.
 
-- `plantuml2code_ada.adb` — state diagrams
-- `plantuml2code_ada_classes.adb` — class diagrams
+Naming: identifier positions use `Ident = Ada_Case (Sanitize (...))`.
+Ada casing: first letter of each underscore-separated word upper,
+rest lower. So `host_protocol` → `Host_Protocol`.
 
-Both emit four files per entity:
+Type declarations:
 
-    <Package>.ads           spec, regenerated
-    <Package>.adb           body, regenerated
-    <Package>_Actions.ads   action stubs, emitted once, never overwritten
-    <Package>_Actions.adb   bodies the user edits
+- Root class: `type X is [abstract] tagged record ... end record;`
+  (or `tagged null record` when empty)
+- Derived: `type X is [abstract] new Parent [and Iface]* with ...`
+- Interface: `type X is limited interface;`
+- Enum: `type X is (A, B, C);`
 
-### State machines
+Method bodies delegate to `<Package>.Operations`, a child package:
 
-`Generate_Region` is recursive. For each `Composite` state, it spawns
-a child region, producing `<Child>_Machine.ads`/`.adb`. The parent
-holds each child by value:
+    package body Animals is
+       procedure Fetch (Self : in out Dog) is
+       begin
+          Operations.Fetch (Self);
+       end Fetch;
+    end Animals;
 
-    type Machine is new Base.Machine with record
-       Running_Child : Running_Machine.Machine;
-    end record;
+Operations stubs: procedures get `null`, functions get
+`raise Program_Error` followed by an unreachable dummy return (GNAT
+elides expression functions that only raise).
 
-The parent's `On_Enter` for a composite state calls
-`Running_Machine.Base.Reset (Self.Running_Child)`. The parent exposes
-a `Step_<Child>` procedure so the driver can dispatch child events.
+No runtime. No `Class_Runtime`. No `Class_Name`. Fields use
+`access X'Class` for class-typed associations, direct value for enum
+associations.
 
-Identifier sanitization: `Sanitize` keeps alphanumerics, replaces
-others with `_`, collapses runs, prefixes `S_` if leading digit,
-returns `Unnamed` if empty. `State_Literal` maps pseudostates to
-`Start_State`, `End_State`, `History`, `Deep_History`.
+### Validation
 
-### Classes
+`plantuml2code_ada_classes.Validate` runs before any output is
+emitted. Errors print to stderr; the exception `Validation_Error`
+is raised if any occurred, and no files are written. Checks:
 
-Each class becomes its own package. `T` is the tagged type.
-Attributes become record fields with an `Attr_` prefix (this avoids
-colliding with method names — Ada identifiers are case-insensitive
-and selected components win over primitives).
+- Classifier name is not an Ada reserved word
+- Realization target is an interface
+- Interface parents are interfaces
+- At most one class parent per class
+- No inheritance cycles
+- Concrete classes implement all inherited abstract methods
 
-- Inheritance: `type T is new Parent.T with null record;`
-- Interfaces: `type T is interface;` with abstract methods
-- Enums: `type T is (A, B, C);`
-- Method stubs: `raise Program_Error` with an unreachable `return`
-  (expression functions that only raise are elided by GNAT)
-- Inherited abstract methods are auto-overridden so concrete
-  derived types compile
+### Identifier sanitization
 
-### Identifier type mapping
+`Sanitize` keeps alphanumerics, replaces others with `_`, collapses
+runs, prefixes `T_` for leading digit, returns `Unnamed` if empty.
+`Ada_Case` applies Ada identifier casing. `Ident` composes both.
+
+`State_Literal` maps pseudostates: `[*]_start` → `Start_State`,
+`[*]_end` → `End_State`, `[H]` → `History`, `[H*]` → `Deep_History`.
+
+### Type mapping
 
 `Map_Type` in the class generator maps PlantUML type names to Ada:
-`String` → `Unbounded_String`, `Boolean` → `Boolean`, `Float`/`Double`
-→ `Float`, `Int`/`Long` → `Integer`, everything else → `Integer`.
+`String` → `Unbounded_String`, `Boolean` → `Boolean`,
+`Float`/`Double`/`Real` → `Float`, `Int`/`Long`/`Short` →
+`Integer`, empty → `""` (procedure, not function).
 
 ## Templates
 
-Templates Parser syntax (NOT Mustache/ERB):
+Templates_Parser syntax, not Mustache or ERB.
 
 - Tags: `@_TAG_@`
 - Filters: `@_FILTER:VAR_@`
-- Directives: `@@TABLE@@ ... @@END_TABLE@@`, `@@IF@@ @_BOOL_TAG_@ ... @@END_IF@@`
-- Length attribute: `@_VAR'Length_@`
+- Directives: `@@TABLE@@ ... @@END_TABLE@@`,
+  `@@IF@@ @_BOOL_TAG_@ ... @@END_IF@@`
 
-Tag delimiters default to `@_` and `_@`.
+### Directive placement
 
-### Directive placement rules
+Strict:
 
-The parser is strict about where directives appear:
-
-- `@@IF@@`, `@@ELSE@@`, and `@@END_IF@@` must start a line at
-  column 1 with no leading whitespace.
+- `@@IF@@`, `@@ELSE@@`, `@@END_IF@@`, `@@TABLE@@`, `@@END_TABLE@@`
+  must start at column 1 with no leading whitespace.
 - The boolean expression follows on the same line as `@@IF@@`:
-  `@@IF@@ @_TAG_@`. The tag itself can end the line; the newline
-  is consumed.
-- `@@TABLE@@` and `@@END_TABLE@@` also start a line at column 1.
-- Directives glued to preceding content on the same line are
-  emitted as literal text, not interpreted.
+  `@@IF@@ @_TAG_@`.
+- A `@@TABLE@@` block iterates **all tags of equal length** in the
+  Translate_Set in lockstep. There is no per-table argument.
+- Nested tables work if every directive is on its own line.
+- Directives glued to preceding content on the same line are emitted
+  literally.
 
-### What the templates do
+### Layout
 
-The four Ada templates carry the *shape* of the emitted code. The
-generator supplies flat, aligned composite tags; the templates
-iterate them with `@@TABLE@@` and branch with `@@IF@@`.
+    resources/templates/
+      ada/
+        state/     state.ads.tmplt, state.adb.tmplt, actions.*
+        class/     class.ads.tmplt, class.adb.tmplt,
+                   class_operations.ads.tmplt, class_operations.adb.tmplt
+        runtime/   state_machine.*.tmplt (shared across kinds)
+        project/   driver.adb.tmplt, setup.sh.tmplt
+      json/
+        state/, class/
+      default/
+        state/, class/
 
-State diagram tags (from `plantuml2code_ada.adb`):
+Format subdir selects the template set; kind subdir selects within it.
+`runtime/` and `project/` live at the format level because they're
+shared by both kinds.
 
-| Group | Tags |
-|-------|------|
-| Header | `PACKAGE_NAME`, `DESCRIPTION`, `SOURCE_DIAGRAM`, `GENERATION_DATE` |
-| Types | `STATE_LITERALS`, `EVENT_LITERALS`, `INITIAL_STATE`, `CHILD_WITH_CLAUSES`, `PRIVATE_RECORD`, `STEP_CHILD_DECLS`, `STEP_CHILD_BODIES` |
-| On_Enter | `ENTER_STATE_LIT`, `ENTER_IS_END`, `ENTER_IS_COMPOSITE`, `ENTER_IS_LEAF_WITH_ACTION`, `ENTER_IS_LEAF_NO_ACTION`, `ENTER_CHILD_PKG`, `ENTER_CHILD_FIELD`, `ENTER_ACTION_CALL` |
-| On_Exit | `EXIT_STATE_LIT`, `EXIT_HAS_ACTION`, `EXIT_NO_ACTION`, `EXIT_ACTION_CALL` |
-| On_Tick | `TICK_STATE_LIT`, `TICK_HAS_ACTION`, `TICK_ACTION_CALL` |
-| On_Internal | `INTERNAL_STATE_LIT`, `INTERNAL_HAS_ANY`, `INTERNAL_HAS_EVENT`, `INTERNAL_EVENT_LIT`, `INTERNAL_ACTION_CALL` |
-| Transition table | `TABLE_ROW_STATE`, `TABLE_ROW_EVENTS`, `TABLE_ROW_NOTLAST` |
-| Actions files | `ACTION_DECLS`, `ACTION_BODIES` |
+### Tag conventions
+
+Header tags, both generators:
+
+| Tag | Meaning |
+|-----|---------|
+| `PACKAGE_NAME` | Ada package name |
+| `HAS_TITLE`, `TITLE_LINE` | Title metadata, root only |
+| `HAS_NOTES`, `NOTES_HEADER` | Diagram notes, root only |
+| `WITH_CLAUSES` | Pre-rendered `with`/`use` block |
+
+State generator tags: `STATE_LITERALS`, `EVENT_LITERALS`,
+`INITIAL_STATE`, `CHILD_WITH_CLAUSES`, `PRIVATE_RECORD`,
+`STEP_CHILD_DECLS`, `STEP_CHILD_BODIES`, and one family per generated
+subprogram section (`ENTER_*`, `EXIT_*`, `TICK_*`, `INTERNAL_*`,
+`TABLE_ROW_*`). `ENTER_NOTE` carries per-state inline note comments.
+
+Class generator tags: `DECL_BLOCK` (one multi-line type declaration
+per row), `METHOD_BODY` (per-row method body blocks), `OP_DECL`,
+`OP_BODY` (per-row Operations declarations/bodies).
 
 ### Adding a new output format
 
-A `.tmplt` file plus a binding function that populates the tags.
-No changes to the generator's Ada formatting logic are needed.
-
-### What still lives in Ada
-
-- Recursive child-package generation (each composite region is its
-  own template invocation).
-- The composite-tree reconstruction (`Region_Of`, `States_In`,
-  `Transitions_In`, `Composite_Children_Of`).
-- Identifier sanitization (`Sanitize`, `State_Literal`,
-  `Event_Literal`, `Effective_Target`).
-- The event list and transition target lookup.
-
-These are data preparation, not code shaping.
+Drop a directory under `resources/templates/<format>/` with `state/`
+and `class/` subdirectories. Add a binding function in
+`plantuml2code_template_bindings.adb` that populates the tags. No
+changes to the Ada formatting logic are needed if the format is
+generated via templates.
 
 ### Template location
 
-`PlantUML2Code_Template_Path.Locate` searches, in order:
+Resolution order:
 
-1. CLI override (`-t <dir>`)
-2. `$PLANTUML2CODE_TEMPLATES`
-3. `<parent-of-cwd>/resources/templates`
-4. `<cwd>/resources/templates`
+1. `-t <dir>` CLI flag
+2. `./uml2code.conf` — flat `key = value`, key `templates_dir`
+3. `~/.config/uml2code/config`
+4. `$PLANTUML2CODE_TEMPLATES`
+5. `resources/templates` relative to cwd, exe dir, or parent
 
-The generator assumes templates are under `resources/templates/<format>/`.
-Running the CLI from a different directory than the crate root will
-fail unless `-t` is passed. This is why `bootstrap.sh` `cd`s into
-`plantuml2code` before generating.
+`Load_Config` reads project then home; a malformed config raises
+`Config_Error`. `-t` short-circuits config reading.
+
+## CLI
+
+    plantuml2code dump <file>                   text
+    plantuml2code dump -f json <file>           JSON
+    plantuml2code dump -f ada -o <dir> <file>   generate Ada
+    plantuml2code kind <file>                   detect diagram kind
+    plantuml2code help [topic]
+    plantuml2code --version
+
+`-f text` routes to `PlantUML2Code_Model_Dump`, not the templates —
+it's a developer diagnostic, not a generated format. `-f json` routes
+through the `json/` templates via `For_States`/`For_Classes`.
+
+## Testing
+
+### AUnit
+
+`plantuml_parser/tests/` — 24 tests: Test_Tokens, Test_States,
+Test_Classes (including `Detect_Kind` for enum-only diagrams).
+
+`plantuml2code/tests/` — 46 tests: Test_Ansi, Test_CLI (18),
+Test_Config (6), Test_Formats (5), Test_Generator_Class (5),
+Test_Generator_States (10).
+
+Both test projects use `alr exec -- gprbuild -P <name>_tests.gpr`.
+
+### Golden files
+
+`tests/golden/{nested,zoo,history,adb}/` compare every emitted `.ads`,
+`.adb`, and `driver.adb` against the generator's current output.
+Normalization is `tests/normalize.sed` (dates, absolute paths).
+
+    ./tests/run_tests.sh        # verify (fails if binary is stale)
+    ./tests/update_golden.sh    # accept current output
+
+Any change that alters output must either match existing goldens or
+update them intentionally in the same commit.
+
+### Generated project as build test
+
+`dump -f ada -o <dir>` writes a self-contained Alire project:
+
+    <dir>/
+      src/       generated .ads/.adb (+ runtime, if state diagram)
+      tests/     driver.adb — constructs each concrete class
+      setup.sh   writes alire.toml + GPR, builds, runs
+
+`bash <dir>/setup.sh` verifies the generated code compiles and runs.
+This is the strongest single check on the generators.
+
+## Roadmap
+
+### 1. Normalized UML model — done
+
+`UML.Model`, `UML.Model.Queries`, `PlantUML.Parse`. Both generators
+consume the model. Parser types are internal.
+
+### 2. Template set by `<format>/<diagram-kind>` — done
+
+### 3. User-chosen template location — done
+
+`uml2code.conf` and `~/.config/uml2code/config`.
+
+### 4. Notes and comments in generated code — done
+
+Diagram notes in the root `.ads` header. Element-attached notes
+inline above the classifier (class) or case arm (state).
+
+### 5. AUnit test project in generated output
+
+Every generated project should include a generated AUnit test suite
+covering the emitted API. For state machines: instantiate, drive
+through representative steps, assert on transitions. For classes:
+instantiate each concrete class, exercise `_Operations` stubs.
+
+Needs: a test-suite GPR template, an `alire.toml` template that
+depends on `aunit`, and generated test-case templates per diagram
+kind.
+
+### 6. Rename to uml2code
+
+Rename crate names, project names, executable names, GPR projects,
+`with` clauses, install prefix, environment variable names,
+documentation, and directory names. Deferred until the items above
+are done.
+
+### Deferred / open
+
+- **State-side naming.** `Running_Machine` and `Nested_Actions`
+  siblings could become child packages (`Running.Machine`,
+  `Nested.Actions`) matching the class-side `X.Operations` convention.
+- **`-f text` unification.** Decide whether `Text` routes through
+  the `default/` templates (making them live), or `default/` is
+  dropped and `Model_Dump` stays canonical.
+- **Multiplicity.** Parsed into `Relation.Mult_From`/`Mult_To` but
+  ignored by the class generator. `1..*` should become a container
+  field.
+- **ansiada.** Replace hand-rolled SGR wrappers in
+  `PlantUML2Code_Ansi` with the `ansiada` crate. Also fix `Auto`
+  color mode to use `isatty (stdout)` instead of the `NO_COLOR` +
+  `TERM` heuristic.
 
 ## Known gotchas
 
 ### Ada / GNAT
 
-- `Body`, `Exit`, `Delta`, `Range`, `Digits`, `Mod`, `Access`,
-  `Interface`, `Package`, `Private`, `Protected` are reserved words.
-- `Standard_Error'Access` doesn't work — `Standard_Error` is a function.
-- A record field named `Name` shadows the `Name` subtype for later
-  fields in the same record. Prefix fields or rename the subtype.
+- Reserved words to avoid as identifiers: `Body`, `Exit`, `Delta`,
+  `Range`, `Digits`, `Mod`, `Access`, `At`, `Interface`, `Package`,
+  `Private`, `Protected`.
+- A record field named `Name` shadows the `Name` subtype. Rename the
+  field to `Id`.
+- `use UML.Model` brings `Element` (the type) and `Tag` (an
+  `Annotation_Kind` literal) into scope, colliding with
+  `Ada.Strings.Unbounded.Element` and `Templates_Parser.Tag`. Add
+  local `subtype` aliases at package-body scope:
+  `subtype Element is UML.Model.Element;` and
+  `subtype Tag is Templates_Parser.Tag;`.
+- Enum comparison with `=` requires `use type <Pkg>.<Enum_Type>;`
+  at the site of the comparison.
+- Expression functions that only raise are elided by GNAT. Use an
+  explicit `begin raise ...; return Dummy; end;` body.
 - `Ada.Directories.Compose` refuses multi-segment second arguments.
   Use string concatenation with `/`.
 - `Library_Interface` in a library GPR must list every unit
-  transitively withed by any listed unit's *spec*.
-- Expression functions that only raise are elided by GNAT. Use an
-  explicit `begin raise ...; return Dummy; end;` body.
-- `-gnatX` enables `[]` aggregate syntax. `-gnatwa` warns about `()`.
-- Subprograms must be declared before use. Nested subprograms need
-  forward declarations if they call each other.
+  transitively withed by any listed unit's spec. Adding a new public
+  package to `plantuml_parser` requires updating
+  `plantuml_parser.gpr`.
+- Child packages see their parent's declarations without an explicit
+  `with`, but the parent package **name** requires a `with` for `use`
+  clauses. `with Parent;  use Parent;` triggers an "unnecessary with
+  of ancestor" warning that is harmless.
+
+### Alire
+
+- `alr run` uses `--args="..."`, not `-- ...`.
+- `alr publish` has no `--dry-run`; use `--skip-submit`.
+- Test manifests under `<crate>/alire/releases/` are tracked even
+  though the rest of `alire/` is gitignored.
 
 ### macOS
 
 - BSD `sed`: `sed -i ''` (no space) or use `perl -i.bak`.
 - Files created via shell heredoc get a `com.apple.provenance` xattr.
-  `xattr -c` doesn't always clear it. Copy via `cp` to a fresh path
-  if a binary can't open them.
-- `tail -5` doesn't accept the combined `-5` form on some BSD tools;
-  use `tail -n 5`.
 
-### Alire
+### Tooling
 
-- `alr publish` has no `--dry-run`; use `--skip-submit`.
-- Test manifests are generated under `<crate>/alire/releases/` and
-  should be tracked in git even though the rest of `alire/` is
-  gitignored. The `.gitignore` exception requires `git add -f`.
-- `alr run` uses `--args="..."`, not `-- ...`.
-
-## Class-diagram output
-
-Generating `ada` from a class diagram produces a self-contained
-Alire project like the state side. Files emitted:
-
-    <Output>/
-      src/
-        class_runtime.ads           root interface (Class_Runtime.Object)
-        class_runtime-tracing.ads/.adb
-        <Class>.ads/.adb            one package per classifier
-        <Class>_Actions.ads/.adb    only when the class has methods
-      tests/
-        driver.adb                  constructs every concrete class
-      setup.sh                      builds and runs
-
-All classes derive from `Class_Runtime.Object`, a limited interface
-with a single abstract `Class_Name` function. Interfaces use
-`type T is limited interface and Class_Runtime.Object;`. Concrete
-classes use `type T is new Class_Runtime.Object with ...`.
-
-Enumerations get a concrete `T` with a `Class_Name` body but no
-Actions file.
-
-The generated `driver.adb` constructs each concrete class, calls
-`Class_Name`, and prints it. Abstract classes and interfaces are
-skipped (they cannot be constructed).
-
-## Deferred refactors
-
-### ansiada
-
-Replace the hand-rolled SGR code in `PlantUML2Code_Ansi` with the
-[`ansiada`](https://github.com/mosteo/ansi-ada) crate. `ansiada`
-generates ANSI escape sequences for text style and colour; it does
-not do TTY detection, so the `Auto` mode policy stays in our
-wrapper.
-
-When doing this:
-
-1. `cd plantuml2code && alr with ansiada`
-2. Delegate `Bold`, `Dim`, `Red`, … to `AnsiAda`; keep the
-   `Set_Mode` / `Enabled` policy and the `Icon_*` glyph constants.
-3. Update `Test_Ansi` to match the new byte sequences.
-4. Fix `Auto` to check `isatty (stdout)` (via
-   `Interfaces.C_Streams.isatty`) instead of `NO_COLOR` + `TERM`.
-   The `TERM` heuristic can emit escape codes into redirected
-   output.
-
-## Roadmap
-
-Agreed improvements, in order. Each is a substantial change; do not
-combine them into one commit.
-
-### 1. Normalized internal UML model
-
-Establish a single internal representation that every parser targets
-and every generator consumes.
-
-    package UML.Model
-
-    type Diagram is tagged record
-       Name        : Name;
-       Kind        : Diagram_Kind;
-       Elements    : Element_Vectors.Vector;
-       Relations   : Relation_Vectors.Vector;
-       Notes       : Note_Vectors.Vector;
-    end record;
-
-Required properties:
-
-- **Full fidelity.** Every parser-specific detail has a home in the
-  model: pseudostate kinds, transition guards and effects,
-  multiplicities, stereotypes, annotations, notes. No parser throws
-  information away when translating into the model.
-- **Comments and notes are first-class.** A `Note` record with a
-  text, an optional subject element, and a source location.
-- **Both current parsers translate into it.**
-  `PlantUML.States` and `PlantUML.Classes` become internal or
-  disappear; their public API becomes a function that returns
-  `UML.Model.Diagram`. External consumers (generators, tests) only
-  see the model.
-- **Future parsers target the same model.** A Mermaid parser, a
-  Graphviz parser, a hand-written diagram builder — all produce
-  `UML.Model.Diagram`.
-
-Decision recorded: the current parser-specific public types
-(`PlantUML.States.State_Diagram`, `PlantUML.Classes.Class_Diagram`)
-are replaced by the model. Consumers migrate to `UML.Model`.
-
-### 2. Template set chosen by format name
-
-The format name selects the template directory, and the diagram
-kind selects the subdirectory within it. Users can add their own
-template sets by dropping a directory under the template root.
-
-    resources/templates/
-      ada/
-        state/       Ada output for state diagrams
-        class/       Ada output for class diagrams
-        runtime/     shared Ada runtime sources
-      json/
-        state/
-        class/
-      rust/          (future)
-        state/
-        class/
-
-Invocation: `uml2code dump -f rust state.puml` reads from
-`resources/templates/rust/state/`.
-
-### 3. User-chosen template location
-
-The template root directory must be relocatable by the user.
-Required behaviour:
-
-- A config file (location TBD: `uml2code.toml` in the project,
-  `~/.config/uml2code/config.toml`, or similar) names the root
-  template directory.
-- A `-t <dir>` command-line flag overrides the config for one run.
-- An environment variable (`UML2CODE_TEMPLATES`) is a third
-  mechanism, or is dropped in favour of the config file.
-
-Decision recorded: the ad-hoc search chain currently in
-`plantuml2code_template_path.adb` (cwd, parent-of-cwd, exe-relative,
-env var) is replaced by "read config, allow `-t` override". One
-canonical location, no implicit fallbacks.
-
-### 4. Block comments and diagram comments in generated code
-
-Two kinds of comments in the output:
-
-- **Static block comments** explaining each generated section.
-  Small, targeted, near the code they describe. Beyond the
-  existing "generated from X on date Y, do not edit" header.
-- **Diagram comments** lifted from the source. PlantUML `note`
-  statements and `'` comments attached to a state or class appear
-  in the generated output near the corresponding element.
-
-Long notes go into the file header comment block. Short notes stay
-adjacent to the element they annotate.
-
-This depends on the model (item 1) carrying notes and on templates
-(item 2) deciding where comments land.
-
-### 5. Rename the project to uml2code
-
-Rename everything: crate names, project names, executable names,
-GPR projects, `with` clauses, install prefix, environment variable
-names, documentation. Directory names too.
-
-This is deferred to last so the four refactors above do not fight
-a moving name.
+- Python heredocs inside `fix.sh` (the scratch runner) have trouble
+  with Ada source that contains triple quotes. Prefer writing the Ada
+  to a file with `cat > /tmp/x.ada <<'EOF'` and then splicing by line
+  range from a Python script that does not embed Ada text.
+- Prefer line-range replacement over string-anchor replacement when
+  editing generated Ada — anchors are fragile against whitespace.
 
 ## Known limitations
 
-
-- **History pseudostates** (`[H]`, `[H*]`) parse but are inert. They
-  behave like ordinary states with self-loops.
+- **History pseudostates** (`[H]`, `[H*]`) parse but are inert.
 - **Pseudostate transiency.** `Start_State` requires an explicit
-  `Start (M)` call. UML says the initial pseudostate should
-  auto-fire on entry to the region.
-- **Multi-segment path components** not fully supported in the
-  template path resolver.
-- **Diamond inheritance** would produce `type T is new A.T and B.T`
-  which Ada supports, but we haven't tested method resolution in
-  that case.
-- **Class associations** generate access-typed fields, but the
-  driver never populates them. Allocation and ownership are the
-  user's responsibility.
-- **Class method bodies** raise `Program_Error` when unimplemented.
-  The user edits `<Class>_Actions.adb` to provide real bodies.
-
-## Pending corrections
-
-These are known deviations from the intended design. They are
-technical debt, not features. Each has a concrete remediation.
-
-### 1. AUnit coverage (partial)
-
-`plantuml_parser` and `plantuml2code` each ship an AUnit suite.
-Run each with:
-
-    cd plantuml_parser   && ./run_tests.sh
-    cd ../plantuml2code  && ./run_tests.sh
-
-Current coverage:
-
-- `plantuml_parser`: Tokens (8 tests), States (9 tests),
-  Classes (6 tests). Covers the tokenizer, diagram-kind detection,
-  transition parsing (trigger, guard), composite children,
-  entry annotations, region-scoped history, and class-model
-  parsing (members, inheritance, interfaces, enumerations).
-- `plantuml2code`: Ansi (2 tests), CLI (1 test), Formats
-  (5 tests). Covers color-mode toggling and format-name parsing.
-
-Test suites:
-
-| Suite | Tests |
-|-------|-------|
-| Tokens | 8 |
-| States | 9 |
-| Classes | 6 |
-| Ansi | 2 |
-| CLI | 18 |
-| Formats | 5 |
-| Generator.Class | 5 |
-| Generator.States | 10 |
-
-The generator suites run the real generator against tiny
-diagrams, writing to `/tmp/gen_test_*`, then assert on the
-generated source text: state enums, initial state, transition
-tables, entry/exit actions, internal transitions, composite
-children and resets, terminal marking, interface kinds, and
-subclass derivation.
-
-Remaining gaps:
-
-- Help text has no tests.
-- The shipped runtime templates (`state_machine.*`,
-  `class_runtime.*`) have no direct tests. They are exercised
-  indirectly by the golden files and the three sample projects
-  under `gen_test/`, `class_test/`, and `history_test/`.
-
-### Argument-vector parsing
-
-`PlantUML2Code_CLI.Parse` has two forms:
-
-- `Parse (Args : Argument_Vectors.Vector)` — pure, used by tests.
-- `Parse` — reads `Ada.Command_Line`, delegates to the above.
-
-All CLI edge cases (attached vs. separated option values, missing
-values, unknown options, multiple commands, help topics, color
-modes, stdin) are covered by `Test_CLI`.
-
-### 2. Minor known issues
-
-- `PlantUML.Tokens` has an unused `with Ada.Characters.Handling`.
-- `plantuml2code_template_path.adb` has a debug block guarded by
-  `PLANTUML2CODE_DEBUG`; harmless but should be removed once the
-  search logic is settled.
-- `plantuml2code_ada.adb` has an unused `Child_Field` constant and
-  `plantuml2code_ada_classes.adb` has unused `Has_Parents` and
-  `Parents` functions. Cosmetic.
-
-## Publishing
-
-
-
-Both `plantuml_parser` and `hsm_runtime` are publishable to the Alire
-community index. Their manifests are at:
-
-    plantuml_parser/alire/releases/plantuml_parser-0.1.0.toml
-    hsm_runtime/alire/releases/hsm_runtime-0.1.0.toml
-
-To submit a new version:
-
-    cd plantuml_parser && alr publish
-    cd ../hsm_runtime && alr publish
-
-Each opens a PR against `alire-project/alire-index`. Requires a
-GitHub Personal Access Token with `repo` scope, configured for
-`alr`. See https://github.com/alire-project/alire/blob/master/doc/publishing.md
+  `Start (M)` call.
+- **Multi-segment template paths** — the resolver handles them, but
+  the fallback to `default/` is only tried at the top level.
+- **Diamond inheritance** — Ada allows multiple interface derivation,
+  but method resolution with two concrete class parents is rejected
+  by validation (correctly, since Ada forbids it).
+- **Class associations** generate access-typed fields; the driver
+  never populates them. Ownership is the user's responsibility.
+- **Class method bodies** raise `Program_Error` until the user fills
+  in `<Package>.Operations`.
+- **Multiplicity** is parsed but not honoured.
