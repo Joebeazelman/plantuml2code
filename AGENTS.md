@@ -219,8 +219,6 @@ Strict:
         project/   driver.adb.tmplt, setup.sh.tmplt
       json/
         state/, class/
-      default/
-        state/, class/
 
 Format subdir selects the template set; kind subdir selects within it.
 `runtime/` and `project/` live at the format level because they're
@@ -282,9 +280,11 @@ directory is created if it does not exist.
     uml2code help [topic]
     uml2code --version
 
-`-f text` routes to `Uml2Code_Model_Dump`, not the templates —
-it's a developer diagnostic, not a generated format. `-f json` routes
-through the `json/` templates via `For_States`/`For_Classes`.
+`-f text` routes to `Uml2Code_Model_Dump`, not the templates — it's
+a developer diagnostic of the internal model, not a rendering of the
+source diagram. `-f json` routes through the `json/` templates via
+`For_States`/`For_Classes`. The `Emit_States`/`Emit_Classes` entry
+points reject `Text` with `Program_Error` if reached by mistake.
 
 ## Testing
 

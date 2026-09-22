@@ -1,9 +1,0 @@
-Class diagram: @_DIAGRAM_NAME_@
-  Classifiers (@_CLASS_LINES'Length_@):
-@@TABLE@@
-    - @_CLASS_LINES_@
-@@END_TABLE@@
-  Relations (@_REL_LINES'Length_@):
-@@TABLE@@
-    - @_REL_LINES_@
-@@END_TABLE@@

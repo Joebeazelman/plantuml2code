@@ -40,12 +40,15 @@ package body Uml2Code_Formats is
    function Subdir_For (Fmt : Format; Kind : Diagram_Kind)
                         return String is
      (case Fmt is
-         when Text    => "default/" & (if Kind = State
-                                       then "state" else "class"),
-         when Json    => "json/"    & (if Kind = State
-                                       then "state" else "class"),
-         when Ada_HSM => "ada/"     & (if Kind = State
-                                       then "state" else "class"));
+         when Text =>
+            --  Text output goes through Uml2Code_Model_Dump, not
+            --  the template pipeline. Reaching here is a bug.
+            raise Program_Error with
+              "Subdir_For called for Text; Text does not use templates",
+         when Json    => "json/" & (if Kind = State
+                                    then "state" else "class"),
+         when Ada_HSM => "ada/"  & (if Kind = State
+                                    then "state" else "class"));
 
    procedure Emit_To_Stdout
      (Subdir   : String;
@@ -67,7 +70,7 @@ package body Uml2Code_Formats is
    is
    begin
       case Fmt is
-         when Text | Json =>
+         when Json =>
             Emit_To_Stdout
               (Subdir_For (Fmt, State), "state.tmplt", For_States (D));
          when Ada_HSM =>
@@ -84,6 +87,10 @@ package body Uml2Code_Formats is
                   Source_Diagram => Src,
                   Out_Dir        => To_String (Out_Dir));
             end;
+         when Text =>
+            raise Program_Error with
+              "Emit_States called with Text; text output bypasses "
+              & "the template pipeline";
       end case;
    end Emit_States;
 
@@ -94,7 +101,7 @@ package body Uml2Code_Formats is
    is
    begin
       case Fmt is
-         when Text | Json =>
+         when Json =>
             Emit_To_Stdout
               (Subdir_For (Fmt, Class), "class.tmplt", For_Classes (D));
          when Ada_HSM =>
@@ -103,6 +110,10 @@ package body Uml2Code_Formats is
                Source_Diagram => (if Path'Length > 0
                                   then Path else "diagram.puml"),
                Out_Dir        => To_String (Out_Dir));
+         when Text =>
+            raise Program_Error with
+              "Emit_Classes called with Text; text output bypasses "
+              & "the template pipeline";
       end case;
    end Emit_Classes;
 

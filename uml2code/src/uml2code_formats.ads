@@ -8,7 +8,8 @@ package Uml2Code_Formats is
 
    procedure Set_Output_Dir (Dir : String);
 
-   --  State diagrams: consume the normalized model.
+   --  Template-driven output. Fmt is Json or Ada_HSM; Text is
+   --  handled by Uml2Code_Model_Dump and never reaches these.
    procedure Emit_States
      (Fmt  : Format;
       D    : UML.Model.Diagram;

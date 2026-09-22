@@ -43,9 +43,9 @@ recognised. Comment lines start with `#`.
 ## Templates
 
 Templates live under `resources/templates/<format>/<diagram-kind>/`.
-Formats: `ada`, `json`, `default`. Kinds: `state`, `class`. Runtime
-and project scaffolding templates live at the format level and are
-shared across kinds:
+Formats: `ada`, `json`. Kinds: `state`, `class`. Runtime and project
+scaffolding templates live at the format level and are shared across
+kinds:
 
     resources/templates/
       ada/
@@ -54,8 +54,6 @@ shared across kinds:
         runtime/   state_machine.*
         project/   driver.adb.tmplt, setup.sh.tmplt
       json/
-        state/, class/
-      default/
         state/, class/
 
 ## Tests

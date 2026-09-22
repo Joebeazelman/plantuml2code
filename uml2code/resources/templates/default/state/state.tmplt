@@ -1,9 +1,0 @@
-State diagram: @_DIAGRAM_NAME_@
-  States (@_STATE_LINES'Length_@):
-@@TABLE@@
-    - @_STATE_LINES_@
-@@END_TABLE@@
-  Transitions (@_TRANS_LINES'Length_@):
-@@TABLE@@
-    - @_TRANS_LINES_@
-@@END_TABLE@@
