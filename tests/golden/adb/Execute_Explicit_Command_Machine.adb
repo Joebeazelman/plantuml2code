@@ -1,12 +1,9 @@
------------------------------------------------------------------------
---  Execute_Explicit_Command_Machine (body)
---
---  Generated from ../samples/adb_protocol.puml on <DATE>.
------------------------------------------------------------------------
+---------------------------------------------------------------------
+--  Execute_Explicit_Command_Machine
+---------------------------------------------------------------------
+
 
 package body Execute_Explicit_Command_Machine is
-
-   use Base;
 
 
    Table : constant array (State, Event) of State :=
@@ -55,17 +52,26 @@ package body Execute_Explicit_Command_Machine is
    procedure On_Enter (Self : in out Machine) is
    begin
       case Current_State (Self) is
+         --  Send Listen, Talk, or Flush command to specific target
          when Transmit_Explicit =>
             null;
+
+         --  Wait for the target device to respond to the command
          when Await_Explicit =>
             null;
+
+         --  Route response data to the caller's completion routine
          when Delegate_Explicit =>
             null;
+
          when Start_State =>
             null;
+
          when End_State =>
             Mark_Terminated (Self);
-         when others => null;
+
+         when others =>
+            null;
       end case;
    end On_Enter;
 
@@ -75,15 +81,21 @@ package body Execute_Explicit_Command_Machine is
       case Current_State (Self) is
          when Transmit_Explicit =>
             null;
+
          when Await_Explicit =>
             null;
+
          when Delegate_Explicit =>
             null;
+
          when Start_State =>
             null;
+
          when End_State =>
             null;
-         when others => null;
+
+         when others =>
+            null;
       end case;
    end On_Exit;
 
@@ -91,33 +103,52 @@ package body Execute_Explicit_Command_Machine is
    procedure On_Tick (Self : in out Machine) is
    begin
       case Current_State (Self) is
-         when others => null;
+         when Transmit_Explicit =>
+
+         when Await_Explicit =>
+
+         when Delegate_Explicit =>
+
+         when Start_State =>
+
+         when End_State =>
+
+         when others =>
+            null;
       end case;
    end On_Tick;
 
    overriding
-   function On_Internal (Self : in out Machine; On : Event) return Boolean is
+   function On_Internal (Self : in out Machine; On : Event) return Boolean
+   is
    begin
       case Current_State (Self) is
+         when Transmit_Explicit =>
+
+         when Await_Explicit =>
+
+         when Delegate_Explicit =>
+
+         when Start_State =>
+
+         when End_State =>
+
          when others =>
             return False;
       end case;
    end On_Internal;
 
    overriding
-   function Is_History_Entry
-     (Self : Machine; From : State; On : Event) return Base.History_Mode is
+   function Is_History_Entry (Self : Machine; On : Event)
+                              return History_Kind is
+      pragma Unreferenced (Self, On);
    begin
-      case From is
+      case Current_State (Self) is
          when others =>
             return History_None;
 
       end case;
    end Is_History_Entry;
-
-   overriding
-   function Name (Self : Machine) return String is
-     ("Execute_Explicit_Command_Machine");
 
 
 end Execute_Explicit_Command_Machine;

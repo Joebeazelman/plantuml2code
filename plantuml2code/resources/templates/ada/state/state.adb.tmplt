@@ -1,12 +1,9 @@
------------------------------------------------------------------------
---  @_PACKAGE_NAME_@ (body)
---
---  Generated from @_SOURCE_DIAGRAM_@ on @_GENERATION_DATE_@.
------------------------------------------------------------------------
+---------------------------------------------------------------------
+--  @_PACKAGE_NAME_@
+---------------------------------------------------------------------
+@_ACTIONS_WITH_@
 
-@_ACTIONS_WITH_@package body @_PACKAGE_NAME_@ is
-
-   use Base;
+package body @_PACKAGE_NAME_@ is
 @_ACTIONS_USE_@
 
    Table : constant array (State, Event) of State :=
@@ -30,7 +27,7 @@
    begin
       case Current_State (Self) is
 @@TABLE@@
-         when @_ENTER_STATE_LIT_@ =>
+@_ENTER_NOTE_@         when @_ENTER_STATE_LIT_@ =>
 @@IF@@ @_ENTER_IS_END_@
             Mark_Terminated (Self);
 @@END_IF@@
@@ -52,8 +49,10 @@
 @@IF@@ @_ENTER_IS_LEAF_NO_ACTION_@
             null;
 @@END_IF@@
+
 @@END_TABLE@@
-         when others => null;
+         when others =>
+            null;
       end case;
    end On_Enter;
 
@@ -69,8 +68,10 @@
 @@IF@@ @_EXIT_NO_ACTION_@
             null;
 @@END_IF@@
+
 @@END_TABLE@@
-         when others => null;
+         when others =>
+            null;
       end case;
    end On_Exit;
 
@@ -79,22 +80,25 @@
    begin
       case Current_State (Self) is
 @@TABLE@@
-@@IF@@ @_TICK_HAS_ACTION_@
          when @_TICK_STATE_LIT_@ =>
+@@IF@@ @_TICK_HAS_ACTION_@
             @_TICK_ACTION_CALL_@;
 @@END_IF@@
+
 @@END_TABLE@@
-         when others => null;
+         when others =>
+            null;
       end case;
    end On_Tick;
 
    overriding
-   function On_Internal (Self : in out Machine; On : Event) return Boolean is
+   function On_Internal (Self : in out Machine; On : Event) return Boolean
+   is
    begin
       case Current_State (Self) is
 @@TABLE@@
-@@IF@@ @_INTERNAL_HAS_ANY_@
          when @_INTERNAL_STATE_LIT_@ =>
+@@IF@@ @_INTERNAL_HAS_ANY_@
 @@IF@@ @_INTERNAL_HAS_EVENT_@
             if On = @_INTERNAL_EVENT_LIT_@ then
                @_INTERNAL_ACTION_CALL_@;
@@ -103,6 +107,7 @@
 @@END_IF@@
             return False;
 @@END_IF@@
+
 @@END_TABLE@@
          when others =>
             return False;
@@ -110,17 +115,14 @@
    end On_Internal;
 
    overriding
-   function Is_History_Entry
-     (Self : Machine; From : State; On : Event) return Base.History_Mode is
+   function Is_History_Entry (Self : Machine; On : Event)
+                              return History_Kind is
+      pragma Unreferenced (Self, On);
    begin
-      case From is
+      case Current_State (Self) is
 @_HISTORY_CASES_@
       end case;
    end Is_History_Entry;
-
-   overriding
-   function Name (Self : Machine) return String is
-     ("@_PACKAGE_NAME_@");
 
 @_STEP_CHILD_BODIES_@
 end @_PACKAGE_NAME_@;

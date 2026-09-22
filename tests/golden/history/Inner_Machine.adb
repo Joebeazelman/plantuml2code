@@ -1,14 +1,11 @@
------------------------------------------------------------------------
---  Inner_Machine (body)
---
---  Generated from ../samples/history.puml on <DATE>.
------------------------------------------------------------------------
-
+---------------------------------------------------------------------
+--  Inner_Machine
+---------------------------------------------------------------------
 with Inner_Machine_Actions;
 
-package body Inner_Machine is
 
-   use Base;
+
+package body Inner_Machine is
    use Inner_Machine_Actions;
 
 
@@ -37,11 +34,15 @@ package body Inner_Machine is
       case Current_State (Self) is
          when Start_State =>
             null;
+
          when A =>
             Entered_A;
+
          when B =>
             Entered_B;
-         when others => null;
+
+         when others =>
+            null;
       end case;
    end On_Enter;
 
@@ -51,11 +52,15 @@ package body Inner_Machine is
       case Current_State (Self) is
          when Start_State =>
             null;
+
          when A =>
             null;
+
          when B =>
             null;
-         when others => null;
+
+         when others =>
+            null;
       end case;
    end On_Exit;
 
@@ -63,33 +68,44 @@ package body Inner_Machine is
    procedure On_Tick (Self : in out Machine) is
    begin
       case Current_State (Self) is
-         when others => null;
+         when Start_State =>
+
+         when A =>
+
+         when B =>
+
+         when others =>
+            null;
       end case;
    end On_Tick;
 
    overriding
-   function On_Internal (Self : in out Machine; On : Event) return Boolean is
+   function On_Internal (Self : in out Machine; On : Event) return Boolean
+   is
    begin
       case Current_State (Self) is
+         when Start_State =>
+
+         when A =>
+
+         when B =>
+
          when others =>
             return False;
       end case;
    end On_Internal;
 
    overriding
-   function Is_History_Entry
-     (Self : Machine; From : State; On : Event) return Base.History_Mode is
+   function Is_History_Entry (Self : Machine; On : Event)
+                              return History_Kind is
+      pragma Unreferenced (Self, On);
    begin
-      case From is
+      case Current_State (Self) is
          when others =>
             return History_None;
 
       end case;
    end Is_History_Entry;
-
-   overriding
-   function Name (Self : Machine) return String is
-     ("Inner_Machine");
 
 
 end Inner_Machine;

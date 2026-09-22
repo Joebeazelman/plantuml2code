@@ -84,6 +84,44 @@ package body PlantUML2Code_Ada is
       return "";
    end Title_Line_Of;
 
+   --  Pack diagram-level notes into a comment block. Each line of each
+   --  note is prefixed with "--    ". Empty string when no notes.
+   function Notes_Header_Of (D : UML.Model.Diagram) return String is
+      R : Unbounded_String;
+
+      procedure Emit_Lines (Txt : String) is
+         Start : Natural := Txt'First;
+      begin
+         if Txt'Length = 0 then
+            return;
+         end if;
+         for I in Txt'Range loop
+            if Txt (I) = ASCII.LF then
+               Append (R, "--    " & Txt (Start .. I - 1) & ASCII.LF);
+               Start := I + 1;
+            end if;
+         end loop;
+         if Start <= Txt'Last then
+            Append (R, "--    " & Txt (Start .. Txt'Last) & ASCII.LF);
+         end if;
+      end Emit_Lines;
+   begin
+      for N of D.Notes loop
+         Emit_Lines (To_String (N.Text));
+      end loop;
+
+      --  Trim the trailing newline; the template supplies the final
+      --  line break before the closing rule.
+      declare
+         S : constant String := To_String (R);
+      begin
+         if S'Length > 0 and then S (S'Last) = ASCII.LF then
+            return S (S'First .. S'Last - 1);
+         end if;
+         return S;
+      end;
+   end Notes_Header_Of;
+
    function State_Literal (Name : String) return String is
       Dot : Natural := 0;
    begin
@@ -723,6 +761,7 @@ package body PlantUML2Code_Ada is
       Enter_Child_Pkg    : Tag;
       Enter_Child_Field  : Tag;
       Enter_Action_Call  : Tag;
+      Enter_Note         : Tag;
 
       Exit_State_Lit   : Tag;
       Exit_Has_Action  : Tag;
@@ -851,6 +890,7 @@ package body PlantUML2Code_Ada is
             if not Is_Composite then
                Append (On_Enter_Arms,
                        "         when " & Lit & " =>" & ASCII.LF);
+
                if Lit = "End_State" then
                   Append (On_Enter_Arms,
                           "            Mark_Terminated (Self);"
@@ -900,6 +940,37 @@ package body PlantUML2Code_Ada is
                          (Sanitize (To_String (A.Text)));
                   end if;
                end loop;
+
+               --  Notes rendered as comments above the case arm.
+               declare
+                  Note_Text : Unbounded_String := Null_Unbounded_String;
+               begin
+                  for N of D.Elements (Positive (I)).Notes loop
+                     declare
+                        Txt : constant String := To_String (N.Text);
+                        Start : Natural := Txt'First;
+                     begin
+                        if Txt'Length > 0 then
+                           for J in Txt'Range loop
+                              if Txt (J) = ASCII.LF then
+                                 Append (Note_Text,
+                                         "         --  "
+                                         & Txt (Start .. J - 1)
+                                         & ASCII.LF);
+                                 Start := J + 1;
+                              end if;
+                           end loop;
+                           if Start <= Txt'Last then
+                              Append (Note_Text,
+                                      "         --  "
+                                      & Txt (Start .. Txt'Last)
+                                      & ASCII.LF);
+                           end if;
+                        end if;
+                     end;
+                  end loop;
+                  Enter_Note := Enter_Note & To_String (Note_Text);
+               end;
 
                Enter_State_Lit    := Enter_State_Lit & Lit;
                Enter_Is_Composite := Enter_Is_Composite & Is_Composite;
@@ -1076,8 +1147,18 @@ package body PlantUML2Code_Ada is
       end;
 
       Insert (T, Assoc ("PACKAGE_NAME", Package_Name));
-      Insert (T, Assoc ("HAS_TITLE", Title_Line_Of (D)'Length > 0));
-      Insert (T, Assoc ("TITLE_LINE", Title_Line_Of (D)));
+      Insert (T, Assoc ("HAS_TITLE",
+                        Region = Top_Level
+                        and then Title_Line_Of (D)'Length > 0));
+      Insert (T, Assoc ("TITLE_LINE",
+                        (if Region = Top_Level
+                         then Title_Line_Of (D) else "")));
+      Insert (T, Assoc ("HAS_NOTES",
+                        Region = Top_Level
+                        and then Notes_Header_Of (D)'Length > 0));
+      Insert (T, Assoc ("NOTES_HEADER",
+                        (if Region = Top_Level
+                         then Notes_Header_Of (D) else "")));
       Insert (T, Assoc ("DESCRIPTION",
                         "State machine generated from " & Source_Diagram));
       Insert (T, Assoc ("SOURCE_DIAGRAM", Source_Diagram));
@@ -1094,6 +1175,7 @@ package body PlantUML2Code_Ada is
       Insert (T, Assoc ("TABLE_ROW_EVENTS",  Table_Row_Events));
       Insert (T, Assoc ("TABLE_ROW_NOTLAST", Table_Row_NotLast));
       Insert (T, Assoc ("ENTER_STATE_LIT",     Enter_State_Lit));
+      Insert (T, Assoc ("ENTER_NOTE",          Enter_Note));
       Insert (T, Assoc ("ENTER_IS_COMPOSITE",  Enter_Is_Composite));
       Insert (T, Assoc ("ENTER_IS_END",        Enter_Is_End));
       Insert (T, Assoc ("ENTER_IS_LEAF_WITH_ACTION", Enter_Is_Leaf_With));

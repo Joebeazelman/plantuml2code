@@ -1,12 +1,9 @@
------------------------------------------------------------------------
---  Middle_Machine (body)
---
---  Generated from ../samples/history.puml on <DATE>.
------------------------------------------------------------------------
+---------------------------------------------------------------------
+--  Middle_Machine
+---------------------------------------------------------------------
+
 
 package body Middle_Machine is
-
-   use Base;
 
 
    Table : constant array (State, Event) of State :=
@@ -30,6 +27,7 @@ package body Middle_Machine is
       case Current_State (Self) is
          when Start_State =>
             null;
+
          when Inner =>
             case Via_History (Self) is
                when History_None =>
@@ -41,7 +39,9 @@ package body Middle_Machine is
                when History_Deep =>
                   null;
             end case;
-         when others => null;
+
+         when others =>
+            null;
       end case;
    end On_Enter;
 
@@ -51,9 +51,12 @@ package body Middle_Machine is
       case Current_State (Self) is
          when Start_State =>
             null;
+
          when Inner =>
             null;
-         when others => null;
+
+         when others =>
+            null;
       end case;
    end On_Exit;
 
@@ -61,33 +64,40 @@ package body Middle_Machine is
    procedure On_Tick (Self : in out Machine) is
    begin
       case Current_State (Self) is
-         when others => null;
+         when Start_State =>
+
+         when Inner =>
+
+         when others =>
+            null;
       end case;
    end On_Tick;
 
    overriding
-   function On_Internal (Self : in out Machine; On : Event) return Boolean is
+   function On_Internal (Self : in out Machine; On : Event) return Boolean
+   is
    begin
       case Current_State (Self) is
+         when Start_State =>
+
+         when Inner =>
+
          when others =>
             return False;
       end case;
    end On_Internal;
 
    overriding
-   function Is_History_Entry
-     (Self : Machine; From : State; On : Event) return Base.History_Mode is
+   function Is_History_Entry (Self : Machine; On : Event)
+                              return History_Kind is
+      pragma Unreferenced (Self, On);
    begin
-      case From is
+      case Current_State (Self) is
          when others =>
             return History_None;
 
       end case;
    end Is_History_Entry;
-
-   overriding
-   function Name (Self : Machine) return String is
-     ("Middle_Machine");
 
    procedure Step_Inner (Self : in out Machine;
                             On : Inner_Machine.Event) is

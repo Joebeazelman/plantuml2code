@@ -1,12 +1,9 @@
------------------------------------------------------------------------
---  Machine (body)
---
---  Generated from ../samples/adb_protocol.puml on <DATE>.
------------------------------------------------------------------------
+---------------------------------------------------------------------
+--  Machine
+---------------------------------------------------------------------
+
 
 package body Machine is
-
-   use Base;
 
 
    Table : constant array (State, Event) of State :=
@@ -110,6 +107,7 @@ package body Machine is
       case Current_State (Self) is
          when Start_State =>
             null;
+
          when ADB_Reset =>
             case Via_History (Self) is
                when History_None =>
@@ -121,6 +119,7 @@ package body Machine is
                when History_Deep =>
                   null;
             end case;
+
          when Address_Resolution =>
             case Via_History (Self) is
                when History_None =>
@@ -132,8 +131,12 @@ package body Machine is
                when History_Deep =>
                   null;
             end case;
+
+         --  Maintain bus high
+         --  Monitor the command queue for explicit commands
          when Bus_Idle =>
             null;
+
          when Execute_Explicit_Command =>
             case Via_History (Self) is
                when History_None =>
@@ -145,6 +148,7 @@ package body Machine is
                when History_Deep =>
                   null;
             end case;
+
          when Autopolling =>
             case Via_History (Self) is
                when History_None =>
@@ -156,8 +160,12 @@ package body Machine is
                when History_Deep =>
                   null;
             end case;
+
+         --  Inspect the Stop Bit of the immediately preceding transaction
+         --  Did an unpolled device assert SRQ (pull bus low)?
          when Evaluate_SRQ =>
             null;
+
          when SRQ_Resolution =>
             case Via_History (Self) is
                when History_None =>
@@ -169,7 +177,9 @@ package body Machine is
                when History_Deep =>
                   null;
             end case;
-         when others => null;
+
+         when others =>
+            null;
       end case;
    end On_Enter;
 
@@ -179,21 +189,30 @@ package body Machine is
       case Current_State (Self) is
          when Start_State =>
             null;
+
          when ADB_Reset =>
             null;
+
          when Address_Resolution =>
             null;
+
          when Bus_Idle =>
             null;
+
          when Execute_Explicit_Command =>
             null;
+
          when Autopolling =>
             null;
+
          when Evaluate_SRQ =>
             null;
+
          when SRQ_Resolution =>
             null;
-         when others => null;
+
+         when others =>
+            null;
       end case;
    end On_Exit;
 
@@ -201,33 +220,64 @@ package body Machine is
    procedure On_Tick (Self : in out Machine) is
    begin
       case Current_State (Self) is
-         when others => null;
+         when Start_State =>
+
+         when ADB_Reset =>
+
+         when Address_Resolution =>
+
+         when Bus_Idle =>
+
+         when Execute_Explicit_Command =>
+
+         when Autopolling =>
+
+         when Evaluate_SRQ =>
+
+         when SRQ_Resolution =>
+
+         when others =>
+            null;
       end case;
    end On_Tick;
 
    overriding
-   function On_Internal (Self : in out Machine; On : Event) return Boolean is
+   function On_Internal (Self : in out Machine; On : Event) return Boolean
+   is
    begin
       case Current_State (Self) is
+         when Start_State =>
+
+         when ADB_Reset =>
+
+         when Address_Resolution =>
+
+         when Bus_Idle =>
+
+         when Execute_Explicit_Command =>
+
+         when Autopolling =>
+
+         when Evaluate_SRQ =>
+
+         when SRQ_Resolution =>
+
          when others =>
             return False;
       end case;
    end On_Internal;
 
    overriding
-   function Is_History_Entry
-     (Self : Machine; From : State; On : Event) return Base.History_Mode is
+   function Is_History_Entry (Self : Machine; On : Event)
+                              return History_Kind is
+      pragma Unreferenced (Self, On);
    begin
-      case From is
+      case Current_State (Self) is
          when others =>
             return History_None;
 
       end case;
    end Is_History_Entry;
-
-   overriding
-   function Name (Self : Machine) return String is
-     ("Machine");
 
    procedure Step_ADB_Reset (Self : in out Machine;
                             On : ADB_Reset_Machine.Event) is

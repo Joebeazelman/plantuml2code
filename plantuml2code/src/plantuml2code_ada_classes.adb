@@ -133,6 +133,56 @@ package body PlantUML2Code_Ada_Classes is
       end if;
    end Map_Type;
 
+
+   --  Title metadata as a comment line.
+   function Title_Line_Of (D : UML.Model.Diagram) return String is
+   begin
+      for M of D.Metadata loop
+         if M.Kind = UML.Model.Title and then Length (M.Text) > 0 then
+            return "--  " & To_String (M.Text);
+         end if;
+      end loop;
+      return "";
+   end Title_Line_Of;
+
+   --  Pack diagram-level notes into a comment block. Each line of each
+   --  note is prefixed with "--    ". Empty string when no notes.
+   function Notes_Header_Of (D : UML.Model.Diagram) return String is
+      R : Unbounded_String;
+
+      procedure Emit_Lines (Txt : String) is
+         Start : Natural := Txt'First;
+      begin
+         if Txt'Length = 0 then
+            return;
+         end if;
+         for I in Txt'Range loop
+            if Txt (I) = ASCII.LF then
+               Append (R, "--    " & Txt (Start .. I - 1) & ASCII.LF);
+               Start := I + 1;
+            end if;
+         end loop;
+         if Start <= Txt'Last then
+            Append (R, "--    " & Txt (Start .. Txt'Last) & ASCII.LF);
+         end if;
+      end Emit_Lines;
+   begin
+      for N of D.Notes loop
+         Emit_Lines (To_String (N.Text));
+      end loop;
+
+      --  Trim the trailing newline; the template supplies the final
+      --  line break before the closing rule.
+      declare
+         S : constant String := To_String (R);
+      begin
+         if S'Length > 0 and then S (S'Last) = ASCII.LF then
+            return S (S'First .. S'Last - 1);
+         end if;
+         return S;
+      end;
+   end Notes_Header_Of;
+
    function Dummy_Value (Typ : String) return String is
    begin
       if Typ = "Unbounded_String" then
@@ -513,7 +563,28 @@ package body PlantUML2Code_Ada_Classes is
 
       First_Deriv : Boolean := True;
    begin
+      --  Attached notes as leading comments.
+      for N of E.Notes loop
+         declare
+            Txt : constant String := To_String (N.Text);
+            Start : Natural := Txt'First;
+         begin
+            if Txt'Length > 0 then
+               for I in Txt'Range loop
+                  if Txt (I) = ASCII.LF then
+                     Append (R, "   --  " & Txt (Start .. I - 1) & ASCII.LF);
+                     Start := I + 1;
+                  end if;
+               end loop;
+               if Start <= Txt'Last then
+                  Append (R, "   --  " & Txt (Start .. Txt'Last) & ASCII.LF);
+               end if;
+            end if;
+         end;
+      end loop;
+
       Append (R, "   type " & Name & " is");
+
       if Is_Abstract then
          Append (R, " abstract");
       end if;
@@ -894,6 +965,14 @@ package body PlantUML2Code_Ada_Classes is
       Insert (T_Spec, Assoc ("PACKAGE_NAME", Pkg_Name));
       Insert (T_Spec, Assoc ("SOURCE_DIAGRAM", Source_Diagram));
       Insert (T_Spec, Assoc ("GENERATION_DATE", Date_Str));
+      Insert (T_Spec, Assoc ("HAS_TITLE",
+                             Pkg = 0 and then Title_Line_Of (D)'Length > 0));
+      Insert (T_Spec, Assoc ("TITLE_LINE",
+                             (if Pkg = 0 then Title_Line_Of (D) else "")));
+      Insert (T_Spec, Assoc ("HAS_NOTES",
+                             Pkg = 0 and then Notes_Header_Of (D)'Length > 0));
+      Insert (T_Spec, Assoc ("NOTES_HEADER",
+                             (if Pkg = 0 then Notes_Header_Of (D) else "")));
       Insert (T_Spec, Assoc ("WITH_CLAUSES", With_Str));
       Insert (T_Spec, Assoc ("DECL_BLOCK", Decl_Blocks));
       Render_To ("class.ads.tmplt", Ads_Path, T_Spec);

@@ -1,12 +1,9 @@
------------------------------------------------------------------------
---  ADB_Reset_Machine (body)
---
---  Generated from ../samples/adb_protocol.puml on <DATE>.
------------------------------------------------------------------------
+---------------------------------------------------------------------
+--  ADB_Reset_Machine
+---------------------------------------------------------------------
+
 
 package body ADB_Reset_Machine is
-
-   use Base;
 
 
    Table : constant array (State, Event) of State :=
@@ -24,9 +21,12 @@ package body ADB_Reset_Machine is
    procedure On_Enter (Self : in out Machine) is
    begin
       case Current_State (Self) is
+         --  Drive bus low for ~3ms to reset all devices to default states
          when Send_Reset_Cmd =>
             null;
-         when others => null;
+
+         when others =>
+            null;
       end case;
    end On_Enter;
 
@@ -36,7 +36,9 @@ package body ADB_Reset_Machine is
       case Current_State (Self) is
          when Send_Reset_Cmd =>
             null;
-         when others => null;
+
+         when others =>
+            null;
       end case;
    end On_Exit;
 
@@ -44,33 +46,36 @@ package body ADB_Reset_Machine is
    procedure On_Tick (Self : in out Machine) is
    begin
       case Current_State (Self) is
-         when others => null;
+         when Send_Reset_Cmd =>
+
+         when others =>
+            null;
       end case;
    end On_Tick;
 
    overriding
-   function On_Internal (Self : in out Machine; On : Event) return Boolean is
+   function On_Internal (Self : in out Machine; On : Event) return Boolean
+   is
    begin
       case Current_State (Self) is
+         when Send_Reset_Cmd =>
+
          when others =>
             return False;
       end case;
    end On_Internal;
 
    overriding
-   function Is_History_Entry
-     (Self : Machine; From : State; On : Event) return Base.History_Mode is
+   function Is_History_Entry (Self : Machine; On : Event)
+                              return History_Kind is
+      pragma Unreferenced (Self, On);
    begin
-      case From is
+      case Current_State (Self) is
          when others =>
             return History_None;
 
       end case;
    end Is_History_Entry;
-
-   overriding
-   function Name (Self : Machine) return String is
-     ("ADB_Reset_Machine");
 
 
 end ADB_Reset_Machine;

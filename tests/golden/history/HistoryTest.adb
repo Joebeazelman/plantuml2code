@@ -1,12 +1,9 @@
------------------------------------------------------------------------
---  HistoryTest (body)
---
---  Generated from ../samples/history.puml on <DATE>.
------------------------------------------------------------------------
+---------------------------------------------------------------------
+--  HistoryTest
+---------------------------------------------------------------------
+
 
 package body HistoryTest is
-
-   use Base;
 
 
    Table : constant array (State, Event) of State :=
@@ -43,8 +40,10 @@ package body HistoryTest is
       case Current_State (Self) is
          when Start_State =>
             null;
+
          when Idle =>
             null;
+
          when Outer =>
             case Via_History (Self) is
                when History_None =>
@@ -56,7 +55,9 @@ package body HistoryTest is
                when History_Deep =>
                   null;
             end case;
-         when others => null;
+
+         when others =>
+            null;
       end case;
    end On_Enter;
 
@@ -66,11 +67,15 @@ package body HistoryTest is
       case Current_State (Self) is
          when Start_State =>
             null;
+
          when Idle =>
             null;
+
          when Outer =>
             null;
-         when others => null;
+
+         when others =>
+            null;
       end case;
    end On_Exit;
 
@@ -78,24 +83,39 @@ package body HistoryTest is
    procedure On_Tick (Self : in out Machine) is
    begin
       case Current_State (Self) is
-         when others => null;
+         when Start_State =>
+
+         when Idle =>
+
+         when Outer =>
+
+         when others =>
+            null;
       end case;
    end On_Tick;
 
    overriding
-   function On_Internal (Self : in out Machine; On : Event) return Boolean is
+   function On_Internal (Self : in out Machine; On : Event) return Boolean
+   is
    begin
       case Current_State (Self) is
+         when Start_State =>
+
+         when Idle =>
+
+         when Outer =>
+
          when others =>
             return False;
       end case;
    end On_Internal;
 
    overriding
-   function Is_History_Entry
-     (Self : Machine; From : State; On : Event) return Base.History_Mode is
+   function Is_History_Entry (Self : Machine; On : Event)
+                              return History_Kind is
+      pragma Unreferenced (Self, On);
    begin
-      case From is
+      case Current_State (Self) is
          when Idle =>
             if On = Enter_Shallow then
                return History_Shallow;
@@ -109,10 +129,6 @@ package body HistoryTest is
 
       end case;
    end Is_History_Entry;
-
-   overriding
-   function Name (Self : Machine) return String is
-     ("HistoryTest");
 
    procedure Step_Outer (Self : in out Machine;
                             On : Outer_Machine.Event) is

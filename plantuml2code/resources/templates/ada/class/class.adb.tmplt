@@ -1,10 +1,6 @@
 ---------------------------------------------------------------------
 --  @_PACKAGE_NAME_@
---
---  Generated from @_SOURCE_DIAGRAM_@ on @_GENERATION_DATE_@.
---  Do not edit by hand; regenerate from the diagram instead.
 ---------------------------------------------------------------------
-
 @_WITH_CLAUSES_@package body @_PACKAGE_NAME_@ is
 
 @@TABLE@@

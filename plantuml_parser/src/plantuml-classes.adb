@@ -479,7 +479,9 @@ package body PlantUML.Classes is
                      end if;
                      if C.Sym_Is (":") then C.Next; end if;
                      while C.Peek.Kind not in Newline | Eof loop
-                        if Length (Txt) > 0 then
+                        if Length (Txt) > 0
+                          and then C.Peek.Space_Before
+                        then
                            Txt := Txt & " ";
                         end if;
                         Txt := Txt & C.Peek.Text;

@@ -1,14 +1,11 @@
------------------------------------------------------------------------
---  Nested (body)
---
---  Generated from ../samples/nested.puml on <DATE>.
------------------------------------------------------------------------
-
+---------------------------------------------------------------------
+--  Nested
+---------------------------------------------------------------------
 with Nested_Actions;
 
-package body Nested is
 
-   use Base;
+
+package body Nested is
    use Nested_Actions;
 
 
@@ -57,8 +54,10 @@ package body Nested is
       case Current_State (Self) is
          when Start_State =>
             null;
+
          when Idle =>
             Log_Idle;
+
          when Running =>
             case Via_History (Self) is
                when History_None =>
@@ -70,9 +69,12 @@ package body Nested is
                when History_Deep =>
                   null;
             end case;
+
          when End_State =>
             Mark_Terminated (Self);
-         when others => null;
+
+         when others =>
+            null;
       end case;
    end On_Enter;
 
@@ -82,13 +84,18 @@ package body Nested is
       case Current_State (Self) is
          when Start_State =>
             null;
+
          when Idle =>
             Cleanup_Idle;
+
          when Running =>
             null;
+
          when End_State =>
             null;
-         when others => null;
+
+         when others =>
+            null;
       end case;
    end On_Exit;
 
@@ -96,30 +103,48 @@ package body Nested is
    procedure On_Tick (Self : in out Machine) is
    begin
       case Current_State (Self) is
-         when others => null;
+         when Start_State =>
+
+         when Idle =>
+
+         when Running =>
+
+         when End_State =>
+
+         when others =>
+            null;
       end case;
    end On_Tick;
 
    overriding
-   function On_Internal (Self : in out Machine; On : Event) return Boolean is
+   function On_Internal (Self : in out Machine; On : Event) return Boolean
+   is
    begin
       case Current_State (Self) is
+         when Start_State =>
+
          when Idle =>
             if On = Tick then
                Bump;
                return True;
             end if;
             return False;
+
+         when Running =>
+
+         when End_State =>
+
          when others =>
             return False;
       end case;
    end On_Internal;
 
    overriding
-   function Is_History_Entry
-     (Self : Machine; From : State; On : Event) return Base.History_Mode is
+   function Is_History_Entry (Self : Machine; On : Event)
+                              return History_Kind is
+      pragma Unreferenced (Self, On);
    begin
-      case From is
+      case Current_State (Self) is
          when Idle =>
             if On = Continue then
                return History_Shallow;
@@ -130,10 +155,6 @@ package body Nested is
 
       end case;
    end Is_History_Entry;
-
-   overriding
-   function Name (Self : Machine) return String is
-     ("Nested");
 
    procedure Step_Running (Self : in out Machine;
                             On : Running_Machine.Event) is

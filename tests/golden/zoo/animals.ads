@@ -1,8 +1,5 @@
 ---------------------------------------------------------------------
 --  Animals
---
---  Generated from ../samples/zoo.puml on <DATE>.
---  Do not edit by hand; regenerate from the diagram instead.
 ---------------------------------------------------------------------
 
 with Zoo;  use Zoo;
@@ -24,6 +21,7 @@ package Animals is
 
    procedure Move (Self : in out Animal) is abstract;
 
+   --  A loyal companion.
    type Dog is new Animal and Pet with record
       Attr_Toy : access Toy'Class;
       Attr_Color : Color;

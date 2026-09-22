@@ -24,4 +24,6 @@ Animal <|-- Dog
 Pet <|.. Dog
 Dog "1" *-- "many" Toy : owns
 Dog --> Color : has
+note right of Dog : A loyal companion.
+note "Zoo sample diagram\nExercises package nesting, inheritance, and notes."
 @enduml

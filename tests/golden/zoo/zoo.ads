@@ -1,8 +1,9 @@
 ---------------------------------------------------------------------
 --  Zoo
 --
---  Generated from ../samples/zoo.puml on <DATE>.
---  Do not edit by hand; regenerate from the diagram instead.
+--  Notes:
+--    Zoo sample diagram
+--    Exercises package nesting, inheritance, and notes.
 ---------------------------------------------------------------------
 
 package Zoo is

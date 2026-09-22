@@ -314,32 +314,32 @@ package body PlantUML.To_Model is
                end if;
             end loop;
 
-            --  Diagram-level notes.
-            for N of D.Notes loop
-               Result.Notes.Append
-                 (UML.Model.Note'
-                    (Text     => N.Text,
-                     Subject  => 0,
-                     Position =>
-                       (case N.Position is
-                           when PlantUML.Classes.Attached  =>
-                              UML.Model.Attached,
-                           when PlantUML.Classes.Right_Of  =>
-                              UML.Model.Right_Of,
-                           when PlantUML.Classes.Left_Of   =>
-                              UML.Model.Left_Of,
-                           when PlantUML.Classes.Top_Of    =>
-                              UML.Model.Top_Of,
-                           when PlantUML.Classes.Bottom_Of =>
-                              UML.Model.Bottom_Of)));
-            end loop;
-
             for C of K.Children loop
                E.Children.Append (UML.Model.Element_Index (C));
             end loop;
 
             Result.Elements.Append (E);
          end;
+      end loop;
+
+      --  Diagram-level notes.
+      for N of D.Notes loop
+         Result.Notes.Append
+           (UML.Model.Note'
+              (Text     => N.Text,
+               Subject  => 0,
+               Position =>
+                 (case N.Position is
+                     when PlantUML.Classes.Attached  =>
+                        UML.Model.Attached,
+                     when PlantUML.Classes.Right_Of  =>
+                        UML.Model.Right_Of,
+                     when PlantUML.Classes.Left_Of   =>
+                        UML.Model.Left_Of,
+                     when PlantUML.Classes.Top_Of    =>
+                        UML.Model.Top_Of,
+                     when PlantUML.Classes.Bottom_Of =>
+                        UML.Model.Bottom_Of)));
       end loop;
 
       for R of D.Roots loop
