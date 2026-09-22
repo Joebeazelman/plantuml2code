@@ -21,7 +21,7 @@ fi
 # Refuse to run if any source is newer than the binary. A failed build
 # leaves the previous binary in place; without this check, goldens would
 # silently test stale output.
-newest_src=$(find "$ROOT/uml2code/src" "$ROOT/plantuml_parser/src" \
+newest_src=$(find "$ROOT/uml2code/src" "$ROOT/../plantuml_parser/src" \
              -name '*.ad[bs]' -newer "$GEN" -print -quit)
 if [ -n "$newest_src" ]; then
   echo "error: $GEN is older than $newest_src"

@@ -19,7 +19,7 @@ executables = ["uml2code"]
 plantuml_parser = "*"
 
 [[pins]]
-plantuml_parser = { path = "../plantuml_parser" }
+plantuml_parser = { path = "../../plantuml_parser" }
 
 [[depends-on]]
 templates_parser = "^26.0.0"
