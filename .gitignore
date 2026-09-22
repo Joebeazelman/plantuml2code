@@ -31,3 +31,7 @@ alire/
 
 # Scratch scripts used during development
 fix.sh
+
+# Generated output accidentally written into the crate's tests dir
+/uml2code/tests/driver.adb
+/uml2code/tests/test/
