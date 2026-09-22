@@ -185,4 +185,40 @@ package body PlantUML.Tokens is
      (declare T : constant Token := Peek (C);
       begin T.Kind = Symbol and then To_String (T.Text) = S);
 
+
+   --  Decode \\n sequences in a raw text fragment into real
+   --  newlines. Used by parsers when assembling note text.
+   function Decode_Escapes (S : String) return String is
+      N : Natural := 0;
+   begin
+      if S'Length = 0 then
+         return "";
+      end if;
+      for I in S'First .. S'Last - 1 loop
+         if S (I) = '\' and then S (I + 1) = 'n' then
+            N := N + 1;
+         end if;
+      end loop;
+      declare
+         R : String (1 .. S'Length - N);
+         J : Natural := 1;
+         I : Natural := S'First;
+      begin
+         while I <= S'Last loop
+            if S (I) = '\'
+              and then I < S'Last
+              and then S (I + 1) = 'n'
+            then
+               R (J) := ASCII.LF;
+               J := J + 1;
+               I := I + 2;
+            else
+               R (J) := S (I);
+               J := J + 1;
+               I := I + 1;
+            end if;
+         end loop;
+         return R;
+      end;
+   end Decode_Escapes;
 end PlantUML.Tokens;

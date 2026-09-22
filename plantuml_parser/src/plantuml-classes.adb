@@ -432,15 +432,70 @@ package body PlantUML.Classes is
 
             elsif Tx = "note" then
                C.Next;
-               while C.Peek.Kind not in Newline | Eof
-                 and then not C.Sym_Is (":")
-               loop
-                  C.Next;
-               end loop;
-               if C.Sym_Is (":") then C.Next; end if;
-               while C.Peek.Kind not in Newline | Eof loop
-                  C.Next;
-               end loop;
+               if C.Peek.Kind = Str then
+                  --  Floating: note "text" [as Name]
+                  declare
+                     Txt : Name := C.Peek.Text;
+                  begin
+                     C.Next;
+                     while C.Peek.Kind not in Newline | Eof loop
+                        C.Next;
+                     end loop;
+                     B.D.Notes.Append
+                       (Annotation'(Kind     => Note,
+                                    Text     =>
+                                      To_Unbounded_String
+                                        (Decode_Escapes
+                                           (To_String (Txt))),
+                                    Position => Attached));
+                  end;
+
+               elsif C.Peek.Kind = Word then
+                  --  Positional: note right|left|top|bottom of X : text
+                  declare
+                     Pos : Note_Position := Attached;
+                     Tgt : Name := Null_Unbounded_String;
+                     Txt : Name := Null_Unbounded_String;
+                     Dir : constant String := To_String (C.Peek.Text);
+                  begin
+                     if Dir = "right" then
+                        Pos := Right_Of;
+                     elsif Dir = "left" then
+                        Pos := Left_Of;
+                     elsif Dir = "top" then
+                        Pos := Top_Of;
+                     elsif Dir = "bottom" then
+                        Pos := Bottom_Of;
+                     end if;
+                     C.Next;
+                     if C.Peek.Kind = Word
+                       and then To_String (C.Peek.Text) = "of"
+                     then
+                        C.Next;
+                     end if;
+                     if C.Peek.Kind = Word then
+                        Tgt := C.Peek.Text;
+                        C.Next;
+                     end if;
+                     if C.Sym_Is (":") then C.Next; end if;
+                     while C.Peek.Kind not in Newline | Eof loop
+                        if Length (Txt) > 0 then
+                           Txt := Txt & " ";
+                        end if;
+                        Txt := Txt & C.Peek.Text;
+                        C.Next;
+                     end loop;
+                     if Length (Tgt) > 0 and then Length (Txt) > 0 then
+                        Add_Annotation_To
+                          (To_String (Tgt),
+                           (Kind     => Note,
+                            Text     => To_Unbounded_String
+                                            (Decode_Escapes
+                                               (To_String (Txt))),
+                            Position => Pos));
+                     end if;
+                  end;
+               end if;
 
             elsif T.Kind = Word then
                declare
@@ -494,7 +549,9 @@ package body PlantUML.Classes is
                                  C.Next;
                               end loop;
                               Add_Annotation_To
-                                (Target, (Kind => Stereotype, Text => S));
+                                (Target, (Kind     => Stereotype,
+                                          Text     => S,
+                                          Position => Attached));
                               if C.Sym_Is (">") then C.Next; end if;
                               if C.Sym_Is (">") then C.Next; end if;
                            end;

@@ -22,9 +22,14 @@ package PlantUML.Classes is
    type Annotation_Kind is
      (Stereotype, Note, Tag, Other);
 
+   --  Where a note is positioned relative to its subject.
+   type Note_Position is
+     (Attached, Right_Of, Left_Of, Top_Of, Bottom_Of);
+
    type Annotation is record
-      Kind : Annotation_Kind := Other;
-      Text : Name;
+      Kind     : Annotation_Kind := Other;
+      Text     : Name;
+      Position : Note_Position := Attached;
    end record;
 
    package Annotation_Vectors is
@@ -81,6 +86,9 @@ package PlantUML.Classes is
       Title        : Name;   --  from the "title ..." directive
       Pool         : Classifier_Vectors.Vector;
       Roots        : Index_Vectors.Vector;
+      --  Diagram-level notes (floating or block form). Positional
+      --  notes attached to a classifier live in Classifier.Annotations.
+      Notes        : Annotation_Vectors.Vector;
       Relations    : Relation_Vectors.Vector;
    end record;
 

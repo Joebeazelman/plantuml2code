@@ -28,8 +28,13 @@ package PlantUML.Tokens is
    function  Word_Is  (C : Cursor; S : String) return Boolean;
    function  Sym_Is   (C : Cursor; S : String) return Boolean;
 
+   --  Decode \\n sequences in a raw text fragment into real
+   --  newlines. Used by parsers when assembling note text from
+   --  token streams.
+   function Decode_Escapes (S : String) return String;
 private
    type Cursor (Src : not null access constant List) is record
       I : Natural := 1;
    end record;
+
 end PlantUML.Tokens;

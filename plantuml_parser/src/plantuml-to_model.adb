@@ -3,6 +3,7 @@ with Ada.Strings.Unbounded;    use Ada.Strings.Unbounded;
 package body PlantUML.To_Model is
 
    use type PlantUML.States.Annotation_Kind;
+   use type PlantUML.Classes.Annotation_Kind;
 
    --  ---------------------------------------------------------------
    --  Enumeration mappings
@@ -274,6 +275,63 @@ package body PlantUML.To_Model is
                      Is_Static   => M.Is_Static,
                      Is_Abstract => M.Is_Abstract,
                      Annotations => <>));
+            end loop;
+
+            --  Classifier annotations: Notes go to E.Notes, others
+            --  to E.Annotations.
+            for A of K.Annotations loop
+               if A.Kind = PlantUML.Classes.Note then
+                  E.Notes.Append
+                    (UML.Model.Note'
+                       (Text     => A.Text,
+                        Subject  => 0,
+                        Position =>
+                          (case A.Position is
+                              when PlantUML.Classes.Attached  =>
+                                 UML.Model.Attached,
+                              when PlantUML.Classes.Right_Of  =>
+                                 UML.Model.Right_Of,
+                              when PlantUML.Classes.Left_Of   =>
+                                 UML.Model.Left_Of,
+                              when PlantUML.Classes.Top_Of    =>
+                                 UML.Model.Top_Of,
+                              when PlantUML.Classes.Bottom_Of =>
+                                 UML.Model.Bottom_Of)));
+               else
+                  E.Annotations.Append
+                    (UML.Model.Annotation'
+                       (Kind    =>
+                          (case A.Kind is
+                              when PlantUML.Classes.Stereotype =>
+                                 UML.Model.Stereotype,
+                              when PlantUML.Classes.Tag =>
+                                 UML.Model.Tag,
+                              when others =>
+                                 UML.Model.Other),
+                        Text    => A.Text,
+                        Trigger => Null_Unbounded_String,
+                        Guard   => Null_Unbounded_String));
+               end if;
+            end loop;
+
+            --  Diagram-level notes.
+            for N of D.Notes loop
+               Result.Notes.Append
+                 (UML.Model.Note'
+                    (Text     => N.Text,
+                     Subject  => 0,
+                     Position =>
+                       (case N.Position is
+                           when PlantUML.Classes.Attached  =>
+                              UML.Model.Attached,
+                           when PlantUML.Classes.Right_Of  =>
+                              UML.Model.Right_Of,
+                           when PlantUML.Classes.Left_Of   =>
+                              UML.Model.Left_Of,
+                           when PlantUML.Classes.Top_Of    =>
+                              UML.Model.Top_Of,
+                           when PlantUML.Classes.Bottom_Of =>
+                              UML.Model.Bottom_Of)));
             end loop;
 
             for C of K.Children loop
