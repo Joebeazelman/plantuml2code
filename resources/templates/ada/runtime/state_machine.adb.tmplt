@@ -1,0 +1,25 @@
+package body Base is
+
+   function Current_State (Self : Machine) return Natural is
+   begin
+      return Self.State;
+   end Current_State;
+
+   procedure Reset (Self : in out Machine) is
+   begin
+      Self.State      := 0;
+      Self.Terminated := False;
+      Self.History    := History_None;
+   end Reset;
+
+   procedure Mark_Terminated (Self : in out Machine) is
+   begin
+      Self.Terminated := True;
+   end Mark_Terminated;
+
+   function Via_History (Self : Machine) return History_Kind is
+   begin
+      return Self.History;
+   end Via_History;
+
+end Base;

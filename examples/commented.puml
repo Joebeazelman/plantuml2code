@@ -1,0 +1,18 @@
+@startuml Commented_Machine
+title My State Machine
+
+note right
+  This is a note
+  with multiple lines
+  to test comment rendering
+end note
+
+[*] --> Idle
+state Idle
+Idle : entry / Log_Idle
+Idle : exit / Cleanup_Idle
+
+Idle --> Running : Start
+Running --> Idle : Stop
+
+@enduml

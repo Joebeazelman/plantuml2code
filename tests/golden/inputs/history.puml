@@ -1,0 +1,24 @@
+@startuml HistoryTest
+[*] --> Idle
+state Idle
+
+state Outer {
+  [*] --> Middle
+  state Middle {
+    [*] --> Inner
+    state Inner {
+      [*] --> A
+      state A
+      A : entry / Entered_A
+      state B
+      B : entry / Entered_B
+      A --> B : Advance
+    }
+  }
+}
+
+Idle --> Outer : Enter_Fresh
+Idle --> Outer.[H] : Enter_Shallow
+Idle --> Outer.[H*] : Enter_Deep
+Outer --> Idle : Back
+@enduml

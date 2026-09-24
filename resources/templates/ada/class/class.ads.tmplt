@@ -1,0 +1,15 @@
+--  {{DESCRIPTION}}
+--  Generated: {{GENERATION_DATE}}
+--  Source:    {{SOURCE_DIAGRAM}}
+
+package {{PACKAGE_NAME}} is
+
+{{#for RAW_CLASS_ID}}
+   type {{RAW_CLASS_ID | ada_type}} is tagged record
+      --  TODO: populate from RAW_ATTR_*
+      null;
+   end record;
+
+{{/for RAW_CLASS_ID}}
+
+end {{PACKAGE_NAME}};

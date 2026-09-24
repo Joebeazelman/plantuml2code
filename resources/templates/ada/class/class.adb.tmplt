@@ -1,0 +1,3 @@
+package body {{PACKAGE_NAME}} is
+   --  Generated: {{GENERATION_DATE}}
+end {{PACKAGE_NAME}};

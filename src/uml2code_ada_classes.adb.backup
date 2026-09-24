@@ -1,0 +1,295 @@
+with Ada.Text_IO;              use Ada.Text_IO;
+with Ada.Directories;
+with Ada.Strings.Unbounded;    use Ada.Strings.Unbounded;
+with Ada.Strings.Fixed;
+
+with UML.Model;
+with Uml2Code_Utils;
+
+package body Uml2Code_Ada_Classes is
+
+   use type UML.Model.Element_Kind;
+   use type UML.Model.Element_Index;
+   use type UML.Model.Relation_Kind;
+
+   procedure Generate
+     (D              : UML.Model.Diagram;
+      Source_Diagram : String;
+      Out_Dir        : String)
+   is
+      --  Element indices stored in a simple array
+      type Index_Array is array (Positive range <>) of
+        UML.Model.Element_Index;
+
+      Src_Dir : constant String :=
+        Ada.Directories.Compose (Out_Dir, "src");
+
+      function Id_Of (Idx : UML.Model.Element_Index) return String is
+      begin
+         if Idx = 0
+           or else Positive (Idx) > Natural (D.Elements.Length)
+         then
+            return "";
+         end if;
+         return To_String (D.Elements (Positive (Idx)).Id);
+      end Id_Of;
+
+      --  Write one Ada package spec for a set of elements
+      procedure Generate_Package
+        (Pkg_Name : String;
+         Indices  : Index_Array)
+      is
+         Classes    : Index_Array (1 .. Indices'Length);
+         Interfaces : Index_Array (1 .. Indices'Length);
+         Enums      : Index_Array (1 .. Indices'Length);
+         N_Class    : Natural := 0;
+         N_Iface    : Natural := 0;
+         N_Enum     : Natural := 0;
+
+         Ads_File : constant String :=
+           Ada.Directories.Compose (Src_Dir, Pkg_Name & ".ads");
+         F : Ada.Text_IO.File_Type;
+
+      begin
+         --  Categorize elements
+         for I in Indices'Range loop
+            declare
+               Idx : constant UML.Model.Element_Index := Indices (I);
+            begin
+               if Idx /= 0 then
+                  declare
+                     Elem : UML.Model.Element renames
+                       D.Elements (Positive (Idx));
+                  begin
+                     case Elem.Kind is
+                        when UML.Model.Class | UML.Model.Abstract_Class =>
+                           N_Class := N_Class + 1;
+                           Classes (N_Class) := Idx;
+                        when UML.Model.Interface_Kind =>
+                           N_Iface := N_Iface + 1;
+                           Interfaces (N_Iface) := Idx;
+                        when UML.Model.Enumeration =>
+                           N_Enum := N_Enum + 1;
+                           Enums (N_Enum) := Idx;
+                        when others =>
+                           null;
+                     end case;
+                  end;
+               end if;
+            end;
+         end loop;
+
+         --  Generate .ads file
+         Ada.Text_IO.Create (F, Ada.Text_IO.Out_File, Ads_File);
+         Ada.Text_IO.Put_Line (F, "--  " & Pkg_Name);
+         Ada.Text_IO.Put_Line (F, "--  Generated: " & Uml2Code_Utils.Today);
+         Ada.Text_IO.Put_Line (F, "--  Source:    " & Source_Diagram);
+         Ada.Text_IO.New_Line (F);
+         Ada.Text_IO.Put_Line (F, "package " & Pkg_Name & " is");
+         Ada.Text_IO.New_Line (F);
+
+         --  Enums
+         for E in 1 .. N_Enum loop
+            declare
+               Elem : UML.Model.Element renames
+                 D.Elements (Positive (Enums (E)));
+               Name : constant String := To_String (Elem.Id);
+               First_Lit : Boolean := True;
+            begin
+               Ada.Text_IO.Put (F, "   type " & Name & " is (");
+               --  Enum literals are stored in Members, not Children
+               for M of Elem.Members loop
+                  if M.Kind = UML.Model.Enum_Literal then
+                     if not First_Lit then
+                        Ada.Text_IO.Put (F, ", ");
+                     end if;
+                     Ada.Text_IO.Put (F, To_String (M.Id));
+                     First_Lit := False;
+                  end if;
+               end loop;
+               Ada.Text_IO.Put_Line (F, ");");
+               Ada.Text_IO.New_Line (F);
+            end;
+         end loop;
+
+         --  Interfaces
+         for I in 1 .. N_Iface loop
+            declare
+               Name : constant String :=
+                 To_String (D.Elements (Positive (Interfaces (I))).Id);
+            begin
+               Ada.Text_IO.Put_Line
+                 (F, "   type " & Name & " is limited interface;");
+               Ada.Text_IO.New_Line (F);
+            end;
+         end loop;
+
+         --  Classes
+         for C in 1 .. N_Class loop
+            declare
+               Elem : UML.Model.Element renames
+                 D.Elements (Positive (Classes (C)));
+               Name : constant String := To_String (Elem.Id);
+               Parent : String := "";
+            begin
+               --  Find parent via inheritance relations
+               for R of D.Relations loop
+                  if R.Kind = UML.Model.Inheritance
+                    and then Id_Of (R.To) = Name
+                  then
+                     Parent := Id_Of (R.From);
+                     exit;
+                  end if;
+               end loop;
+
+               if Parent /= "" then
+                  Ada.Text_IO.Put_Line
+                    (F, "   type " & Name & " is new " & Parent
+                     & " with null record;");
+               else
+                  Ada.Text_IO.Put_Line
+                    (F, "   type " & Name & " is tagged null record;");
+               end if;
+               Ada.Text_IO.New_Line (F);
+            end;
+         end loop;
+
+         Ada.Text_IO.Put_Line (F, "end " & Pkg_Name & ";");
+         Ada.Text_IO.Close (F);
+         Put_Line ("wrote " & Ads_File);
+      end Generate_Package;
+
+      --  Collect top-level element indices and package indices
+      Top_First : Positive := 1;
+      Top_Last  : Natural  := 0;
+      Pkg_First : Positive := 1;
+      Pkg_Last  : Natural  := 0;
+
+      
+      Top_Elements : Index_Array (1 .. 1000);
+      Pkg_Elements : Index_Array (1 .. 1000);
+
+   begin
+      Ada.Directories.Create_Path (Src_Dir);
+
+      --  Categorize top-level elements
+      for I in 1 .. Natural (D.Elements.Length) loop
+         declare
+            Elem : UML.Model.Element renames D.Elements (I);
+            Is_Child : Boolean := False;
+         begin
+            --  Check if this element is a child of another
+            for J in 1 .. Natural (D.Elements.Length) loop
+               for C of D.Elements (J).Children loop
+                  if Positive (C) = I then
+                     Is_Child := True;
+                     exit;
+                  end if;
+               end loop;
+               exit when Is_Child;
+            end loop;
+
+            if not Is_Child then
+               if Elem.Kind = UML.Model.Package_Kind then
+                  Pkg_Last := Pkg_Last + 1;
+                  Pkg_Elements (Pkg_Last) := UML.Model.Element_Index (I);
+               else
+                  Top_Last := Top_Last + 1;
+                  Top_Elements (Top_Last) := UML.Model.Element_Index (I);
+               end if;
+            end if;
+         end;
+      end loop;
+
+      --  Generate root package "Model" for top-level elements
+      if Top_Last > 0 then
+         Generate_Package ("Model", Top_Elements (1 .. Top_Last));
+      end if;
+
+      --  Generate each named package
+      for P in 1 .. Pkg_Last loop
+         declare
+            Pkg_Idx : constant UML.Model.Element_Index :=
+              Pkg_Elements (P);
+            Pkg_Name : constant String := Id_Of (Pkg_Idx);
+            Pkg_Elem : UML.Model.Element renames
+              D.Elements (Positive (Pkg_Idx));
+         begin
+            if not Pkg_Elem.Children.Is_Empty then
+               --  Generate a package for the children
+               --  We pass the children indices as a range
+               --  Since children are Element_Index values,
+               --  we need to generate from them directly
+               declare
+                  Child_File : constant String :=
+                    Ada.Directories.Compose
+                      (Src_Dir, Pkg_Name & ".ads");
+                  F : Ada.Text_IO.File_Type;
+               begin
+                  Ada.Text_IO.Create (F, Ada.Text_IO.Out_File, Child_File);
+                  Ada.Text_IO.Put_Line (F, "--  " & Pkg_Name);
+                  Ada.Text_IO.Put_Line
+                    (F, "--  Generated: " & Uml2Code_Utils.Today);
+                  Ada.Text_IO.Put_Line
+                    (F, "--  Source:    " & Source_Diagram);
+                  Ada.Text_IO.New_Line (F);
+                  Ada.Text_IO.Put_Line
+                    (F, "package " & Pkg_Name & " is");
+                  Ada.Text_IO.New_Line (F);
+
+                  for C of Pkg_Elem.Children loop
+                     if Positive (C) <= Natural (D.Elements.Length) then
+                        declare
+                           Child : UML.Model.Element renames
+                             D.Elements (Positive (C));
+                           CName : constant String :=
+                             To_String (Child.Id);
+                        begin
+                           case Child.Kind is
+                              when UML.Model.Class
+                                 | UML.Model.Abstract_Class =>
+                                 Ada.Text_IO.Put_Line
+                                   (F, "   type " & CName
+                                    & " is tagged null record;");
+                                 Ada.Text_IO.New_Line (F);
+                              when UML.Model.Interface_Kind =>
+                                 Ada.Text_IO.Put_Line
+                                   (F, "   type " & CName
+                                    & " is limited interface;");
+                                 Ada.Text_IO.New_Line (F);
+                              when UML.Model.Enumeration =>
+                                 declare
+                                    First_Lit : Boolean := True;
+                                 begin
+                                    Ada.Text_IO.Put
+                                      (F, "   type " & CName & " is (");
+                                    --  Enum literals are in Members
+                                    for M of Child.Members loop
+                                       if M.Kind = UML.Model.Enum_Literal then
+                                          if not First_Lit then
+                                             Ada.Text_IO.Put (F, ", ");
+                                          end if;
+                                          Ada.Text_IO.Put (F, To_String (M.Id));
+                                          First_Lit := False;
+                                       end if;
+                                    end loop;
+                                    Ada.Text_IO.Put_Line (F, ");");
+                                    Ada.Text_IO.New_Line (F);
+                                 end;
+                              when others =>
+                                 null;
+                           end case;
+                        end;
+                     end if;
+                  end loop;
+
+                  Ada.Text_IO.Put_Line (F, "end " & Pkg_Name & ";");
+                  Ada.Text_IO.Close (F);
+                  Put_Line ("wrote " & Child_File);
+               end;
+            end if;
+         end;
+      end loop;
+   end Generate;
+
+end Uml2Code_Ada_Classes;

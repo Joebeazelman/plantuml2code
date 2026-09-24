@@ -1,8 +1,7 @@
 # Alire build artifacts
-*/obj/
-*/lib/
-*/bin/
-*/alire/
+obj/
+lib/
+bin/
 alire/
 
 # Ada compiler output
@@ -34,11 +33,11 @@ fix.sh
 dryrun.sh
 
 # Generated output accidentally written into the crate's tests dir
-/uml2code/tests/driver.adb
-/uml2code/tests/test/
+tests/driver.adb
+tests/test/
 
 # Local agent notes; not tracked
 AGENTS.md
 
 # Local scratch scripts
-gen_adb_protocol.sh
+

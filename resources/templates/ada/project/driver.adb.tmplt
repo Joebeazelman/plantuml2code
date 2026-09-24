@@ -1,0 +1,6 @@
+with {{MACHINE_NAME}};
+procedure Driver is
+   M : {{MACHINE_NAME}}.Machine;
+begin
+   null;
+end Driver;

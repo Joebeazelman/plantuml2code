@@ -1,0 +1,38 @@
+{{ DESCRIPTION }}
+{{ GENERATION_DATE }}
+{{ SOURCE_DIAGRAM }}
+{%- if HAS_TITLE %}
+{{ TITLE }}
+{%- endif %}
+{%- if HAS_NOTES %}
+{% for note in notes %}
+{{ note.text }}
+{%- endfor %}
+{%- endif %}
+{% for composite in composite_states %}
+with {{ composite.child_package }};
+{%- endfor %}
+
+package {{ PACKAGE_NAME }} is
+
+   type State is
+     ({% for state in states %}{{ state.id | ident }}{% if not loop.last %}, {% endif %}{% endfor %});
+
+   type Event is
+     ({% for event in events %}{{ event.name | ident }}{% if not loop.last %}, {% endif %}{% endfor %});
+
+   type Machine is new Base.Machine with record
+      Current : State := {{ INITIAL_STATE | ident }};
+{% for composite in composite_states %}      {{ composite.child_field }} : {{ composite.child_package }}.Machine;
+{%- endfor %}
+   end record;
+
+   function Current_State (Self : Machine) return State;
+   procedure Step (Self : in out Machine; Evt : Event);
+   procedure Reset (Self : in out Machine);
+{% for composite in composite_states %}
+   function {{ composite.name | ident }}_State (Self : Machine) return {{ composite.child_package }}.State;
+   procedure Step_{{ composite.name | ident }} (Self : in out Machine; Evt : {{ composite.child_package }}.Event);
+{%- endfor %}
+
+end {{ PACKAGE_NAME }};

@@ -1,0 +1,17 @@
+package Base is
+   type Machine is tagged private;
+
+   function Current_State (Self : Machine) return Natural;
+   procedure Reset (Self : in out Machine);
+   procedure Mark_Terminated (Self : in out Machine);
+
+   type History_Kind is (History_None, History_Shallow, History_Deep);
+   function Via_History (Self : Machine) return History_Kind;
+
+private
+   type Machine is tagged record
+      State       : Natural := 0;
+      Terminated  : Boolean := False;
+      History     : History_Kind := History_None;
+   end record;
+end Base;

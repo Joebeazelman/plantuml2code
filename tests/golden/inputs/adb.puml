@@ -1,0 +1,117 @@
+@startuml
+!theme amiga
+title Apple Desktop Bus (ADB) Host Protocol Operations
+
+[*] --> ADB_Reset
+
+state "ADB_Reset" as ADB_Reset {
+  state "Send_Reset_Cmd" as Send_Reset_Cmd
+  Send_Reset_Cmd : Drive bus low for ~3ms to reset all devices to default states
+}
+
+ADB_Reset --> Address_Resolution : Reset_Complete
+
+state "Address_Resolution" as Address_Resolution {
+  state "Check_Default_Address" as Check_Default_Address
+  Check_Default_Address : Transmit 'Talk Register 3' to standard default address
+
+  state "Await_Default_Response" as Await_Default_Response
+  Await_Default_Response : Wait for a response to the Talk Register 3 command
+
+  state "Relocate_Devices" as Relocate_Devices
+  Relocate_Devices : Transmit 'Listen Register 3' to default address
+  Relocate_Devices : Command all responding devices to move to a new candidate address
+
+  state "Resolve_Collisions" as Resolve_Collisions
+  Resolve_Collisions : Transmit 'Talk Register 3' to the new candidate address
+  Resolve_Collisions : Devices reply with random IDs; collision losers revert to default
+
+  state "Validate_Winner" as Validate_Winner
+  Validate_Winner : Receive successful payload from the single winning device
+
+  [*] --> Check_Default_Address
+  Check_Default_Address --> Await_Default_Response : Command_Sent
+  Await_Default_Response --> Relocate_Devices : Response_Detected
+  Relocate_Devices --> Resolve_Collisions : Relocation_Command_Sent
+  Resolve_Collisions --> Validate_Winner : Winner_Data_Received
+  Validate_Winner --> Check_Default_Address : Repeat_For_Remaining_Devices
+  Await_Default_Response --> [*] : Timeout_No_Devices
+}
+
+Address_Resolution --> Bus_Idle : Bus_Enumerated
+
+state "Bus_Idle" as Bus_Idle {
+  Bus_Idle : Maintain bus high
+  Bus_Idle : Monitor the command queue for explicit commands
+}
+
+Bus_Idle --> Execute_Explicit_Command : Command_Queued
+Bus_Idle --> Autopolling : Poll_Interval_Reached_And_Queue_Empty
+
+state "Execute_Explicit_Command" as Execute_Explicit_Command {
+  state "Transmit_Explicit" as Transmit_Explicit
+  Transmit_Explicit : Send Listen, Talk, or Flush command to specific target
+  
+  state "Await_Explicit" as Await_Explicit
+  Await_Explicit : Wait for the target device to respond to the command
+
+  state "Delegate_Explicit" as Delegate_Explicit
+  Delegate_Explicit : Route response data to the caller's completion routine
+
+  [*] --> Transmit_Explicit
+  Transmit_Explicit --> Await_Explicit : Is_Talk_Command
+  Transmit_Explicit --> [*] : Is_Listen_Or_Flush_Command
+  Await_Explicit --> Delegate_Explicit : Data_Received
+  Delegate_Explicit --> [*]
+  Await_Explicit --> [*] : Timeout_Transaction_Failed
+}
+    
+Execute_Explicit_Command --> Evaluate_SRQ : Transaction_Complete
+
+state "Autopolling" as Autopolling {
+  state "Select_Next_Target" as Select_Next_Target
+  Select_Next_Target : Retrieve the next active address from the internal Device Table
+  
+  state "Send_Poll_Command" as Send_Poll_Command
+  Send_Poll_Command : Send 'Talk Register 0' to the selected address
+  
+  state "Await_Poll_Response" as Await_Poll_Response
+  Await_Poll_Response : Wait for the polled device to respond to Talk Register 0
+
+  state "Route_Poll_Data" as Route_Poll_Data
+  Route_Poll_Data : Pass payload to the installed ADB Device Handler for this address
+
+  [*] --> Select_Next_Target
+  Select_Next_Target --> Send_Poll_Command : Target_Selected
+  Send_Poll_Command --> Await_Poll_Response : Command_Sent
+  Await_Poll_Response --> Route_Poll_Data : Payload_Received
+  Route_Poll_Data --> [*]
+  Await_Poll_Response --> [*] : Timeout_Normal_No_Data
+}
+
+Autopolling --> Evaluate_SRQ : Transaction_Complete
+
+state "Evaluate_SRQ" as Evaluate_SRQ {
+  Evaluate_SRQ : Inspect the Stop Bit of the immediately preceding transaction
+  Evaluate_SRQ : Did an unpolled device assert SRQ (pull bus low)?
+}
+
+Evaluate_SRQ --> SRQ_Resolution : SRQ_Asserted
+Evaluate_SRQ --> Bus_Idle : SRQ_Not_Asserted
+
+state "SRQ_Resolution" as SRQ_Resolution {
+  state "Identify_Source" as Identify_Source
+  Identify_Source : Issue 'Talk Register 0' sequentially\nto known active devices to find the assertor
+  
+  state "Route_SRQ" as Route_SRQ
+  Route_SRQ : Pass the interrupted payload to the matching ADB Device Handler
+  
+  [*] --> Identify_Source
+  Identify_Source --> Route_SRQ : Data_Received
+  Route_SRQ --> [*] : SRQ_Line_Cleared
+  Identify_Source --> Identify_Source : Timeout_Try_Next_Address
+}
+
+SRQ_Resolution --> Bus_Idle : SRQ_Cleared
+
+@enduml

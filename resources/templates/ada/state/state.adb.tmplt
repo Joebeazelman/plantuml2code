@@ -1,0 +1,88 @@
+package body {{ PACKAGE_NAME }} is
+
+   function Current_State (Self : Machine) return State is
+   begin
+      return Self.Current;
+   end Current_State;
+
+   procedure Reset (Self : in out Machine) is
+   begin
+      Self.Current := {{ INITIAL_STATE | ident }};
+{% for composite in composite_states %}      {{ composite.child_package }}.Reset (Self.{{ composite.child_field }});
+{%- endfor %}
+   end Reset;
+
+   --  Transition table: maps (State, Event) -> State
+   type Transition_Table is array (State, Event) of State;
+
+   No_State : constant State := {{ INITIAL_STATE | ident }};
+
+   Table : constant Transition_Table :=
+     ({% for state in states %}{{ state.id | ident }} => ({% for trans in state.trans_table %}{{ trans.event | ident }} => {{ trans.target | ident }}{% if not loop.last %}, {% endif %}{% endfor %}, others => No_State){% if not loop.last %},
+      {% endif %}{% endfor %});
+
+   procedure Step (Self : in out Machine; Evt : Event) is
+      Next : constant State := Table (Self.Current, Evt);
+   begin
+      --  Exit actions
+      case Self.Current is
+{% for state in states %}{% for action in state.exit_actions %}         when {{ state.id | ident }} =>
+            {{ action }};
+{% endfor %}{% endfor %}         when others => null;
+      end case;
+
+      --  Internal transitions (checked before state change)
+      case Self.Current is
+{% for state in states %}{% for ann in state.annotations %}{% if ann.kind == "Internal_Transition" %}         when {{ state.id | ident }} =>
+            if Evt = {{ ann.trigger | ident }} then
+               {{ ann.action }};
+               return;
+            end if;
+{% endif %}{% endfor %}{% endfor %}         when others => null;
+      end case;
+
+      --  State transition
+      if Next /= No_State then
+{% for composite in composite_states %}         --  Reset child machine on entry to composite state
+         if Next = {{ composite.name | ident }} and then Self.Current /= {{ composite.name | ident }} then
+            declare
+               Via_History : constant Boolean := False;  --  TODO: implement history
+            begin
+               case Via_History is
+                  when False =>
+                     {{ composite.child_package }}.Base.Reset (Self.{{ composite.child_field }});
+                  when True =>
+                     {{ composite.child_package }}.Reset_To_Current (Self.{{ composite.child_field }});
+               end case;
+            end;
+         end if;
+{%- endfor %}
+         Self.Current := Next;
+
+         --  Entry actions
+         case Self.Current is
+{% for state in states %}{% for action in state.entry_actions %}            when {{ state.id | ident }} =>
+               {{ action }};
+{% endfor %}{% endfor %}            when others => null;
+         end case;
+
+         --  Terminal state marking
+{% for state in states %}{% if state.is_terminal %}         if Self.Current = {{ state.id | ident }} then
+            Base.Mark_Terminated (Self);
+         end if;
+{% endif %}{% endfor %}      end if;
+   end Step;
+{% for composite in composite_states %}
+
+   function {{ composite.name | ident }}_State (Self : Machine) return {{ composite.child_package }}.State is
+   begin
+      return {{ composite.child_package }}.Current_State (Self.{{ composite.child_field }});
+   end {{ composite.name | ident }}_State;
+
+   procedure Step_{{ composite.name | ident }} (Self : in out Machine; Evt : {{ composite.child_package }}.Event) is
+   begin
+      {{ composite.child_package }}.Step (Self.{{ composite.child_field }}, Evt);
+   end Step_{{ composite.name | ident }};
+{%- endfor %}
+
+end {{ PACKAGE_NAME }};
