@@ -20,6 +20,18 @@ package Uml2Code_Filters is
      (Arguments : Jintp.Unbounded_String_Array)
       return Ada.Strings.Unbounded.Unbounded_String;
 
+   function Ada_Ident_Filter
+     (Arguments : Jintp.Unbounded_String_Array)
+      return Ada.Strings.Unbounded.Unbounded_String;
+
+   function Ada_Type_Filter
+     (Arguments : Jintp.Unbounded_String_Array)
+      return Ada.Strings.Unbounded.Unbounded_String;
+
+   function Ada_Rel_Type_Filter
+     (Arguments : Jintp.Unbounded_String_Array)
+      return Ada.Strings.Unbounded.Unbounded_String;
+
    --  Stub for backward compatibility with class generator
    procedure Initialize;
 

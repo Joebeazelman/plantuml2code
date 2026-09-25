@@ -5,7 +5,8 @@ with Ada.Characters.Handling;          use Ada.Characters.Handling;
 with Templates_Parser;                 use Templates_Parser;
 
 with Uml2Code_Utils;              use Uml2Code_Utils;
-with Uml2Code_Template_Bindings;  use Uml2Code_Template_Bindings;
+with Uml2Code_Template_Bindings;
+with Jintp;  use Uml2Code_Template_Bindings;
 with Uml2Code_Ada;
 with Uml2Code_Ada_Classes;
 
@@ -105,11 +106,16 @@ package body Uml2Code_Formats is
             Emit_To_Stdout
               (Subdir_For (Fmt, Class), "class.tmplt", For_Classes (D));
          when Ada_HSM =>
-            Uml2Code_Ada_Classes.Generate
-              (D              => D,
-               Source_Diagram => (if Path'Length > 0
-                                  then Path else "diagram.puml"),
-               Out_Dir        => To_String (Out_Dir));
+            declare
+               Env : Jintp.Environment;
+            begin
+               Uml2Code_Ada_Classes.Generate
+                 (D              => D,
+                  Source_Diagram => (if Path'Length > 0
+                                     then Path else "diagram.puml"),
+                  Out_Dir        => To_String (Out_Dir),
+                  Env            => Env);
+            end;
          when Text =>
             raise Program_Error with
               "Emit_Classes called with Text; text output bypasses "

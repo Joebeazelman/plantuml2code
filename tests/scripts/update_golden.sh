@@ -4,10 +4,10 @@
 
 set -euo pipefail
 
-cd "$(dirname "$0")/../../.."
+cd "$(dirname "$0")/../.."
 ROOT="$(pwd)"
-NORM="$ROOT/uml2code/tests/templates/normalize.sed"
-GEN="$ROOT/uml2code/bin/uml2code"
+NORM="$ROOT/tests/templates/normalize.sed"
+GEN="$ROOT/bin/uml2code"
 
 if [ ! -x "$GEN" ]; then
   echo "error: $GEN not built. Run 'cd uml2code && alr build' first."
@@ -17,16 +17,16 @@ fi
 update_case () {
   local name="$1"
   local source="$2"
-  local golden_dir="$ROOT/uml2code/tests/templates/golden/$name"
+  local golden_dir="$ROOT/tests/templates/golden/$name"
 
   echo "==> $name"
   mkdir -p "$golden_dir"
 
   local out
   out=$(mktemp -d)
-  ( cd "$ROOT/uml2code" \
+  ( cd "$ROOT" \
       && ./bin/uml2code gen -f ada -o "$out" \
-         "../$source" >/dev/null )
+         "$source" >/dev/null )
 
   rm -f "$golden_dir"/*.ads "$golden_dir"/*.adb "$golden_dir"/driver.adb
 

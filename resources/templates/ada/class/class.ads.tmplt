@@ -1,15 +1,53 @@
---  {{DESCRIPTION}}
---  Generated: {{GENERATION_DATE}}
---  Source:    {{SOURCE_DIAGRAM}}
+---------------------------------------------------------------------
+--  {{ PACKAGE_NAME | ada_ident }}
+{{ TITLE_LINE }}
+{{ NOTES_HEADER }}
+---------------------------------------------------------------------
 
-package {{PACKAGE_NAME}} is
+{% if PACKAGE_NAME != "Model" %}
+with Zoo;  use Zoo;
+{% endif %}
+{% if needs_unbounded %}
+with Ada.Strings.Unbounded;  use Ada.Strings.Unbounded;
+{% endif %}
+{% if has_vector_instantiations %}
+with Ada.Containers.Vectors;
+{% endif %}
 
-{{#for RAW_CLASS_ID}}
-   type {{RAW_CLASS_ID | ada_type}} is tagged record
-      --  TODO: populate from RAW_ATTR_*
-      null;
-   end record;
+package {{ PACKAGE_NAME | ada_ident }} is
 
-{{/for RAW_CLASS_ID}}
+{% for enum in enums %}
+   type {{ enum.name | ada_ident }} is ({% for lit in enum.literals %}{{ lit | ada_ident }}{% if not loop.last %}, {% endif %}{% endfor %});
 
-end {{PACKAGE_NAME}};
+{% endfor %}
+{% for iface in interfaces %}
+   type {{ iface.name | ada_ident }} is limited interface;
+
+{% endfor %}
+{% for klass in classes %}
+   type {{ klass.name | ada_ident }} is{% if klass.is_abstract %} abstract{% endif %}{% if klass.has_parent %} new {{ klass.parent | ada_ident }}{% endif %}{% if klass.has_parent and klass.has_interface %} and {{ klass.first_interface | ada_ident }}{% endif %}{% if klass.has_interface and not klass.has_parent %} new {{ klass.first_interface | ada_ident }}{% endif %}{% if not klass.has_parent and not klass.has_interface %} tagged{% endif %}{% if klass.has_parent or klass.has_interface %} with{% endif %}{% if klass.has_fields %} record
+{% for field in klass.field_lines %}
+      {{ field }}
+{% endfor %}
+   end record;{% endif %}{% if not klass.has_fields %} null record;{% endif %}
+
+{% for method in klass.methods %}
+{% if method.has_return_type %}
+   function {{ method.name | ada_ident }} (Self : in out {{ klass.name | ada_ident }}) return {{ method.return_type | ada_type }};
+{% endif %}
+{% if not method.has_return_type %}
+   procedure {{ method.name | ada_ident }} (Self : in out {{ klass.name | ada_ident }});
+{% endif %}
+{% endfor %}
+
+{% endfor %}
+{% for vec in vector_instantiations %}
+   type {{ vec.element_type | ada_ident }}_Access is access all {{ vec.element_type | ada_ident }}'Class;
+
+   package {{ vec.vector_name | ada_ident }} is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => {{ vec.element_type | ada_ident }}_Access);
+
+{% endfor %}
+
+end {{ PACKAGE_NAME | ada_ident }};
