@@ -15,6 +15,6 @@ package Uml2code_Config is
    Alire_Host_Distro : constant String := "homebrew";
 
    type Build_Profile_Kind is (release, validation, development);
-   Build_Profile : constant Build_Profile_Kind := development;
+   Build_Profile : constant Build_Profile_Kind := release;
 
 end Uml2code_Config;

@@ -20,15 +20,11 @@ abstract project Uml2code_Config is
            ,"-gnatn" -- Enable inlining
            ,"-ffunction-sections" -- Separate ELF section for each function
            ,"-fdata-sections" -- Separate ELF section for each variable
-           ,"-g" -- Generate debug info
-           ,"-gnatwa" -- Enable all warnings
-           ,"-gnatw.X" -- Disable warnings for No_Exception_Propagation
-           ,"-gnatVa" -- All validity checks
            ,"-gnat2022" -- Ada 2022 Mode
            ,"-gnatW8" -- UTF-8 encoding for wide characters
           );
 
    type Build_Profile_Kind is ("release", "validation", "development");
-   Build_Profile : Build_Profile_Kind := "development";
+   Build_Profile : Build_Profile_Kind := "release";
 
 end Uml2code_Config;
