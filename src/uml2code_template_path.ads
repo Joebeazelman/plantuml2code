@@ -42,4 +42,8 @@ package Uml2Code_Template_Path is
    function Parse_Config (Content     : String;
                           Source_Name : String) return String;
 
+
+   function Adapter_Dir (Language : String) return String;
+   procedure Load_Language_Config (Language : String);
+
 end Uml2Code_Template_Path;

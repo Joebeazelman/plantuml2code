@@ -6,6 +6,12 @@ with Uml2code_Config;
 
 package body Uml2Code_CLI is
 
+   --  Table-driven prefix matching
+   function Starts_With (S, Prefix : String) return Boolean is
+     (S'Length >= Prefix'Length
+      and then S (S'First .. S'First + Prefix'Length - 1) = Prefix);
+
+
    Error_Prefix : constant String :=
      Uml2code_Config.Crate_Name & ": error: ";
    Hint_Prefix  : constant String := "       ";

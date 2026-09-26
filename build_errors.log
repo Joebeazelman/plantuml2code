@@ -1,0 +1,30 @@
+Note: Building uml2code=0.1.0/uml2code.gpr...
+Compile
+   [Ada]          plantuml-classes.adb
+   [Ada]          uml-model-queries.adb
+   [Ada]          plantuml-tokens.adb
+   [Ada]          plantuml-states.adb
+   [Ada]          uml2code_ada_classes.adb
+   [Ada]          uml2code_help.adb
+   [Ada]          uml2code_template_path.adb
+   [Ada]          uml2code_ada.adb
+uml-model-queries.adb:159:04: error: "end Build;" expected
+uml-model-queries.ads:48:01: error: only one private part allowed per package
+uml-model-queries.ads:48:01: error: only one private part allowed per package
+plantuml-tokens.ads:48:23: error: non-static constant in preelaborated unit
+plantuml-tokens.ads:48:23: error: static expression must have scalar or string type (RM 4.9(2))
+plantuml-tokens.ads:48:23: error: non-static constant in preelaborated unit
+plantuml-tokens.ads:48:23: error: static expression must have scalar or string type (RM 4.9(2))
+plantuml-tokens.ads:48:23: error: non-static constant in preelaborated unit
+plantuml-tokens.ads:48:23: error: static expression must have scalar or string type (RM 4.9(2))
+
+   compilation of plantuml-states.adb failed
+   compilation of plantuml-tokens.adb failed
+   compilation of uml-model-queries.adb failed
+   compilation of plantuml-classes.adb failed
+   compilation of uml2code_ada.adb failed
+   compilation of uml2code_ada_classes.adb failed
+
+gprbuild: *** compilation phase failed
+ERROR: Command ["gprbuild", "-s", "-j0", "-p", "-P", "/Users/manuelbarros/Projects/uml2code/uml2code.gpr"] exited with code 4
+ERROR: Compilation failed.

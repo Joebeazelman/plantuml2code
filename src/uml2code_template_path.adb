@@ -274,4 +274,35 @@ package body Uml2Code_Template_Path is
         & " (searched cwd, exe-dir, and parent-of-exe)";
    end Locate;
 
+
+   procedure Load_Language_Config (Language : String) is
+      procedure Try_Root (Root : String) is
+         Conf_Path : constant String := Slash (Slash (Root, Language), "config.conf");
+      begin
+         if Exists (Conf_Path) then
+            declare Content : constant String := Read_File (Conf_Path); begin
+               if Content'Length > 0 then
+                  declare Unused : constant String := Parse_Config (Content, Conf_Path); pragma Unreferenced (Unused); begin null; end;
+               end if;
+            end;
+         end if;
+      end Try_Root;
+      CWD : constant String := Current_Directory;
+      Exe : constant String := Exe_Dir;
+   begin
+      if Length (Override) > 0 then Try_Root (To_String (Override)); if Ada_Comment_Wrap /= 78 then return; end if; end if;
+      Try_Root (Slash (CWD, "resources/templates"));
+      Try_Root (Slash (Exe, "../resources/templates"));
+      Try_Root (Slash (Exe, "resources/templates"));
+   end Load_Language_Config;
+
+   function Adapter_Dir (Language : String) return String is
+      Root : constant String := Locate (Language, "dummy.tmplt");
+      Dir  : constant String := Containing_Directory (Root);
+   begin
+      return Slash (Dir, "adapters");
+   exception
+      when Template_Not_Found => return Slash (Slash (Current_Directory, "resources/templates"), Language & "/adapters");
+   end Adapter_Dir;
+
 end Uml2Code_Template_Path;

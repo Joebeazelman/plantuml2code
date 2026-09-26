@@ -6,15 +6,10 @@ package body Uml2Code_Identifiers is
       R : Unbounded_String; Last_Was_Underscore : Boolean := False;
    begin
       for C of S loop
-         if C in 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' then
-            Append (R, C); Last_Was_Underscore := False;
-         elsif not Last_Was_Underscore and then Length (R) > 0 then
-            Append (R, '_'); Last_Was_Underscore := True;
-         end if;
+         if C in 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' then Append (R, C); Last_Was_Underscore := False;
+         elsif not Last_Was_Underscore and then Length (R) > 0 then Append (R, '_'); Last_Was_Underscore := True; end if;
       end loop;
-      while Length (R) > 0 and then Element (R, Length (R)) = '_' loop
-         Delete (R, Length (R), Length (R));
-      end loop;
+      while Length (R) > 0 and then Element (R, Length (R)) = '_' loop Delete (R, Length (R), Length (R)); end loop;
       if Length (R) = 0 then return "Unnamed";
       elsif Element (R, 1) in '0' .. '9' then return Digit_Prefix & To_String (R);
       else return To_String (R); end if;
@@ -31,6 +26,5 @@ package body Uml2Code_Identifiers is
       return R;
    end Ada_Case;
 
-   function Ident (S : String; Digit_Prefix : String := "S_") return String
-   is (Ada_Case (Sanitize (S, Digit_Prefix)));
+   function Ident (S : String; Digit_Prefix : String := "S_") return String is (Ada_Case (Sanitize (S, Digit_Prefix)));
 end Uml2Code_Identifiers;

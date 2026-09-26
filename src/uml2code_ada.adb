@@ -1,3 +1,4 @@
+with Uml2Code_Identifiers;
 with Ada.Text_IO;              use Ada.Text_IO;
 with Ada.Directories;
 with Ada.Strings.Unbounded;    use Ada.Strings.Unbounded;
@@ -422,7 +423,7 @@ package body Uml2Code_Ada is
            (D              => D,
             Cache          => Cache,
             Region         => Natural (C),
-            Package_Name   => Safe_Name (Id_Of (D, C)) & "_Machine",
+            Package_Name   => Uml2Code_Identifiers.Ident (Id_Of (D, C)) & "_Machine",
             Source_Diagram => Source_Diagram,
             Date_Str       => Date_Str,
             Out_Dir        => Out_Dir);

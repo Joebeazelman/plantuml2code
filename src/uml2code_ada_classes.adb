@@ -151,19 +151,7 @@ package body Uml2Code_Ada_Classes is
                           To_String (First_Iface));
                end;
 
-               --  Find interfaces via realization (raw names)
-               declare
-                  Iface_List : List;
-               begin
-                  for R of D.Relations loop
-                     if R.Kind = UML.Model.Realization
-                       and then Id_Of (D, R.To) = Name
-                     then
-                        Append (Iface_List, Id_Of (D, R.From));
-                     end if;
-                  end loop;
-                  Insert (E_Dict, "interfaces", Iface_List);
-               end;
+
 
                --  Enum literals (raw names)
                if Elem.Kind = UML.Model.Enumeration then
@@ -190,19 +178,21 @@ package body Uml2Code_Ada_Classes is
                end loop;
                Insert (E_Dict, "attributes", Attr_List);
 
-               --  Relation-backed fields, rendered as plain lines to keep the
-               --  template layout simple and parser-friendly.
+               --  Consolidated relation and field processing (single pass)
                declare
                   Field_Lines : List;
                begin
+                  --  First, add direct attributes
                   for M of Elem.Members loop
                      if M.Kind = UML.Model.Attribute then
                         Append (Field_Lines,
                                 "Attr_" & To_String (M.Id) & " : " &
                                 To_String (M.Type_Name) & ";");
+                        Has_Fields := True;
                      end if;
                   end loop;
 
+                  --  Then, process relations (Composition/Association/Aggregation)
                   for R of D.Relations loop
                      if (R.Kind = UML.Model.Composition
                          or else R.Kind = UML.Model.Association
@@ -213,7 +203,9 @@ package body Uml2Code_Ada_Classes is
                            Target : constant String := Id_Of (D, R.To);
                            Target_Is_Enum : Boolean := False;
                            Line : Unbounded_String;
+                           R_Dict : Dictionary;
                         begin
+                           --  Check if target is an enum (only once per relation)
                            for E of D.Elements loop
                               if To_String (E.Id) = Target
                                 and then E.Kind = UML.Model.Enumeration
@@ -223,6 +215,7 @@ package body Uml2Code_Ada_Classes is
                               end if;
                            end loop;
 
+                           --  Build field line
                            if R.Kind = UML.Model.Composition then
                               Line := To_Unbounded_String
                                 ("Attr_" & Target & " : " & Target &
@@ -234,49 +227,23 @@ package body Uml2Code_Ada_Classes is
                               Line := To_Unbounded_String
                                 ("Attr_" & Target & " : access " & Target & ";");
                            end if;
-
                            Append (Field_Lines, To_String (Line));
                            Has_Fields := True;
+
+                           --  Build relation dictionary for template
+                           Insert (R_Dict, "target", Target);
+                           Insert (R_Dict, "kind", R.Kind'Image);
+                           Insert (R_Dict, "is_composition",
+                                   R.Kind = UML.Model.Composition);
+                           Insert (R_Dict, "is_enum_target", Target_Is_Enum);
+                           Append (Rel_List, R_Dict);
                         end;
                      end if;
                   end loop;
 
                   Insert (E_Dict, "field_lines", Field_Lines);
+                  Insert (E_Dict, "relations", Rel_List);
                end;
-
-               --  Relations (raw target names and kinds)
-               for R of D.Relations loop
-                  if (R.Kind = UML.Model.Composition
-                      or else R.Kind = UML.Model.Association
-                      or else R.Kind = UML.Model.Aggregation)
-                    and then Id_Of (D, R.From) = Name
-                  then
-                     declare
-                        R_Dict : Dictionary;
-                        Target : constant String := Id_Of (D, R.To);
-                        Target_Is_Enum : Boolean := False;
-                     begin
-                        --  Check if target is an enum
-                        for E of D.Elements loop
-                           if To_String (E.Id) = Target
-                             and then E.Kind = UML.Model.Enumeration
-                           then
-                              Target_Is_Enum := True;
-                              exit;
-                           end if;
-                        end loop;
-
-                        Insert (R_Dict, "target", Target);
-                        Insert (R_Dict, "kind", R.Kind'Image);
-                        Insert (R_Dict, "is_composition",
-                                R.Kind = UML.Model.Composition);
-                        Insert (R_Dict, "is_enum_target", Target_Is_Enum);
-                        Append (Rel_List, R_Dict);
-                        Has_Fields := True;
-                     end;
-                  end if;
-               end loop;
-               Insert (E_Dict, "relations", Rel_List);
                Insert (E_Dict, "has_fields", Has_Fields);
 
                --  Methods (raw names, types, params)
