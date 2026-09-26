@@ -2,7 +2,6 @@
 --  Animals
 ---------------------------------------------------------------------
 
-with Zoo;                   use Zoo;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Ada.Containers.Vectors;
 

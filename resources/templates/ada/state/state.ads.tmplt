@@ -5,8 +5,8 @@
 {{ TITLE }}
 {%- endif %}
 {%- if HAS_NOTES %}
-{% for note in notes %}
-{{ note.text }}
+{% for comment_line in comment_lines %}
+{{ comment_line.text }}
 {%- endfor %}
 {%- endif %}
 {% for composite in composite_states %}

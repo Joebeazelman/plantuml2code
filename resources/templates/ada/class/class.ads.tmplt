@@ -1,12 +1,11 @@
 ---------------------------------------------------------------------
 --  {{ PACKAGE_NAME | ada_ident }}
 {{ TITLE_LINE }}
-{{ NOTES_HEADER }}
+{% for comment_line in comment_lines %}
+{{ comment_line.text }}
+{% endfor %}
 ---------------------------------------------------------------------
 
-{% if PACKAGE_NAME != "Model" %}
-with Zoo;  use Zoo;
-{% endif %}
 {% if needs_unbounded %}
 with Ada.Strings.Unbounded;  use Ada.Strings.Unbounded;
 {% endif %}
@@ -17,14 +16,23 @@ with Ada.Containers.Vectors;
 package {{ PACKAGE_NAME | ada_ident }} is
 
 {% for enum in enums %}
+{% for comment_line in enum.comment_lines %}
+   {{ comment_line.text }}
+{% endfor %}
    type {{ enum.name | ada_ident }} is ({% for lit in enum.literals %}{{ lit | ada_ident }}{% if not loop.last %}, {% endif %}{% endfor %});
 
 {% endfor %}
 {% for iface in interfaces %}
+{% for comment_line in iface.comment_lines %}
+   {{ comment_line.text }}
+{% endfor %}
    type {{ iface.name | ada_ident }} is limited interface;
 
 {% endfor %}
 {% for klass in classes %}
+{% for comment_line in klass.comment_lines %}
+   {{ comment_line.text }}
+{% endfor %}
    type {{ klass.name | ada_ident }} is{% if klass.is_abstract %} abstract{% endif %}{% if klass.has_parent %} new {{ klass.parent | ada_ident }}{% endif %}{% if klass.has_parent and klass.has_interface %} and {{ klass.first_interface | ada_ident }}{% endif %}{% if klass.has_interface and not klass.has_parent %} new {{ klass.first_interface | ada_ident }}{% endif %}{% if not klass.has_parent and not klass.has_interface %} tagged{% endif %}{% if klass.has_parent or klass.has_interface %} with{% endif %}{% if klass.has_fields %} record
 {% for field in klass.field_lines %}
       {{ field }}
