@@ -14,6 +14,8 @@ with UML.Model.Queries;            use UML.Model.Queries;
 with Uml2Code_Utils;               use Uml2Code_Utils;
 with Uml2Code_Filters;
 with Uml2Code_Generator_Support;   use Uml2Code_Generator_Support;
+with Uml2Code_Ada_Comments;
+with Uml2Code_Template_Path;
 
 with Jintp;                        use Jintp;
 
@@ -67,7 +69,9 @@ package body Uml2Code_Ada_Classes is
          Insert (Dict, "GENERATION_DATE", Date_Str);
          Insert (Dict, "SOURCE_DIAGRAM", Source_Diagram);
          Insert (Dict, "TITLE_LINE", Title_Of (D));
-         Insert (Dict, "NOTES_HEADER", Notes_Of (D));
+         Insert (Dict, "comment_lines",
+                 Uml2Code_Ada_Comments.Comment_Lines
+                   (Notes_Of (D), Uml2Code_Template_Path.Comment_Wrap));
 
          --  Build separate lists for each element kind
          for Idx of Indices loop
@@ -91,6 +95,21 @@ package body Uml2Code_Ada_Classes is
                Insert (E_Dict, "kind", Elem.Kind'Image);
                Insert (E_Dict, "is_abstract",
                        Elem.Kind = UML.Model.Abstract_Class);
+
+               declare
+                  Comments : Unbounded_String;
+               begin
+                  for Note of Elem.Notes loop
+                     if Length (Comments) > 0 then
+                        Append (Comments, ASCII.LF);
+                     end if;
+                     Append (Comments, Note.Text);
+                  end loop;
+                  Insert (E_Dict, "comment_lines",
+                          Uml2Code_Ada_Comments.Comment_Lines
+                            (To_String (Comments),
+                             Uml2Code_Template_Path.Comment_Wrap));
+               end;
 
                --  Find parent via inheritance (raw name)
                declare

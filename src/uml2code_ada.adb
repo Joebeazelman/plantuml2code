@@ -7,6 +7,8 @@ with UML.Model;                use UML.Model;
 with UML.Model.Queries;        use UML.Model.Queries;
 with Uml2Code_Utils;
 with Uml2Code_Filters;
+with Uml2Code_Ada_Comments;
+with Uml2Code_Template_Path;
 with Uml2Code_Generator_Support;
 use  Uml2Code_Generator_Support;
 with Jintp;                    use Jintp;
@@ -382,50 +384,14 @@ package body Uml2Code_Ada is
          Raw_Notes : constant String :=
            (if Region = Top_Level
             then UML.Model.Queries.Notes_Of (D) else "");
-         Notes_List : List;
       begin
          Insert (Dict, "HAS_TITLE", Raw_Title'Length > 0);
          Insert (Dict, "TITLE", Raw_Title);
          Insert (Dict, "HAS_NOTES", Raw_Notes'Length > 0);
 
-         --  Build notes list for per-line iteration in template
-         --  Split Raw_Notes on newlines so template can prefix each line
-         if Raw_Notes'Length > 0 then
-            declare
-               Start : Positive := Raw_Notes'First;
-            begin
-               for I in Raw_Notes'Range loop
-                  if Raw_Notes (I) = ASCII.LF then
-                     declare
-                        Note_Dict : Dictionary;
-                        Line : constant String :=
-                          (if I > Start
-                           then Raw_Notes (Start .. I - 1)
-                           else "");
-                     begin
-                        if Line'Length > 0 then
-                           Insert (Note_Dict, "text", Line);
-                           Append (Notes_List, Note_Dict);
-                        end if;
-                     end;
-                     Start := I + 1;
-                  end if;
-               end loop;
-               --  Last line (no trailing newline)
-               if Start <= Raw_Notes'Last then
-                  declare
-                     Note_Dict : Dictionary;
-                     Line : constant String := Raw_Notes (Start .. Raw_Notes'Last);
-                  begin
-                     if Line'Length > 0 then
-                        Insert (Note_Dict, "text", Line);
-                        Append (Notes_List, Note_Dict);
-                     end if;
-                  end;
-               end if;
-            end;
-         end if;
-         Insert (Dict, "notes", Notes_List);
+         Insert (Dict, "comment_lines",
+                 Uml2Code_Ada_Comments.Comment_Lines
+                   (Raw_Notes, Uml2Code_Template_Path.Comment_Wrap));
       end;
       Insert (Dict, "DESCRIPTION",
         "State machine generated from " & Source_Diagram);

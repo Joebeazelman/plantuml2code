@@ -34,11 +34,14 @@ Template location is resolved in this order:
 4. `$UML2CODE_TEMPLATES`
 5. Built-in `resources/templates` lookups relative to the crate
 
-Config files use a flat `key = value` format; only `templates_dir` is
-recognised. Comment lines start with `#`.
+Config files use a flat `key = value` format. `templates_dir` selects a
+template root and `ada.comment_wrap` sets the maximum generated Ada comment
+line width (including the `-- ` prefix; default: `78`). Comment lines start
+with `#`.
 
     # uml2code.conf
     templates_dir = /path/to/my/templates
+    ada.comment_wrap = 78
 
 ## Templates
 

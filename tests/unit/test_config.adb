@@ -43,6 +43,33 @@ package body Test_Config is
               "unknown key ignored");
    end Test_Unknown_Key;
 
+   procedure Test_Ada_Comment_Wrap (T : in out Test_Case'Class) is
+      pragma Unreferenced (T);
+   begin
+      Assert (Parse_Config ("ada.comment_wrap = 96" & ASCII.LF, "x") = "",
+              "comment wrap does not select a template directory");
+      Assert (Comment_Wrap = 96, "comment wrap is configured");
+   end Test_Ada_Comment_Wrap;
+
+   procedure Test_Invalid_Ada_Comment_Wrap (T : in out Test_Case'Class) is
+      pragma Unreferenced (T);
+      Caught : Boolean := False;
+   begin
+      begin
+         declare
+            X : constant String :=
+              Parse_Config ("ada.comment_wrap = 3" & ASCII.LF, "f");
+            pragma Unreferenced (X);
+         begin
+            null;
+         end;
+      exception
+         when Config_Error =>
+            Caught := True;
+      end;
+      Assert (Caught, "too-small comment wrap raises Config_Error");
+   end Test_Invalid_Ada_Comment_Wrap;
+
    procedure Test_Malformed (T : in out Test_Case'Class) is
       pragma Unreferenced (T);
       Caught : Boolean := False;
@@ -71,6 +98,9 @@ package body Test_Config is
       Register_Routine (T, Test_Simple'Access, "simple");
       Register_Routine (T, Test_Whitespace'Access, "whitespace");
       Register_Routine (T, Test_Unknown_Key'Access, "unknown key");
+      Register_Routine (T, Test_Ada_Comment_Wrap'Access, "Ada comment wrap");
+      Register_Routine (T, Test_Invalid_Ada_Comment_Wrap'Access,
+                        "invalid Ada comment wrap");
       Register_Routine (T, Test_Malformed'Access, "malformed");
    end Register_Tests;
 

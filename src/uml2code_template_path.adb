@@ -8,6 +8,9 @@ with Ada.Command_Line;
 package body Uml2Code_Template_Path is
 
    Override : Unbounded_String := Null_Unbounded_String;
+   Ada_Comment_Wrap : Positive := 78;
+
+   function Comment_Wrap return Positive is (Ada_Comment_Wrap);
 
    procedure Set_Override (Dir : String) is
    begin
@@ -77,8 +80,8 @@ package body Uml2Code_Template_Path is
    --
    --  Flat `key = value` format. '#' begins a comment. Blank lines
    --  are skipped. Values are taken verbatim after the first '=' and
-   --  trimmed of surrounding whitespace. Only `templates_dir` is
-   --  recognised; unknown keys are ignored.
+   --  trimmed of surrounding whitespace. `templates_dir` and
+   --  `ada.comment_wrap` are recognised; unknown keys are ignored.
 
    function Trim (S : String) return String is
      (Ada.Strings.Fixed.Trim (S, Ada.Strings.Both));
@@ -109,6 +112,23 @@ package body Uml2Code_Template_Path is
          begin
             if Key = "templates_dir" then
                Result := To_Unbounded_String (Val);
+            elsif Key = "ada.comment_wrap" then
+               declare
+                  Width : Natural;
+               begin
+                  Width := Natural'Value (Val);
+                  if Width < 4 then
+                     raise Config_Error with
+                       Source_Name & ":" & Line_No'Image
+                       & ": ada.comment_wrap must be at least 4";
+                  end if;
+                  Ada_Comment_Wrap := Positive (Width);
+               exception
+                  when Constraint_Error =>
+                     raise Config_Error with
+                       Source_Name & ":" & Line_No'Image
+                       & ": invalid ada.comment_wrap value '" & Val & "'";
+               end;
             end if;
          end;
       end Handle_Line;

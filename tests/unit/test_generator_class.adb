@@ -122,6 +122,21 @@ package body Test_Generator_Class is
               "class inside package");
    end Test_Package_Membership;
 
+   procedure Test_Diagram_Notes_Are_Ada_Comments
+     (T : in out Test_Case'Class)
+   is
+      pragma Unreferenced (T);
+      Src : constant String :=
+        "@startuml" & ASCII.LF
+        & "class Dog" & ASCII.LF
+        & "note ""A generated domain object.""" & ASCII.LF
+        & "@enduml";
+      Ads : constant String := Generate_And_Read (Src, "model.ads");
+   begin
+      Assert (Has (Ads, "-- A generated domain object."),
+              "diagram notes are rendered as Ada comments");
+   end Test_Diagram_Notes_Are_Ada_Comments;
+
    overriding
    procedure Register_Tests (T : in out Case_Type) is
       use AUnit.Test_Cases.Registration;
@@ -136,6 +151,8 @@ package body Test_Generator_Class is
                         "subclass derives from parent");
       Register_Routine (T, Test_Package_Membership'Access,
                         "package membership");
+      Register_Routine (T, Test_Diagram_Notes_Are_Ada_Comments'Access,
+                        "diagram notes as Ada comments");
    end Register_Tests;
 
    overriding

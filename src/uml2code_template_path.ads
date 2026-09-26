@@ -10,8 +10,8 @@
 --    6. resources/templates under the executable's directory
 --
 --  Config files use a flat `key = value` format; lines beginning
---  with '#' are comments. Only `templates_dir` is recognised; other
---  keys are ignored. Malformed lines raise Config_Error.
+--  with '#' are comments. `templates_dir` and `ada.comment_wrap` are
+--  recognised; other keys are ignored. Malformed lines raise Config_Error.
 --
 --  The format subdir is tried first; if not found, the "default"
 --  subdir is tried as a fallback.
@@ -20,6 +20,10 @@ package Uml2Code_Template_Path is
 
    procedure Set_Override (Dir : String);
    procedure Clear_Override;
+
+   --  Width, including the Ada "-- " prefix, used when rendering generated
+   --  comments.  It defaults to 78 and may be set with `ada.comment_wrap`.
+   function Comment_Wrap return Positive;
 
    function Locate (Subdir : String; File : String) return String;
 
