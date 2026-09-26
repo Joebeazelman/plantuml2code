@@ -73,6 +73,16 @@ after an intentional output change.
 
 `plantuml_parser` is ready to publish. See `PUBLISHING.md`.
 
+## Git ref troubleshooting
+
+Commands that accept a Git ref require that ref to exist in the local clone.
+Check a supplied ref before using it with:
+
+    git rev-parse --verify --quiet '<ref>^{commit}'
+
+If this command returns no commit, fetch the branch from its remote (when one
+is configured) or provide an existing local branch or commit SHA instead.
+
 ## Further reading
 
 `AGENTS.md` documents architecture, the template tag protocol, and the
